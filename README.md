@@ -42,10 +42,10 @@ Prérequis : Python 3.12, Node 22. Aucun modèle ni Docker nécessaire : le faux
 cd backend
 py -3.12 -m venv .venv
 .venv\Scripts\python -m pip install -e . pytest ruff reportlab
-.venv\Scriptsuff check .
+.venv\Scripts\ruff check .
 .venv\Scripts\pytest -q
 ```
-Résultat attendu : `All checks passed!` puis 388 passed, 2 skipped (PostgreSQL et LibreOffice absents). Tests d'entraînement : `.venv\Scripts\python -m pytest ..	raining	ests -q`.
+Résultat attendu : `All checks passed!` puis 388 passed, 2 skipped (PostgreSQL et LibreOffice absents). Tests d'entraînement : `.venv\Scripts\python -m pytest ..\training\tests -q`.
 
 Lancer l'API (SQLite local, faux modèle, mode `dev` sans connexion) :
 ```powershell
