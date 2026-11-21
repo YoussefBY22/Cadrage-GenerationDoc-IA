@@ -37,7 +37,7 @@ V1 (B1–B4)                    █████████████ 13      
 V2 (B5, C1–C3)                ██████████ 10         R1 + R2             █████████ 9
 V5 (D3b, G1)                  ███████ 7             F1                  ████ 4      B0 ███ 3
 ```
-Total de la nuit : **88 pts de la fenêtre de 5 h** (59 + 29 sur deux fenêtres) et **15 pts de l'hebdomadaire** (64 → 79 %). Un lot Sonnet coûte 3 à 4 pts ; l'architecte Opus ~10 pts à lui seul. Le lot le plus lourd est la vague V3 (sessions réutilisées donc contexte déjà chargé). Une pause volontaire à 93 % a évité toute interruption en plein travail. Le coût de la rédaction de ce rapport (R3) est non mesuré.
+Total de la nuit : **88 pts de la fenêtre de 5 h** (59 + 29 sur deux fenêtres) et **15 pts de l'hebdomadaire** (64 → 79 %). Un lot Sonnet coûte 3 à 4 pts ; l'architecte Opus ~10 pts à lui seul. Le lot le plus lourd est la vague V3 (sessions réutilisées donc contexte déjà chargé). Une pause volontaire à 93 % a évité toute interruption en plein travail. La rédaction de ce rapport (R3) a coûté environ 2 pts de 5 h et moins de 1 pt hebdomadaire (relevé de l'orchestrateur : 32 → 34 % et 79 → 79 %). Il reste **21 % de l'hebdomadaire**, gardés pour les lots T1 à T6 avec l'utilisateur.
 
 ## 6. Risques et limites
 - **Aucun vrai modèle, aucune base PostgreSQL, aucun Docker, aucun navigateur n'a tourné** : tous les chiffres viennent d'un faux modèle et de SQLite. La qualité rédactionnelle réelle reste inconnue.
