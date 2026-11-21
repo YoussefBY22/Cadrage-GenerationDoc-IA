@@ -1,0 +1,66 @@
+id: tor-fr-standard
+version: '1.0'
+type: tor
+language: fr
+title: Termes de référence
+sections:
+- key: contexte
+  title: Contexte et justification
+  instructions: Résume le contexte institutionnel et les constats qui motivent la mission.
+  queries:
+  - contexte institutionnel
+  - constats du diagnostic
+  - enjeux
+  min_sources: 2
+  max_sentences: 10
+  uses_findings: true
+- key: objectifs
+  title: Objectifs de la mission
+  instructions: Formule les objectifs général et spécifiques de la mission, en lien avec les constats.
+  queries:
+  - objectifs de la mission
+  - résultats attendus
+  - besoins exprimés
+  min_sources: 2
+  max_sentences: 8
+  uses_findings: true
+- key: livrables
+  title: Livrables attendus
+  instructions: Liste les livrables attendus avec leur contenu, uniquement ceux appuyés par les sources.
+  queries:
+  - livrables attendus
+  - produits à remettre
+  - documents à produire
+  min_sources: 2
+  max_sentences: 10
+  uses_findings: false
+- key: calendrier
+  title: Calendrier de la mission
+  instructions: Décris la durée et les jalons de la mission tels qu'ils ressortent des passages.
+  queries:
+  - calendrier de la mission
+  - durée et jalons
+  - échéances
+  min_sources: 1
+  max_sentences: 8
+  uses_findings: false
+- key: profil
+  title: Profil des experts
+  instructions: Décris les profils et qualifications requis des experts d'après les sources.
+  queries:
+  - profil des experts
+  - qualifications requises
+  - expérience demandée
+  min_sources: 1
+  max_sentences: 8
+  uses_findings: false
+- key: evaluation
+  title: Critères d'évaluation
+  instructions: Présente les critères d'évaluation des offres ou des livrables mentionnés dans les sources.
+  queries:
+  - critères d'évaluation
+  - grille de notation
+  - sélection des offres
+  min_sources: 1
+  max_sentences: 8
+  uses_findings: false
