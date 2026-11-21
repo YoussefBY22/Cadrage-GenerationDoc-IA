@@ -104,3 +104,21 @@ Je n'ai pas vérifié les liens : cherche les titres.
 5. **SQL et modèle en étoile** : pour l'entrepôt et Power BI.
 6. **Fine-tuning** : à comprendre en gros, tu n'as pas besoin de coder les calculs.
 7. **Sécurité et confidentialité** : ce qui peut fuir, et comment on l'évite.
+
+---
+
+## 6. Notions ajoutées en cours de projet
+
+**Interface (`LLMProvider`)** *(phase A)* : une « prise standard ». Le reste du code branche n'importe quel modèle dessus, comme un appareil sur une prise normalisée. Changer de modèle ne casse rien.
+
+**Faux modèle / déterminisme** *(phase A)* : un programme qui imite un modèle mais renvoie **toujours la même réponse pour la même entrée**. Sans GPU, il permet de vérifier que toute la chaîne fonctionne ; les vrais modèles, eux, varient.
+
+**Graine aléatoire (seed)** *(phase A)* : le « point de départ » du hasard. Même graine + même température basse = résultats reproductibles, donc chiffres refaisables (contrainte C4).
+
+**Sortie structurée / schéma JSON** *(phase A, utilisée en C)* : on donne au modèle un **formulaire** à remplir (champs, types) au lieu de le laisser écrire librement ; le code peut alors **valider** la réponse automatiquement.
+
+**Test de contrat** *(phase A)* : on vérifie qu'un composant envoie bien les bonnes requêtes à un **serveur simulé**, sans le vrai service. C'est ainsi qu'on teste Ollama sans modèle.
+
+**Réseau Docker « internal »** *(phase A)* : un réseau privé entre conteneurs, **sans porte vers Internet**. La base de données y est enfermée.
+
+**Journal sans contenu** *(phase A)* : on note « un texte de 412 caractères, empreinte ab12… » et jamais le texte lui-même, pour qu'aucune donnée client ne fuite dans les journaux.
