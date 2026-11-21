@@ -12,8 +12,32 @@ jobs:
       - run: pip install -r backend/requirements.lock pytest ruff reportlab
       - run: cd backend && ruff check .
       - run: cd backend && pytest -q
+  frontend:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+  training:
+    runs-on: ubuntu-latest   # sans torch : les tests utilisent le mode --simulate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r backend/requirements.lock pytest reportlab
+      - run: python -m pytest training/tests -q
   compose-config:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: POSTGRES_DB=ci POSTGRES_USER=ci POSTGRES_PASSWORD=ci docker compose config -q
+      - run: POSTGRES_DB=ci POSTGRES_USER=ci POSTGRES_PASSWORD=ci docker compose --profile llm config -q
