@@ -1,0 +1,75 @@
+// Textes de l'interface. Pour ajouter l'anglais : créer en.ts avec la même forme (type Messages).
+export const fr = {
+  appName: "Assistant de cadrage",
+  nav: { dossiers: "Dossiers", logout: "Se déconnecter", back: "Retour" },
+  common: {
+    loading: "Chargement…",
+    error: "Une erreur est survenue",
+    close: "Fermer",
+    save: "Enregistrer",
+    cancel: "Annuler",
+  },
+  login: {
+    title: "Connexion",
+    email: "Adresse e-mail",
+    password: "Mot de passe",
+    submit: "Se connecter",
+    bad: "Identifiants invalides",
+  },
+  dossiers: {
+    title: "Dossiers",
+    empty: "Aucun dossier pour l'instant.",
+    name: "Nom du dossier",
+    client: "Client",
+    create: "Créer le dossier",
+    open: "Ouvrir",
+  },
+  dossier: {
+    documents: "Documents",
+    noDocuments: "Aucun document importé.",
+    dropHere: "Glissez des fichiers ici ou cliquez pour choisir (PDF, DOCX, PPTX, TXT, MD)",
+    uploading: "Import en cours…",
+    imported: (name: string, chunks: number) => `${name} : ${chunks} passage(s) indexé(s)`,
+    duplicate: "Ce document est déjà importé dans ce dossier.",
+    tooLarge: "Fichier trop volumineux.",
+    unsupported: "Format non pris en charge.",
+    pages: "pages",
+    search: "Recherche",
+    findings: "Constats",
+  },
+  search: {
+    title: "Recherche dans le dossier",
+    placeholder: "Votre question ou des mots-clés",
+    submit: "Rechercher",
+    none: "Aucun passage trouvé.",
+  },
+  findings: {
+    title: "Constats",
+    extract: "Extraire les constats",
+    none: "Aucun constat. Lancez l'extraction.",
+    validate: "Valider",
+    unvalidate: "Retirer la validation",
+    edit: "Corriger",
+    validated: "Validé",
+    draft: "À valider",
+    sources: "Sources",
+    severity: { low: "Faible", medium: "Moyenne", high: "Élevée" },
+  },
+  source: {
+    title: "Passage source",
+    page: "page",
+    section: "Section",
+    alert: "Contenu suspect détecté",
+    flags: {
+      IGNORE_INSTRUCTIONS: "Consigne d'ignorer les instructions",
+      ROLE_OVERRIDE: "Tentative de changement de rôle",
+      DELIMITER_SPOOF: "Faux délimiteurs",
+      HIDDEN_TEXT: "Texte caché",
+      EXFIL_URL: "URL suspecte",
+    } as Record<string, string>,
+  },
+  alerts: (n: number) => `${n} alerte(s) d'injection`,
+};
+
+export type Messages = typeof fr;
+export const t: Messages = fr;
