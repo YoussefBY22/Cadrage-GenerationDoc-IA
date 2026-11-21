@@ -1,0 +1,24 @@
+# GPU gratuit en ligne (Colab) : DONNÉES PUBLIQUES OU SYNTHÉTIQUES UNIQUEMENT (jamais de données client).
+# Sessions coupées sans préavis : points de reprise fréquents, à placer sur un stockage persistant.
+name: colab
+public_data_only: true
+base_model: Qwen/Qwen3-1.7B
+precision: fp16          # T4 : pas de bf16
+quant: nf4_double
+lora: {r: 16, alpha: 32, dropout: 0.05, modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]}
+lr: 2.0e-4
+scheduler: cosine
+warmup_ratio: 0.03
+epochs: 2
+max_seq_len: 1536
+batch_size: 2
+grad_accum: 8
+gradient_checkpointing: true
+optimizer: paged_adamw_8bit
+eval_every_steps: 50
+early_stop_patience: 3
+budget_hours: 3.0
+save_every_min: 10
+keep_checkpoints: 3
+min_free_gb: 3.0
+max_gpu_temp: 85
