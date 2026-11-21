@@ -1,0 +1,19 @@
+// Mesures Power BI (07 §6). À copier dans Power BI Desktop : Accueil > Nouvelle mesure (une par bloc).
+// Les noms de colonnes viennent des vues exportées (v_generation, v_outcome, v_llm_calls).
+
+TPV = DIVIDE(SUM(v_generation[sentences_verified]), SUM(v_generation[sentences_total]))
+
+Citations valides = DIVIDE(SUM(v_generation[citations_valid]), SUM(v_generation[citations_total]))
+
+Fidélité chiffres = IF(SUM(v_generation[numbers_cited]) = 0, 1,
+    DIVIDE(SUM(v_generation[numbers_found]), SUM(v_generation[numbers_cited])))
+
+Taux refus = DIVIDE(CALCULATE(COUNTROWS(v_generation), v_generation[status] = "refused"), COUNTROWS(v_generation))
+
+Acceptation sans modif = DIVIDE(CALCULATE(COUNTROWS(v_outcome), v_outcome[unchanged] = TRUE()), COUNTROWS(v_outcome))
+
+Temps gagné (h) = SUM(v_outcome[minutes_saved_est]) / 60
+
+Latence p95 (s) = PERCENTILEX.INC(v_llm_calls, v_llm_calls[latency_ms], 0.95) / 1000
+
+Δ TPV vs B = [TPV] - CALCULATE([TPV], v_generation[config_label] = "B")

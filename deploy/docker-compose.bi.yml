@@ -1,0 +1,24 @@
+# Metabase (alternative libre à Power BI, 07 §10). Aucune image n'est téléchargée tant qu'on ne lance pas la commande.
+# Usage (à tester au lot T1) :
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.bi.yml --profile bi up metabase
+# Connexion à la base : hôte « db », port 5432, base POSTGRES_DB, utilisateur bi_reader (db/dw/roles.sql),
+# schéma « dw » uniquement. Licence AGPL (usage interne, image non modifiée) : à vérifier (docs/LICENCES-LOGICIELS.md).
+services:
+  metabase:
+    image: metabase/metabase:v0.50.36        # version à confirmer au moment du téléchargement
+    profiles: ["bi"]
+    environment:
+      MB_DB_FILE: /metabase-data/metabase.db
+      MB_ANON_TRACKING_ENABLED: "false"      # pas de télémétrie
+      MB_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - metabase-data:/metabase-data
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${METABASE_PORT:-3000}:3000"   # local uniquement
+    networks: [internal, edge]               # internal : accès à la base ; edge : seulement pour publier le port local
+
+volumes:
+  metabase-data:
