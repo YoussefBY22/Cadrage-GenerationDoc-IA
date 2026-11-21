@@ -1,6 +1,7 @@
 """Configuration : tout vient de l'environnement (jamais de secret dans le dépôt)."""
 
 from functools import lru_cache
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -19,6 +20,20 @@ class Settings(BaseSettings):
 
     database_url: str = ""   # vide = base non configurée (tests sans base)
     log_level: str = "INFO"
+
+    # Stockage et recherche (06 §11)
+    storage_url: str = "sqlite+pysqlite:///./data/app.db"
+    embedding_dim: int = 64
+    upload_dir: str = "./data/uploads"
+    max_upload_mb: int = 25
+    allow_self_approval: bool = False
+    retrieval_k: int = 10
+    retrieval_pool: int = 50
+    rrf_k: int = 60
+    support_threshold: float = 0.3
+    session_ttl_hours: int = 12
+    soffice_path: str = "soffice"
+    auth_mode: Literal["dev", "token"] = "dev"
 
     @property
     def allowed_hosts(self) -> set[str]:

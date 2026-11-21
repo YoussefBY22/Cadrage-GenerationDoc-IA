@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 
 from . import __version__
+from .api import discover_routers
 from .config import get_settings
 from .llm import LLMProvider, build_provider
 from .logging_setup import configure_logging
@@ -28,7 +29,7 @@ def check_database(url: str) -> str:
         return "error"
 
 
-def create_app(provider: LLMProvider | None = None) -> FastAPI:
+def create_app(provider: LLMProvider | None = None, repo=None) -> FastAPI:
     settings = get_settings()
     configure_logging(settings.log_level)
 
@@ -40,6 +41,11 @@ def create_app(provider: LLMProvider | None = None) -> FastAPI:
 
     app = FastAPI(title="Assistant IA local de cadrage", version=__version__, lifespan=lifespan,
                   docs_url="/docs", redoc_url=None)
+
+    # Dépôt : fourni, sinon construit paresseusement par app.api.deps.get_repo
+    app.state.repo = repo
+    for router in discover_routers():
+        app.include_router(router, prefix="/api/v1")
 
     @app.get("/health")
     def health() -> dict:
