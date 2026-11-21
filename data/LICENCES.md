@@ -6,3 +6,9 @@ titre · source (URL) · licence · date de collecte · fichier. Jamais de docum
 | Fichier | Source | Licence | Date | Remarque |
 |---|---|---|---|---|
 | *(vide)* | | | | |
+
+## Corpus synthétique
+
+Les documents générés par `backend/eval/corpus/generate.py` (dossier `eval/corpus/out`, non versionné)
+sont une **œuvre propre** du projet : institutions, chiffres et textes fictifs, produits par gabarits
+et graine fixe, sans donnée réelle. Aucune restriction ; voir `data/synthetic/README.md`.
