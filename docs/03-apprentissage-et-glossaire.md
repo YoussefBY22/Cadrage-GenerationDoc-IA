@@ -122,3 +122,43 @@ Je n'ai pas vérifié les liens : cherche les titres.
 **Réseau Docker « internal »** *(phase A)* : un réseau privé entre conteneurs, **sans porte vers Internet**. La base de données y est enfermée.
 
 **Journal sans contenu** *(phase A)* : on note « un texte de 412 caractères, empreinte ab12… » et jamais le texte lui-même, pour qu'aucune donnée client ne fuite dans les journaux.
+
+**BM25** *(phase B)* : la formule classique de recherche **par mots-clés**. Un mot rare présent dans un passage compte beaucoup ; un mot très courant compte peu ; un passage très long est un peu pénalisé. Imbattable pour les noms propres et les chiffres.
+
+**RRF (Reciprocal Rank Fusion, fusion par rangs réciproques)** *(phase B)* : pour combiner deux classements (mots-clés et sens), on donne à chaque passage `1 / (60 + son rang)` dans chaque classement et on additionne. Comme un jury de deux juges qui classent les candidats : on ne compare pas leurs notes, seulement les **places**. Simple et robuste.
+
+**Rappel@k, MRR** *(phase B)* : le **rappel@10** est la part des questions pour lesquelles le bon passage figure dans les 10 premiers résultats. Le **MRR** regarde à quelle **place** il arrive (1ʳᵉ place = 1, 2ᵉ = 0,5…).
+
+**Reranking (reclassement)** *(phase B, optionnel)* : un modèle plus lent relit la question **et** chaque passage ensemble pour réordonner les 30 premiers. Plus précis, plus coûteux : prévu pour le serveur, pas pour le PC à 4 Go.
+
+**Couche de stockage abstraite (dépôt / repository)** *(phase B)* : le code demande « donne-moi les passages du dossier X » sans savoir si la base est SQLite (tests) ou PostgreSQL (production). Comme une prise électrique standard, encore.
+
+**Étiquettes de passages (P1, P2…)** *(phase C)* : le modèle ne voit pas les longs identifiants, seulement `P1…P10` ; le code refait la correspondance. Moins de recopie, moins d'erreurs.
+
+**Nonce** *(phase C)* : un code aléatoire, différent à chaque appel, placé dans les balises qui entourent les passages. Un document piégé ne peut pas « fermer » la balise car il ne connaît pas ce code.
+
+**Mode « preuve d'abord »** *(phase C)* : on extrait d'abord des **constats** sourcés, l'humain les valide, puis on rédige la feuille de route et les termes de référence **à partir des constats validés**.
+
+**TPV (taux de phrases vérifiées)** *(phase C)* : part des phrases dont toutes les sources existent et dont tous les chiffres se retrouvent dans les sources. L'indicateur central du projet. Il prouve l'**ancrage**, pas la vérité.
+
+**Normalisation des nombres** *(phase C)* : ramener « 1 250 », « 1,25 millier » et « 1250 » à la même valeur avant de comparer.
+
+**Canari** *(phase C)* : un mot unique (`ZX-CANARI-7`) caché dans un document piégé. S'il ressort dans la réponse, l'attaque a réussi : c'est mesurable.
+
+**Quatre yeux** *(phase D)* : la personne qui approuve un livrable ne peut pas être celle qui l'a écrit. Principe de contrôle interne classique en audit.
+
+**Grain d'un fait** *(phase E)* : ce que représente **une ligne** d'une table de faits (« une tentative de génération d'une section », « une transition de validation »). On le fixe **avant** de choisir les colonnes ; mélanger deux grains dans une table fausse les sommes.
+
+**Dimension / fait / clé de substitution** *(phase E)* : un **fait** mesure (latence, nombre de phrases) ; une **dimension** décrit (quel modèle, quel client, quel jour). La clé de substitution est un simple numéro interne qui relie les deux.
+
+**ETL incrémental et idempotent, filigrane (watermark)** *(phase E)* : on ne recopie que ce qui est nouveau depuis la dernière date chargée (le filigrane) ; relancer deux fois ne crée pas de doublons.
+
+**Mesure DAX** *(phase E)* : formule de Power BI calculée selon les filtres de la page (par exemple le TPV d'un seul client).
+
+**Distance d'édition (edit ratio)** *(phase E)* : combien le consultant a réécrit le texte proposé, de 0 (rien changé) à 1 (tout réécrit).
+
+**Intervalle de confiance par bootstrap** *(phase F)* : on retire des centaines de fois, au hasard et avec remise, l'échantillon de sections pour voir comment varie le résultat. Si l'intervalle du gain C − B reste au-dessus de 0, le gain n'est probablement pas dû au hasard.
+
+**Q4_K_M, GGUF** *(phase F)* : format de fichier de modèle (GGUF) et niveau de compression courant (environ 4 bits par poids) utilisés par Ollama et llama.cpp.
+
+**Fuite de données d'évaluation** *(phase F)* : si un même document sert à l'entraînement et au test, le score est trop beau. D'où le découpage **par document source**.
