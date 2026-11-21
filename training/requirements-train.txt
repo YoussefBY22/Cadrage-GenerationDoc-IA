@@ -1,0 +1,12 @@
+# Dépendances d'ENTRAÎNEMENT réel (lourdes : plusieurs Go). NON installées pendant le développement ;
+# les tests (`python -m pytest training/tests -q`) n'en ont pas besoin (mode --simulate).
+# Versions à figer le jour de l'installation (pip freeze > requirements-train.lock). À vérifier.
+# Installer d'abord torch avec le bon CUDA : https://pytorch.org/get-started/locally/
+torch
+transformers
+peft
+trl
+accelerate
+datasets
+safetensors
+bitsandbytes   # support Windows à vérifier ; sinon WSL2 ou Colab
