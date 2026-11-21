@@ -7,6 +7,7 @@ RUN pip install --no-cache-dir -r requirements.lock
 COPY backend/app ./app
 COPY backend/migrations ./migrations
 COPY backend/alembic.ini ./
+COPY backend/scripts/create_user.py ./scripts/create_user.py
 RUN useradd --system --uid 10001 appuser && mkdir -p /data/uploads && chown -R appuser /data
 USER appuser
 EXPOSE 8000

@@ -34,6 +34,13 @@ class Settings(BaseSettings):
     session_ttl_hours: int = 12
     soffice_path: str = "soffice"
     auth_mode: Literal["dev", "token"] = "token"
+    # Origines autorisées à appeler l'API depuis un navigateur (front en développement sur :3000).
+    # Vide = aucune (déploiement même origine derrière le proxy).
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
     @property
     def allowed_hosts(self) -> set[str]:
