@@ -162,3 +162,49 @@ Je n'ai pas vérifié les liens : cherche les titres.
 **Q4_K_M, GGUF** *(phase F)* : format de fichier de modèle (GGUF) et niveau de compression courant (environ 4 bits par poids) utilisés par Ollama et llama.cpp.
 
 **Fuite de données d'évaluation** *(phase F)* : si un même document sert à l'entraînement et au test, le score est trop beau. D'où le découpage **par document source**.
+
+### Notions des phases B à G (consolidées au lot R2)
+
+**Contrat / modèle gelé** *(B0)* : signature ou modèle de données qu'aucun lot ne change sans le signaler ; les modèles Pydantic sont « gelés » (non modifiables après création), comme un formulaire signé. **Routeur découvert** : fichier `routes_*.py` inclus automatiquement par l'application, sans toucher à `main.py`.
+
+**Migration Alembic, clé étrangère** *(B1)* : une migration est une étape versionnée qui fait évoluer le schéma de la base (avec retour arrière). Une clé étrangère interdit de pointer vers une ligne qui n'existe pas.
+
+**pgvector, HNSW, similarité cosinus, force brute** *(B1)* : pgvector ajoute les vecteurs à PostgreSQL ; HNSW est un index qui trouve les voisins approximativement, très vite ; la similarité cosinus mesure l'angle entre deux vecteurs ; la force brute compare avec tous (exacte, lente sur de gros volumes, suffisante en test).
+
+**Signature de fichier (magic bytes)** *(B2)* : les premiers octets qui révèlent le vrai format ; on la vérifie en plus de l'extension, qu'un fichier piégé peut falsifier.
+
+**Section_path** *(B2)* : chemin des titres d'un passage (« 2 > 2.1 Gouvernance ») qui sert de repère de citation.
+
+**Injection indirecte, texte caché, faux positif** *(B2)* : consigne cachée dans un document du client (police minuscule, caractères de largeur nulle). Le détecteur la **signale** sans supprimer le passage. Un faux positif est une alerte sur un texte normal.
+
+**Mots vides, racinisation, IDF, chevauchement** *(B3)* : mots vides = mots ignorés (« le », « de ») ; racinisation = ramener « financements » à « financ » ; IDF = poids d'un mot d'autant plus fort qu'il est rare ; chevauchement = quelques mots répétés entre deux passages voisins pour ne pas couper une idée.
+
+**Corpus « or », phrase-marqueur, document piégé** *(B4)* : jeu de documents fabriqués à partir de faits connus ; chaque fait porte une phrase unique qui prouve qu'un passage est le bon ; les documents piégés contiennent des attaques ou des chiffres contradictoires.
+
+**Empreinte SHA-256, ingestion** *(B5)* : l'empreinte identifie un fichier (deux contenus identiques, même empreinte), d'où le refus de doublons. L'ingestion est la chaîne taille → lecture → découpage → alertes → vecteurs → stockage.
+
+**Gabarit, budget de contexte, instantané (snapshot)** *(C1)* : le gabarit liste les sections d'un livrable ; le budget limite le nombre de passages donnés au modèle ; un test d'instantané compare un prompt à une version de référence.
+
+**Appui lexical, écho d'instruction** *(C2)* : l'appui lexical mesure le recouvrement de mots pleins entre une phrase et sa source (un indice, pas une preuve) ; l'écho d'instruction détecte une consigne piégée reprise dans la réponse. Le vérificateur prouve l'ancrage, pas la véracité.
+
+**Refus (« preuves insuffisantes »), run de génération** *(C4)* : sans assez de passages le système refuse **avant** d'appeler le modèle. Un run enregistre une tentative de génération (modèle, durée, résultat).
+
+**Tri topologique, chemin critique, cycle** *(C3)* : le tri topologique range les initiatives pour que chaque prérequis passe avant (algorithme de Kahn) ; le chemin critique est la file de tâches la plus longue, qui fixe la durée totale ; un cycle (A attend B qui attend A) est détecté et signalé. Le score de priorité est la somme pondérée des critères ramenés sur 0–1 (coût et risque inversés).
+
+**Acquittement, jeton opaque** *(D1)* : le relecteur accepte explicitement une phrase en échec ou un refus (consigné). Un jeton opaque est une chaîne aléatoire sans contenu lisible ; seule son empreinte est stockée.
+
+**Annexe Sources, conversion headless, Gantt** *(D2)* : liste numérotée des passages cités ; conversion en PDF par LibreOffice sans interface ; planning en barres (vagues, durées).
+
+**App Router, jeton porteur (Bearer), XSS, vitest** *(D3a)* : routage Next.js par dossiers ; en-tête `Authorization: Bearer …` ; XSS = injection de script par du texte affiché comme HTML (d'où aucun `dangerouslySetInnerHTML`) ; vitest = lanceur de tests du front.
+
+**TipTap / ProseMirror, nœud, NodeView, diff** *(D3b)* : bibliothèque d'éditeur ; chaque phrase est un nœud portant son statut (vert, orange, rouge) et ses sources ; un diff montre ce qui a changé entre deux versions.
+
+**Pseudonymisation, vue SQL** *(E1)* : remplacer les noms réels par des identifiants stables dans l'entrepôt ; une vue est une requête enregistrée, lue par Power BI comme une table.
+
+**Données de démonstration, BOM UTF-8, Metabase** *(E2)* : fausses données marquées `is_demo` ; le BOM est un marqueur d'encodage que lit Excel ; Metabase est un tableau de bord libre, alternative à Power BI.
+
+**Appariement, simulation** *(F1)* : comparer deux configurations sur les **mêmes** sections (intervalle plus étroit) ; la simulation est un faux modèle qui se trompe à taux fixe pour valider la grille de mesure.
+
+**Point de reprise (checkpoint), early stopping, distillation** *(F2)* : sauvegarde intermédiaire d'un entraînement ; arrêt quand la qualité ne progresse plus ; distillation = faire écrire les exemples par un modèle plus fort (« professeur » local).
+
+**Proxy inverse, paquet hors ligne (bundle)** *(G1)* : le proxy (nginx) reçoit les requêtes et les relaie aux services internes sans jamais appeler dehors ; le bundle est un dossier autonome (images, dépendances, empreintes) installable sans Internet.

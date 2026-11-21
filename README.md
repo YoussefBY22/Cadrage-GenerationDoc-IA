@@ -34,6 +34,77 @@ Rien d'autre que ce dépôt privé `PRV-PR8-PFE-IA-Cadrage` : le cahier des char
 
 Tu as environ 35 Go libres sur ton disque : garde de la marge.
 
+## Démarrage rapide (Windows, PowerShell)
+
+Prérequis : Python 3.12, Node 22. Aucun modèle ni Docker nécessaire : le faux modèle suffit pour tout tester.
+
+```powershell
+cd backend
+py -3.12 -m venv .venv
+.venv\Scripts\python -m pip install -e . pytest ruff reportlab
+.venv\Scriptsuff check .
+.venv\Scripts\pytest -q
+```
+Résultat attendu : `All checks passed!` puis 388 passed, 2 skipped (PostgreSQL et LibreOffice absents). Tests d'entraînement : `.venv\Scripts\python -m pytest ..	raining	ests -q`.
+
+Lancer l'API (SQLite local, faux modèle, mode `dev` sans connexion) :
+```powershell
+cd backend
+$env:AUTH_MODE="dev"
+.venv\Scripts\python -m uvicorn app.main:app --port 8000
+```
+Santé : http://localhost:8000/health. Les routes sont sous `/api/v1`.
+
+Lancer l'interface (autre terminal) :
+```powershell
+cd frontend
+npm install
+$env:NEXT_TELEMETRY_DISABLED="1"
+npm run dev
+```
+Ouvrir http://localhost:3000 (`NEXT_PUBLIC_API_URL` vaut `http://localhost:8000` par défaut). Tests du front : `npm run lint ; npm test ; npm run build`.
+
+Corpus synthétique, banc d'évaluation simulé et données de démonstration :
+```powershell
+cd backend
+.venv\Scripts\python -m eval.corpus.generate --seed 7 --out eval/corpus/out
+.venv\Scripts\python -m eval.harness.run --config eval/configs/sim.yaml
+.venv\Scripts\python -m app.dw.demo --seed 42
+```
+
+## Arborescence
+
+```
+backend/app/        api, domain (contrats), storage, ingest, security, retrieval, generation,
+                    verification, roadmap, workflow, auth, export, dw (entrepôt), services, llm
+backend/eval/       corpus/ (corpus or), harness/ (banc A/B/C/D), configs/
+backend/tests/      un dossier par module ; migrations/ (Alembic)
+frontend/           Next.js 15 (dossiers, éditeur ancré, feuille de route)
+training/           jeu d'entraînement et scripts LoRA (simulation sans GPU)
+bi/                 Power BI / Metabase : mesures DAX, pages, pas à pas
+deploy/             nginx, sauvegarde/restauration, paquet hors ligne, compose BI
+db/                 init PostgreSQL, rôle bi_reader (dw/)
+data/               corpus synthétique et LICENCES.md
+docs/               documents 01 à 10, STATUS.md, lots/ (comptes rendus)
+```
+
+## Documents
+
+| Doc | Contenu |
+|---|---|
+| `docs/01-cahier-des-charges.md` | besoin, exigences |
+| `docs/02-mega-prompt-cloud.md` | consignes du développement cloud |
+| `docs/03-apprentissage-et-glossaire.md` | glossaire et plan d'apprentissage |
+| `docs/04-phase-A-comprendre.md` | comprendre la phase A (squelette) |
+| `docs/05-revue-perimetre.md` | revue du périmètre |
+| `docs/06-architecture.md` | architecture, contrats, API |
+| `docs/07-entrepot-bi.md` | entrepôt en étoile, indicateurs, Power BI |
+| `docs/08-modele-rag-evaluation.md` | modèles, RAG, vérification, évaluation, entraînement |
+| `docs/09-plan-execution.md` | lots, propriété des fichiers, briefs |
+| `docs/10-exploitation.md` | installation hors ligne, sauvegarde, sécurité |
+| `docs/STATUS.md` | état d'avancement, chiffres, prochaines étapes |
+| `docs/lots/` | comptes rendus de chaque lot et index « Pour comprendre » |
+
 ## Comment on travaille ensemble
 
 - **Session cloud** : construit, teste, écrit `docs/STATUS.md`.
@@ -50,3 +121,4 @@ Lis `docs/03-apprentissage-et-glossaire.md` : glossaire en français simple (jet
 2. `docs/03-apprentissage-et-glossaire.md` (le glossaire d'abord)
 3. `docs/01-cahier-des-charges.md`
 4. `docs/02-mega-prompt-cloud.md` (c'est ce qu'on envoie)
+5. `docs/STATUS.md` (où en est le projet), puis `docs/04` à `docs/10` selon les besoins
