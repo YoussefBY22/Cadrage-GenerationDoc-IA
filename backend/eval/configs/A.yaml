@@ -1,0 +1,11 @@
+# Config A : aucune recherche (consigne seule) ; le vérificateur tourne quand même. Modèle de base B.
+name: A
+provider: ollama
+model: A_REMPLIR_T2          # nom du modèle de base (voir 08 §2), à renseigner lors du lot T2
+adapter: null
+seeds: [1, 2, 3]
+corpus_seed: 7
+retrieval: {enabled: false, k: 10}
+settings:
+  ollama_generation_model: A_REMPLIR_T2
+  ollama_embedding_model: A_REMPLIR_T2

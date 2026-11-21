@@ -1,0 +1,11 @@
+# Config D : comme B avec un modèle d'une autre taille, sans adaptation.
+name: D
+provider: ollama
+model: D_REMPLIR_T2
+adapter: null
+seeds: [1, 2, 3]
+corpus_seed: 7
+retrieval: {enabled: true, k: 10}
+settings:
+  ollama_generation_model: D_REMPLIR_T2
+  ollama_embedding_model: B_REMPLIR_T2

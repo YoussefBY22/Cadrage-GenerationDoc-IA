@@ -1,0 +1,11 @@
+# Config B (référence) : recherche mixte RRF k=10, sans adaptation, modèle de base (1,7 B).
+name: B
+provider: ollama
+model: B_REMPLIR_T2
+adapter: null
+seeds: [1, 2, 3]
+corpus_seed: 7
+retrieval: {enabled: true, k: 10}
+settings:
+  ollama_generation_model: B_REMPLIR_T2
+  ollama_embedding_model: B_REMPLIR_T2

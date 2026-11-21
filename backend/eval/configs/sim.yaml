@@ -1,0 +1,12 @@
+# Simulation (FakeProvider) : vérifie la mécanique, SANS valeur scientifique.
+name: sim
+provider: fake
+seeds: [1, 2, 3]
+corpus_seed: 7
+retrieval: {enabled: true, k: 10}
+simulation:
+  false_citation: 0.1
+  invented_number: 0.05
+  trap_obedience: 0.5
+  invalid_json: 0.1
+  missed_refusal: 0.1

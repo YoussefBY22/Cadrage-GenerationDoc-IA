@@ -1,0 +1,11 @@
+# Config C : comme B avec l'adaptation LoRA (même base 1,7 B). Modèle importé dans Ollama au lot T5.
+name: C
+provider: ollama
+model: C_REMPLIR_T5
+adapter: lora-v1
+seeds: [1, 2, 3]
+corpus_seed: 7
+retrieval: {enabled: true, k: 10}
+settings:
+  ollama_generation_model: C_REMPLIR_T5
+  ollama_embedding_model: B_REMPLIR_T2
