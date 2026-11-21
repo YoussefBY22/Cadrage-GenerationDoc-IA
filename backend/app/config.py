@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     support_threshold: float = 0.3
     session_ttl_hours: int = 12
     soffice_path: str = "soffice"
-    auth_mode: Literal["dev", "token"] = "dev"
+    auth_mode: Literal["dev", "token"] = "token"
 
     @property
     def allowed_hosts(self) -> set[str]:

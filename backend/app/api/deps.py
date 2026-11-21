@@ -20,8 +20,21 @@ def get_repo(request: Request):
     return state.repo
 
 
+def bearer_token(request: Request) -> str | None:
+    header = request.headers.get("authorization", "")
+    scheme, _, value = header.partition(" ")
+    return value.strip() if scheme.lower() == "bearer" and value.strip() else None
+
+
 def get_current_user(request: Request) -> CurrentUser:
-    """Mode « dev » : administrateur local. Mode « token » : implémenté par D1."""
+    """Mode « dev » : administrateur local. Mode « token » : jeton porteur de session."""
     if get_settings().auth_mode == "dev":
         return CurrentUser(id="usr_dev", role="admin")
-    raise HTTPException(status_code=401, detail="Authentification requise")
+    from ..auth.tokens import user_for_token
+
+    token = bearer_token(request)
+    user = user_for_token(get_repo(request).engine, token) if token else None
+    if user is None:
+        raise HTTPException(status_code=401, detail="Authentification requise",
+                            headers={"WWW-Authenticate": "Bearer"})
+    return CurrentUser(id=user["id"], role=user["role"])
