@@ -1,0 +1,16 @@
+id: findings-fr-standard
+version: '1.0'
+type: findings
+language: fr
+title: Constats du diagnostic
+sections:
+- key: constats
+  title: Constats du diagnostic
+  instructions: 'Extrais les constats observables des documents : problème, thème, gravité, avec la source de chacun.'
+  queries:
+  - constats du diagnostic
+  - problèmes identifiés
+  - insuffisances et risques
+  min_sources: 2
+  max_sentences: 12
+  uses_findings: false

@@ -1,0 +1,57 @@
+id: roadmap-fr-standard
+version: '1.0'
+type: roadmap
+language: fr
+title: Feuille de route
+sections:
+- key: synthese
+  title: Synthèse
+  instructions: Résume en quelques phrases la situation et l'ambition de la feuille de route à partir des constats validés.
+  queries:
+  - synthèse du diagnostic
+  - ambition et objectifs
+  - constats prioritaires
+  min_sources: 2
+  max_sentences: 6
+  uses_findings: true
+- key: axes
+  title: Axes stratégiques
+  instructions: Présente les axes stratégiques qui regroupent les initiatives, chacun rattaché à des constats.
+  queries:
+  - axes stratégiques
+  - orientations
+  - priorités
+  min_sources: 2
+  max_sentences: 10
+  uses_findings: true
+- key: initiatives
+  title: Initiatives
+  instructions: 'Décris chaque initiative retenue : objet, constats traités, ordre de réalisation et dépendances.'
+  queries:
+  - initiatives projets
+  - dépendances entre projets
+  - actions proposées
+  min_sources: 2
+  max_sentences: 12
+  uses_findings: true
+- key: calendrier
+  title: Calendrier
+  instructions: Propose un séquencement par vagues à partir des priorités et dépendances, sans inventer de dates absentes
+    des sources.
+  queries:
+  - calendrier et échéances
+  - phasage
+  - contraintes de délai
+  min_sources: 2
+  max_sentences: 8
+  uses_findings: true
+- key: risques
+  title: Risques
+  instructions: Énumère les risques de mise en œuvre mentionnés ou déduits des passages, avec leur source.
+  queries:
+  - risques
+  - contraintes et obstacles
+  - points de vigilance
+  min_sources: 2
+  max_sentences: 8
+  uses_findings: true

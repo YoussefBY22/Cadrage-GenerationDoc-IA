@@ -1,0 +1,56 @@
+id: cdc-fr-standard
+version: '1.0'
+type: cdc
+language: fr
+title: Cahier des charges
+sections:
+- key: perimetre
+  title: Périmètre
+  instructions: 'Délimite le périmètre du projet : ce qui est inclus et exclu, d''après les sources.'
+  queries:
+  - périmètre du projet
+  - objet du besoin
+  - limites et exclusions
+  min_sources: 2
+  max_sentences: 8
+  uses_findings: true
+- key: fonctionnelles
+  title: Exigences fonctionnelles
+  instructions: Énumère les exigences fonctionnelles, chacune rattachée à une source ou un constat.
+  queries:
+  - exigences fonctionnelles
+  - fonctionnalités attendues
+  - besoins métiers
+  min_sources: 2
+  max_sentences: 12
+  uses_findings: true
+- key: non_fonctionnelles
+  title: Exigences non fonctionnelles
+  instructions: Énumère performance, sécurité, disponibilité et autres exigences non fonctionnelles sourcées.
+  queries:
+  - exigences non fonctionnelles
+  - sécurité et performance
+  - disponibilité et exploitation
+  min_sources: 2
+  max_sentences: 10
+  uses_findings: false
+- key: contraintes
+  title: Contraintes
+  instructions: Décris les contraintes techniques, réglementaires, budgétaires et de délai citées dans les sources.
+  queries:
+  - contraintes techniques
+  - contraintes réglementaires et budgétaires
+  - délais imposés
+  min_sources: 2
+  max_sentences: 8
+  uses_findings: false
+- key: recette
+  title: Conditions de recette
+  instructions: Décris les modalités et critères de recette indiqués dans les sources.
+  queries:
+  - recette et validation
+  - critères d'acceptation
+  - tests de réception
+  min_sources: 1
+  max_sentences: 8
+  uses_findings: false
