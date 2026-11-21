@@ -1,0 +1,8 @@
+[data-sentence] { border-left: 4px solid #b8c2cf; padding: 0 .5rem; margin: .35rem 0; }
+[data-sentence][data-status="verified"] { border-left-color: green; background: #eaf6ec; }
+[data-sentence][data-status="warning"] { border-left-color: orange; background: #fff4e0; }
+[data-sentence][data-status="failed"] { border-left-color: red; background: #fdeaea; }
+.sentence-text { display: inline; margin: 0; }
+.diff-del { color: #9b1c1c; margin: 0; }
+.diff-add { color: #1c6b2c; margin: 0; }
+.ProseMirror { outline: none; }
