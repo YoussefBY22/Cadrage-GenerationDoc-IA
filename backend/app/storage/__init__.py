@@ -1,6 +1,7 @@
-"""Stockage : bouchon, remplacé par le lot B1."""
+"""Stockage : dépôt unique SQLAlchemy 2 Core (SQLite en test, PostgreSQL + pgvector en prod)."""
 
+from .engine import build_repository
+from .repository import DuplicateDocumentError, Repository
+from .sql_repository import SqlRepository
 
-def build_repository(settings):
-    """Construit le dépôt à partir des réglages (implémenté par B1)."""
-    raise NotImplementedError("Le stockage est fourni par le lot B1")
+__all__ = ["DuplicateDocumentError", "Repository", "SqlRepository", "build_repository"]
