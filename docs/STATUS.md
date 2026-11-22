@@ -21,13 +21,13 @@ Tout le produit existe et passe ses tests **avec un faux modèle** (aucun vrai m
 | Lot | Résultat |
 |---|---|
 | **T1** PostgreSQL | Docker démarré, `pgvector/pgvector:pg16` sur :5433, migrations, HNSW, entrepôt, 7 vues et rôle `bi_reader` **sans bug** ; `pytest -m postgres` : 4 passés ; l'API du compose n'a pas d'accès Internet (vérifié). |
-| **T2** Ollama | **qwen3:4b** (Apache 2.0) et **bge-m3** (MIT) sur GTX 1650 4 Go. Évaluation B réduite (1 institution, 31 sections) : latence p50 **18,2 s**, p95 23,1 s, 40 jetons/s, VRAM 3,1 Go ; faux refus 60 → 10 % après `num_gpu=99` (une passe, bruit de ±1–2 sections) ; rappel@10 **1,000**. Le TPV (1,000) ne discrimine pas. |
+| **T2** Ollama | *Mesures à refaire : invites possiblement tronquées à 4 096 jetons (constat du 22/11).* **qwen3:4b** (Apache 2.0) et **bge-m3** (MIT) sur GTX 1650 4 Go. Évaluation B réduite (1 institution, 31 sections) : latence p50 **18,2 s**, p95 23,1 s, 40 jetons/s, VRAM 3,1 Go ; faux refus 60 → 10 % après `num_gpu=99` (une passe, bruit de ±1–2 sections) ; rappel@10 **1,000**. Le TPV (1,000) ne discrimine pas. |
 | **UI** | Refonte « Cadrage » (jaune `#FFE600`, anthracite, Inter, FR/EN), sans logo ni marque ; Playwright e2e vert ; captures dans `docs/img/`. |
 | **EN** | Gabarits, prompts, nombres anglais du vérificateur et exports en français et en anglais. |
-| **T4** | **103 documents CC BY** (Banque mondiale, Commission européenne), 82 EN / 21 FR ; **3 105 exemples** d'entraînement vérifiés ; jeu or réel de **34 questions** ; Kaggle non utilisé (compte exigé). |
+| **T4** | **103 documents CC BY** (Banque mondiale, Commission européenne), 82 EN / 21 FR ; 3 105 exemples d'entraînement (jeu **rejeté** le 22/11/2026 après lecture : réponses presque toutes recopiées des passages (2 061 sur 2 067), questions faites de mots-clés, 83 % en anglais, aucune feuille de route ni TdR ni cahier des charges) ; 34 questions de test rédigées par une IA, non relues par un humain ; Kaggle non utilisé (compte exigé). |
 | **T6** | Thème Power BI EY, projet PBIP (5 pages, **non ouvert dans Desktop**), CSV de démo, LibreOffice installé, test `-m soffice` vert, hypothèses H1 à H7 au §13 du cahier des charges. |
 | **Q** | Export PDF réparé (soffice détecté dans Program Files, profil et cwd temporaires contre l'accès contrôlé aux dossiers de Defender), `-m soffice` vert. Trois itérations de prompt : toutes **rejetées** (faux refus 0 % mais refus manqués 30 à 50 %). |
-| **Q2** | **Porte de pertinence** avant l'appel au modèle (`app/generation/relevance.py`, meilleur cosinus bge-m3 < 0,45 → refus sans appel) + prompts de l'itération 1 : refus 32 %, **faux refus 0 %, refus manqués 0 %** sur une passe réelle (31 sections). Réserve : seuil calibré sur ce même échantillon synthétique, marge de 0,019 ; à recalibrer sur le jeu or réel (T4) via `RELEVANCE_THRESHOLD`. 436 tests verts. |
+| **Q2** | **Porte de pertinence** avant l'appel au modèle (`app/generation/relevance.py`, meilleur cosinus bge-m3 < 0,45 → refus sans appel) + prompts de l'itération 1 : refus 32 %, **faux refus 0 %, refus manqués 0 %** sur une passe réelle (31 sections), **à remesurer** (invites possiblement tronquées). Réserve : seuil calibré sur ce même échantillon synthétique, marge de 0,019 ; à recalibrer sur le jeu or réel (T4) via `RELEVANCE_THRESHOLD`. 436 tests verts. |
 
 Contrôles de l'orchestrateur après fusion : backend **432 passés, 5 sautés** ; PostgreSQL réel 4 passés ; entraînement 33 ; interface : lint, 22 tests, build. Le test `soffice` reste sauté sans `soffice` dans le PATH (lot Q).
 
@@ -48,7 +48,7 @@ Progression des tests : phase A 22 → B0 46 → B4 55 → B1 63 → B3 69 → B
 |---|---|---|
 | Rappel@10 (30 requêtes, 3 dossiers, tous formats) | **1,000 (30/30)**, seuil 0,90 | B5 |
 | Injections détectées / faux positifs | 14 attaques détectées ; 0 faux positif sur 25 phrases | B2 |
-| Erreurs injectées détectées (8 codes, ≥ 3 par code) | **23/23 (100 %)** ; 20 phrases correctes → 0 bloquant | C2 |
+| Erreurs injectées détectées (8 codes, ≥ 3 par code) | 23/23 cas construits (hors nombres en lettres, fourchettes et sens) ; 20 phrases correctes → 0 bloquant | C2 |
 | Extraction de nombres | 40 cas FR/EN | C2 |
 | TPV simulé du banc (taux d'erreur 30 %, 189 sections) | **0,847**, IC95 [0,815 ; 0,877] ; MRR 0,73 ; rappel@10 1,00 ; 4,6 s | F1 |
 | TPV de la démo BI (valeurs inventées) | C 0,86 > B 0,82 > D 0,78 > A 0,35 | E2 |
