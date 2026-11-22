@@ -93,7 +93,7 @@ def test_parcours_anglais_et_exports(api, repo, tmp_path, dossier_lang):
     rpath, _ = export_deliverable(repo, rid, "pptx", uid, out)
     titles = [sl.shapes.title.text for sl in Presentation(str(rpath)).slides if sl.shapes.title is not None]
     assert "Executive summary" in titles and any(x.startswith("Wave ") for x in titles)
-    assert any(t.startswith("Timeline") for t in titles)
+    assert any(t.startswith("Execution order") for t in titles)  # sans durées : pas de Gantt
     assert any(t.startswith("Priority matrix") for t in titles)
     rdoc, _ = export_deliverable(repo, rid, "docx", uid, out)
     heads = [p.text for p in Document(str(rdoc)).paragraphs]

@@ -84,6 +84,8 @@ class Chain(BaseModel):
     objective: str
     expected_result: str
     indicator: str
+    proposal_status: str  # proposed (proposition IA) | accepted (un humain l'a acceptée)
+    proposal_flags: list[str]  # nombres de la proposition absents des sources
     findings: list[Link]
     priorities: list[Link]
     dependencies: list[Link]
@@ -133,14 +135,11 @@ def _tokens(text: str) -> set[str]:
 
 
 def similarity(a: str, b: str) -> float:
-    """Part commune des mots significatifs : max(Jaccard, inclusion du plus petit dans l'autre)."""
+    """Jaccard des mots significatifs (pas d'inclusion : « Système information » n'est pas un audit)."""
     ta, tb = _tokens(a), _tokens(b)
     if not ta or not tb:
         return 0.0
-    inter = len(ta & tb)
-    small = min(len(ta), len(tb))
-    contain = inter / small if small >= 2 else 0.0
-    return round(max(inter / len(ta | tb), contain), 3)
+    return round(len(ta & tb) / len(ta | tb), 3)
 
 
 # --- départage explicite des égalités ------------------------------------------------------------
@@ -178,8 +177,13 @@ def _decided_by(keys: list[tuple]) -> str:
 
 
 # --- séquence ------------------------------------------------------------------------------------
-def build_sequence(items: list[ScoredInitiative]) -> list[SequenceItem]:
-    """Ordre d'exécution (tri topologique, vague puis rang) ; semaines seulement si durées connues."""
+def build_sequence(items: list[ScoredInitiative],
+                   projects: list[ExistingProject] | None = None) -> list[SequenceItem]:
+    """Ordre d'exécution (tri topologique, vague puis rang) ; semaines seulement si TOUT est connu.
+
+    Une dépendance vers un projet non terminé rend le début inconnu : ordre seulement.
+    """
+    pstate = {p.id: p.state for p in projects or []}
     by_id = {x.initiative.id: x for x in items}
     preds = {i: sorted({d for d in x.initiative.depends_on if d in by_id and d != i})
              for i, x in by_id.items()}
@@ -206,7 +210,9 @@ def build_sequence(items: list[ScoredInitiative]) -> list[SequenceItem]:
     for pos, iid in enumerate(order, 1):
         dur = by_id[iid].initiative.duration_weeks
         deps = preds[iid]
-        known = (dur is not None and all(d in ends and ends[d] is not None for d in deps))
+        proj_ok = all(pstate.get(p) == "done" for p in by_id[iid].initiative.depends_on_projects)
+        known = (dur is not None and proj_ok
+                 and all(d in ends and ends[d] is not None for d in deps))
         start = max((ends[d] for d in deps), default=0) if known else None
         end = start + dur if known and start is not None and dur is not None else None
         ends[iid] = end
@@ -310,7 +316,7 @@ def check(items: list[ScoredInitiative], findings: list[Finding], priorities: li
         if x.initiative.duration_weeks is None:
             add(NO_DURATION, initiative_id=x.initiative.id)
 
-    sequence = build_sequence(items)
+    sequence = build_sequence(items, projects)
     seq = {s.initiative_id: s for s in sequence}
     by_init: dict[str, list[str]] = {}
     for i in issues:
@@ -336,7 +342,9 @@ def check(items: list[ScoredInitiative], findings: list[Finding], priorities: li
                                      for s in ln.source_ids))
         chains.append(Chain(
             initiative_id=ini.id, title=ini.title, objective=ini.objective,
-            expected_result=ini.expected_result, indicator=ini.indicator, findings=f_links,
+            expected_result=ini.expected_result, indicator=ini.indicator,
+            proposal_status=ini.proposal_status, proposal_flags=list(ini.proposal_flags),
+            findings=f_links,
             priorities=p_links, dependencies=d_links, source_ids=sources, rank=x.rank,
             wave=x.wave, inherited_rank=eff[ini.id] if eff[ini.id] < x.rank else None,
             position=seq[ini.id].position, start_week=seq[ini.id].start_week,

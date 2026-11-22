@@ -1,5 +1,7 @@
 """Feuille de route : critères, initiatives, résultat du calcul de priorité."""
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -36,6 +38,9 @@ class Initiative(BaseModel):
     indicator: str = ""
     priority_ids: list[str] = []  # priorités institutionnelles liées
     depends_on_projects: list[str] = []  # projets existants dont elle dépend
+    # objectif, résultat, indicateur : proposition IA tant qu'un humain ne l'a pas acceptée
+    proposal_status: Literal["proposed", "accepted"] = "proposed"
+    proposal_flags: list[str] = []  # nombres de la proposition absents des sources
 
 
 class ScoredInitiative(BaseModel):
@@ -45,6 +50,7 @@ class ScoredInitiative(BaseModel):
     score: float
     rank: int
     wave: int
+    unscored: list[str] = []  # critères sans note : « non évalué », jamais un score bas calculé
 
 
 class RejectedLink(BaseModel):

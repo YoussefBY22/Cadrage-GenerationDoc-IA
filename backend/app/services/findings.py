@@ -47,12 +47,25 @@ def _verify_finding(text: str, source_ids: list[str], chunks: dict, dossier_id: 
 READ_ORDER = ("diagnostic", "other")
 
 
-def _documents(repo, dossier_id: str) -> list[str]:
+EXCLUDED_WHY = {
+    "strategy": "alimente les priorités, saisies par un humain",
+    "portfolio": "alimente les projets existants, saisis par un humain",
+    "template": "une trame n'est jamais une source de faits",
+}
+
+
+def _documents(repo, dossier_id: str) -> tuple[list[str], list[dict]]:
+    """(documents lus dans l'ordre, documents exclus avec la raison)."""
     with repo.engine.connect() as c:
-        rows = c.execute(select(s.documents.c.id, s.documents.c.role).where(
+        rows = c.execute(select(s.documents.c.id, s.documents.c.role,
+                                s.documents.c.filename).where(
             s.documents.c.dossier_id == dossier_id).order_by(s.documents.c.created_at,
                                                              s.documents.c.id)).all()
-    return [doc for role in READ_ORDER for doc, r in rows if r == role]
+    read = [doc for role in READ_ORDER for doc, r, _ in rows if r == role]
+    excluded = [{"document_id": d, "filename": f, "role": r,
+                 "reason": EXCLUDED_WHY.get(r, "rôle non lu")} for d, r, f in rows
+                if r not in READ_ORDER]
+    return read, excluded
 
 
 def extract(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
@@ -66,8 +79,8 @@ def extract(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
     reports: dict[str, dict] = {}
     rejected: list[dict] = []
     runs = 0
-    docs = _documents(repo, dossier_id)
-    read_chunks = total_chunks = 0
+    docs, excluded = _documents(repo, dossier_id)
+    read_chunks = failed_chunks = total_chunks = 0
     for doc_id in docs:
         chunks = list(repo.iter_chunks(dossier_id, [doc_id]))
         total_chunks += len(chunks)
@@ -77,7 +90,6 @@ def extract(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
         sized = [Passage(label=f"P{BATCH}", chunk=ch, score=0.0, ranks={}) for ch in chunks]
         for group in batch_passages(sized, nonce, budget, BATCH):  # chaque passage est lu une fois
             batch = [p.chunk for p in group]
-            read_chunks += len(batch)
             passages = [Passage(label=f"P{n}", chunk=ch, score=0.0, ranks={})
                         for n, ch in enumerate(batch, 1)]
             prompt = build_findings_prompt(passages, nonce=nonce, budget=budget, lang=lang)
@@ -90,7 +102,11 @@ def extract(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
             repo.record_retrieval(run_id, passages)
             # Les petits modèles (qwen3:4b) renvoient parfois « insufficient_evidence » tout en listant
             # des constats sourcés : on les garde, le vérificateur ci-dessous tranche phrase par phrase.
-            if llm is None or (llm.status != "ok" and not llm.findings):
+            if llm is None:  # l'appel a échoué : ces passages n'ont PAS été lus
+                failed_chunks += len(batch)
+                continue
+            read_chunks += len(batch)
+            if llm.status != "ok" and not llm.findings:
                 continue
             by_label = {p.label: p.chunk for p in passages}
             by_id = {ch.id: ch for ch in batch}
@@ -125,11 +141,13 @@ def extract(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
     repo.save_findings(dossier_id, kept)
     repo.audit(user.id, "findings.extract", "dossier", dossier_id,
                {"saved": len(kept), "rejected": len(rejected), "runs": runs, "model": provider.name,
-                "documents_read": len(docs), "chunks_read": read_chunks})
+                "documents_read": len(docs), "chunks_read": read_chunks,
+                "chunks_failed": failed_chunks, "documents_excluded": len(excluded)})
     return {"findings": [{**f.model_dump(mode="json"), "report": reports[f.id]} for f in kept],
             "rejected": rejected, "runs": runs,
             "coverage": {"documents": len(docs), "chunks_read": read_chunks,
-                         "chunks_total": total_chunks}}
+                         "chunks_failed": failed_chunks, "chunks_total": total_chunks,
+                         "excluded": excluded}}
 
 
 def get_finding(repo, finding_id: str) -> Finding | None:

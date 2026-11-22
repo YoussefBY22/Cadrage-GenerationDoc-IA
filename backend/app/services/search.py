@@ -22,9 +22,14 @@ class SearchService:
 
         Un filtre `document_ids` explicite est respecté tel quel.
         """
-        roles = self._roles(dossier_id) if document_ids is None else {}
-        allowed = ([d for d, r in roles.items() if r != "template"]
-                   if "template" in roles.values() else document_ids)
+        roles = self._roles(dossier_id)
+        trames = {d for d, r in roles.items() if r == "template"}
+        if document_ids is not None:  # filtre explicite : une trame reste exclue
+            allowed = [d for d in document_ids if d not in trames]
+        elif trames:
+            allowed = [d for d in roles if d not in trames]
+        else:
+            allowed = None
         diag = {d for d, r in roles.items() if r == "diagnostic"}
         if not diag:
             return self.retriever.search(SearchQuery(

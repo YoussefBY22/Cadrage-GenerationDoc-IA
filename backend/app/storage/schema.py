@@ -248,6 +248,8 @@ priorities = Table(
     Column("status", String(16), nullable=False, default="proposed"),
     Column("source_ids", JsonType(), nullable=False),
     Column("author_id", ID),
+    Column("validated_by", ID),
+    _dt("validated_at"),
     _dt("created_at", nullable=False, default=utcnow),
     _dt("updated_at", nullable=False, default=utcnow),
     Index("ix_priorities_dossier", "dossier_id"),

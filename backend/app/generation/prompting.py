@@ -77,7 +77,9 @@ _L = {
                      "Pour chaque initiative donne aussi objective, expected_result et indicator. "
                      "priorities : UNIQUEMENT des étiquettes PR1..PRn fournies ci-dessous ; "
                      "depends_on_projects : UNIQUEMENT des étiquettes PJ1..PJn fournies. "
-                     "Toute autre étiquette sera rejetée. N'invente aucune durée."),
+                     "Toute autre étiquette sera rejetée. N'invente aucune durée. "
+                     "Pour CHAQUE initiative, examine CHAQUE priorité PR1..PRn et cite celles qu'elle "
+                     "sert (liste vide seulement si aucune). Donne une note pour CHAQUE critère."),
         "priorities_hdr": "PRIORITÉS INSTITUTIONNELLES VALIDÉES (rang 1 = plus haute ; cite PR1..PRn) :",
         "projects_hdr": "PROJETS EXISTANTS (cite PJ1..PJn dans depends_on_projects) :",
         "validated_short": "CONSTATS VALIDÉS :",
@@ -111,7 +113,9 @@ _L = {
                      "For each initiative also give objective, expected_result and indicator. "
                      "priorities: ONLY labels PR1..PRn provided below; "
                      "depends_on_projects: ONLY labels PJ1..PJn provided. "
-                     "Any other label will be rejected. Do not invent any duration."),
+                     "Any other label will be rejected. Do not invent any duration. "
+                     "For EACH initiative, consider EACH priority PR1..PRn and cite those it serves "
+                     "(empty list only if none). Give a score for EACH criterion."),
         "priorities_hdr": "VALIDATED INSTITUTIONAL PRIORITIES (rank 1 = highest; cite PR1..PRn):",
         "projects_hdr": "EXISTING PROJECTS (cite PJ1..PJn in depends_on_projects):",
         "validated_short": "VALIDATED FINDINGS:",

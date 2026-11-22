@@ -58,6 +58,15 @@ def make(repo, monkeypatch, tmp_path):
     get_settings.cache_clear()
 
 
+def mkprio(c, did, title, status="proposed", **kw):
+    """Création toujours « proposed » ; la décision passe par l'appel séparé du relecteur/admin."""
+    p = c.post(f"{V1}/dossiers/{did}/priorities", json={"title": title, **kw}).json()
+    if status in ("validated", "rejected"):
+        verb = "validate" if status == "validated" else "reject"
+        p = c.post(f"{V1}/priorities/{p['id']}:{verb}").json()
+    return p
+
+
 def new_dossier(c):
     return c.post(f"{V1}/dossiers", json={"name": "D", "client_name": "C"}).json()["id"]
 
@@ -113,7 +122,11 @@ def test_findings_read_diagnostics_first_and_never_templates(make):
     prompts = [x["prompt"] for x in prov.calls if x.get("schema") == "LLMFindings"]
     assert "paie" in prompts[0] and "harmoniser" in prompts[1]
     assert not any("plan type du rapport" in p for p in prompts)
-    assert r["coverage"] == {"documents": 2, "chunks_read": 2, "chunks_total": 2}
+    cov = r["coverage"]
+    assert (cov["documents"], cov["chunks_read"], cov["chunks_failed"], cov["chunks_total"]) == (
+        2, 2, 0, 2)
+    assert [(e["filename"], e["role"]) for e in cov["excluded"]] == [("t.txt", "template")]
+    assert cov["excluded"][0]["reason"]
 
 
 def test_search_excludes_templates_and_reserves_places(make):
@@ -149,8 +162,9 @@ def test_priority_crud_and_validation_flow(make):
     assert second["rank"] == 2
     bad = c.post(f"{V1}/dossiers/{did}/priorities", json={"title": "X", "source_ids": ["chk_x"]})
     assert bad.status_code == 422 and bad.json()["error"]["code"] == "UNKNOWN_SOURCE"
-    ok = c.patch(f"{V1}/priorities/{p['id']}", json={"status": "validated"}).json()
-    assert ok["status"] == "validated"
+    ok = c.post(f"{V1}/priorities/{p['id']}:validate").json()
+    assert ok["status"] == "validated" and ok["validated_by"] == "usr_dev" and ok["validated_at"]
+    assert ok["author_name"]  # un nom affiché, pas seulement un identifiant
     edited = c.patch(f"{V1}/priorities/{p['id']}", json={"title": "Fiabiliser la paie 2026"}).json()
     assert edited["status"] == "proposed"  # un texte modifié se revalide
     assert [x["id"] for x in c.get(f"{V1}/dossiers/{did}/priorities").json()] == [p["id"],
@@ -158,7 +172,7 @@ def test_priority_crud_and_validation_flow(make):
     assert c.delete(f"{V1}/priorities/{second['id']}").status_code == 204
     assert len(c.get(f"{V1}/dossiers/{did}/priorities").json()) == 1
     assert c.get(f"{V1}/dossiers/dos_x/priorities").status_code == 404
-    assert c.patch(f"{V1}/priorities/prt_x", json={"status": "validated"}).status_code == 404
+    assert c.patch(f"{V1}/priorities/prt_x", json={"status": "proposed"}).status_code == 404
 
 
 def test_priorities_do_not_leak_between_dossiers(make):
@@ -204,11 +218,9 @@ def prepare(c, with_links=True):
         c.patch(f"/api/v1/findings/{f['id']}", json={"validated": True})
     out = {"did": did}
     if with_links:
-        out["prio"] = c.post(f"{V1}/dossiers/{did}/priorities",
-                             json={"title": "Fiabiliser la paie", "status": "validated"}).json()
-        c.post(f"{V1}/dossiers/{did}/priorities", json={"title": "Brouillon non retenu"})
-        out["rej"] = c.post(f"{V1}/dossiers/{did}/priorities",
-                            json={"title": "Priorité écartée", "status": "rejected"}).json()
+        out["prio"] = mkprio(c, did, "Fiabiliser la paie", "validated")
+        mkprio(c, did, "Brouillon non retenu")
+        out["rej"] = mkprio(c, did, "Priorité écartée", "rejected")
         out["proj"] = c.post(f"{V1}/dossiers/{did}/projects",
                              json={"title": "Socle SI", "state": "in_progress"}).json()
     return out
@@ -261,10 +273,16 @@ def test_roadmap_patch_links_and_coherence_follow_live_data(make):
         {"id": ids["Automatiser la paie"], "duration_weeks": 6}]})
     assert ok.status_code == 200
     seq = {s["initiative_id"]: s for s in ok.json()["coherence"]["sequence"]}
+    # la paie dépend d'un projet non terminé : début inconnu, donc ni semaine ni date inventée
+    assert seq[ids["Automatiser la paie"]]["end_week"] is None
+    assert seq[ids["Former les équipes"]]["start_week"] is None
+    c.patch(f"{V1}/projects/{w['proj']['id']}", json={"state": "done"})
+    seq = {s["initiative_id"]: s for s in c.get(f"{V1}/deliverables/{dlv}/coherence").json()[
+        "sequence"]}
     assert seq[ids["Automatiser la paie"]]["end_week"] == 6
     assert seq[ids["Former les équipes"]]["start_week"] == 6  # après son prérequis
     # rejeter la priorité APRÈS coup : la cohérence le voit aussitôt (sans nouvelle génération)
-    c.patch(f"{V1}/priorities/{w['prio']['id']}", json={"status": "rejected"})
+    c.post(f"{V1}/priorities/{w['prio']['id']}:reject")
     now = c.get(f"{V1}/deliverables/{dlv}/coherence").json()
     assert {i["code"] for i in now["issues"]} >= {"INITIATIVE_UNANCHORED"}
 
@@ -283,9 +301,7 @@ def test_generation_refuses_when_context_cannot_hold_priorities_and_projects(mak
     c = make(prov)
     w = prepare(c, with_links=False)
     for i in range(40):  # priorités validées nombreuses : elles ne tiennent plus
-        c.post(f"{V1}/dossiers/{w['did']}/priorities",
-               json={"title": f"Priorité institutionnelle numéro {i} " + "mot " * 30,
-                     "status": "validated"})
+        mkprio(c, w["did"], f"Priorité institutionnelle numéro {i} " + "mot " * 30, "validated")
     r = c.post(f"{V1}/dossiers/{w['did']}/roadmap:generate", json={})
     assert r.status_code == 409 and r.json()["error"]["code"] == "CONTEXT_FULL"
     assert "Rien n'a été coupé" in r.json()["error"]["message"]

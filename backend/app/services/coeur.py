@@ -13,13 +13,41 @@ def _check_sources(repo, dossier_id: str, source_ids: list[str]) -> list[str]:
     if unknown:
         raise GenerationError(422, "UNKNOWN_SOURCE",
                               "Passage inconnu dans ce dossier : " + ", ".join(unknown))
+    roles = repo.document_roles(dossier_id)
+    trames = [i for i in ids if roles.get(known[i].document_id) == "template"]
+    if trames:  # une trame n'est jamais une source
+        raise GenerationError(422, "TEMPLATE_SOURCE",
+                              "Une trame ne peut pas être citée comme source : " + ", ".join(trames))
     return ids
+
+
+def can_validate(repo, dossier_id: str, user: CurrentUser) -> bool:
+    """Validation réservée au relecteur (rôle global ou du dossier) et à l'administrateur."""
+    return user.role in ("reviewer", "admin") or repo.member_role(dossier_id, user.id) == "reviewer"
+
+
+def names(repo, user_ids) -> dict[str, str]:
+    """{id: nom affiché} : l'interface montre des noms, jamais des identifiants."""
+    from sqlalchemy import select
+
+    from app.storage import schema as s
+
+    ids = [i for i in set(user_ids) if i]
+    if not ids:
+        return {}
+    with repo.engine.connect() as c:
+        rows = c.execute(select(s.users.c.id, s.users.c.display_name).where(
+            s.users.c.id.in_(ids))).all()
+    return {r[0]: r[1] for r in rows}
 
 
 # --- priorités -----------------------------------------------------------------------------------
 def create_priority(repo, dossier_id: str, user: CurrentUser, *, title: str, description: str = "",
                     rank: int | None = None, status: str = "proposed",
                     source_ids: list[str] | None = None) -> Priority:
+    if status != "proposed":
+        raise GenerationError(422, "CREATE_AS_PROPOSED",
+                              "Une priorité est créée « proposée » ; elle se valide par un relecteur")
     if rank is None:
         rank = max((p.rank for p in repo.list_priorities(dossier_id)), default=0) + 1
     p = repo.create_priority(
@@ -30,17 +58,36 @@ def create_priority(repo, dossier_id: str, user: CurrentUser, *, title: str, des
 
 
 def patch_priority(repo, p: Priority, user: CurrentUser, changes: dict) -> Priority:
-    """Un titre ou une description modifiés repassent « proposed » : il faut revalider."""
+    """Rang, titre ou description modifiés : la validation tombe (« proposed »). Valider = `decide`."""
     values = {k: (v.strip() if isinstance(v, str) else v) for k, v in changes.items()
               if k in ("title", "description", "rank", "status") and v is not None}
+    if values.get("status") not in (None, "proposed"):
+        raise GenerationError(403, "VALIDATION_RESERVED",
+                              "Valider ou rejeter est réservé à un relecteur (appel séparé)")
     if changes.get("source_ids") is not None:
         values["source_ids"] = _check_sources(repo, p.dossier_id, changes["source_ids"])
-    if ("title" in values or "description" in values) and "status" not in values \
-            and p.status == "validated":
-        values["status"] = "proposed"
+    changed = any(k in values and values[k] != getattr(p, k)
+                  for k in ("title", "description", "rank", "source_ids"))
+    if changed and p.status == "validated":
+        values["status"] = "proposed"  # revalidation obligatoire
+    if values.get("status") == "proposed":
+        values.update(validated_by=None, validated_at=None)
     updated = repo.update_priority(p.id, **values)
     repo.audit(user.id, "priority.update", "priority", p.id,
-               {k: v for k, v in values.items() if k != "source_ids"})
+               {k: v for k, v in values.items() if k not in ("source_ids", "validated_at")})
+    return updated
+
+
+def decide(repo, p: Priority, user: CurrentUser, status: str) -> Priority:
+    """Valide ou rejette : relecteur ou administrateur ; le validateur et la date sont conservés."""
+    if not can_validate(repo, p.dossier_id, user):
+        raise GenerationError(403, "VALIDATION_RESERVED",
+                              "Valider ou rejeter est réservé à un relecteur ou à un administrateur")
+    from app.storage.schema import utcnow
+
+    updated = repo.update_priority(p.id, status=status, validated_by=user.id,
+                                   validated_at=utcnow())
+    repo.audit(user.id, f"priority.{status}", "priority", p.id, {})
     return updated
 
 

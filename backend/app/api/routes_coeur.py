@@ -51,8 +51,13 @@ def _member(repo, dossier_id, user) -> bool:
     return repo.member_role(dossier_id, user.id) is not None
 
 
-def _dump(x) -> dict:
-    return x.model_dump(mode="json")
+def _dump(x, repo=None) -> dict:
+    d = x.model_dump(mode="json")
+    if repo is not None:
+        nm = coeur.names(repo, [d.get("author_id"), d.get("validated_by")])
+        d["author_name"] = nm.get(d.get("author_id") or "")
+        d["validated_by_name"] = nm.get(d.get("validated_by") or "")
+    return d
 
 
 # --- priorités -----------------------------------------------------------------------------------
@@ -60,7 +65,7 @@ def _dump(x) -> dict:
 def list_priorities(dossier_id: str, repo: Repo, user: User):
     if not _member(repo, dossier_id, user):
         return not_found("Dossier")
-    return [_dump(p) for p in repo.list_priorities(dossier_id)]
+    return [_dump(p, repo) for p in repo.list_priorities(dossier_id)]
 
 
 @router.post("/dossiers/{dossier_id}/priorities", status_code=201)
@@ -68,7 +73,7 @@ def create_priority(dossier_id: str, body: PriorityBody, repo: Repo, user: User)
     if not _member(repo, dossier_id, user):
         return not_found("Dossier")
     try:
-        return _dump(coeur.create_priority(repo, dossier_id, user, **body.model_dump()))
+        return _dump(coeur.create_priority(repo, dossier_id, user, **body.model_dump()), repo)
     except GenerationError as exc:
         return error_response(exc.status, exc.code, exc.message)
 
@@ -79,7 +84,27 @@ def patch_priority(priority_id: str, body: PriorityPatch, repo: Repo, user: User
     if p is None or not _member(repo, p.dossier_id, user):
         return not_found("Priorité")
     try:
-        return _dump(coeur.patch_priority(repo, p, user, body.model_dump(exclude_unset=True)))
+        return _dump(coeur.patch_priority(repo, p, user, body.model_dump(exclude_unset=True)), repo)
+    except GenerationError as exc:
+        return error_response(exc.status, exc.code, exc.message)
+
+
+@router.post("/priorities/{priority_id}:validate")
+def validate_priority(priority_id: str, repo: Repo, user: User):
+    return _decide(priority_id, "validated", repo, user)
+
+
+@router.post("/priorities/{priority_id}:reject")
+def reject_priority(priority_id: str, repo: Repo, user: User):
+    return _decide(priority_id, "rejected", repo, user)
+
+
+def _decide(priority_id: str, status: str, repo, user):
+    p = repo.get_priority(priority_id)
+    if p is None or not _member(repo, p.dossier_id, user):
+        return not_found("Priorité")
+    try:
+        return _dump(coeur.decide(repo, p, user, status), repo)
     except GenerationError as exc:
         return error_response(exc.status, exc.code, exc.message)
 
@@ -99,7 +124,7 @@ def delete_priority(priority_id: str, repo: Repo, user: User):
 def list_projects(dossier_id: str, repo: Repo, user: User):
     if not _member(repo, dossier_id, user):
         return not_found("Dossier")
-    return [_dump(p) for p in repo.list_projects(dossier_id)]
+    return [_dump(p, repo) for p in repo.list_projects(dossier_id)]
 
 
 @router.post("/dossiers/{dossier_id}/projects", status_code=201)
@@ -107,7 +132,7 @@ def create_project(dossier_id: str, body: ProjectBody, repo: Repo, user: User):
     if not _member(repo, dossier_id, user):
         return not_found("Dossier")
     try:
-        return _dump(coeur.create_project(repo, dossier_id, user, **body.model_dump()))
+        return _dump(coeur.create_project(repo, dossier_id, user, **body.model_dump()), repo)
     except GenerationError as exc:
         return error_response(exc.status, exc.code, exc.message)
 
@@ -118,7 +143,7 @@ def patch_project(project_id: str, body: ProjectPatch, repo: Repo, user: User):
     if p is None or not _member(repo, p.dossier_id, user):
         return not_found("Projet")
     try:
-        return _dump(coeur.patch_project(repo, p, user, body.model_dump(exclude_unset=True)))
+        return _dump(coeur.patch_project(repo, p, user, body.model_dump(exclude_unset=True)), repo)
     except GenerationError as exc:
         return error_response(exc.status, exc.code, exc.message)
 

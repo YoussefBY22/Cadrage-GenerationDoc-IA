@@ -32,7 +32,8 @@ def _priority(row) -> Priority:
     return Priority(
         id=row.id, dossier_id=row.dossier_id, title=row.title, description=row.description or "",
         rank=row.rank, status=row.status, source_ids=list(row.source_ids or []),
-        author_id=row.author_id, created_at=row.created_at)
+        author_id=row.author_id, validated_by=row.validated_by, validated_at=row.validated_at,
+        created_at=row.created_at)
 
 
 def _project(row) -> ExistingProject:

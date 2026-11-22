@@ -13,7 +13,7 @@ from app.domain.roadmap import (
     RoadmapResult,
 )
 from app.domain.workflow import CurrentUser
-from app.generation.llm_schemas import LLMInitiatives
+from app.generation.llm_schemas import build_initiatives_schema
 from app.generation.prompting import (
     build_initiatives_prompt,
     fit_passages,
@@ -24,7 +24,7 @@ from app.generation.prompting import (
 from app.generation.template_loader import load_template
 from app.llm.base import LLMProvider
 from app.roadmap import coherence as coh
-from app.roadmap import graph, scoring
+from app.roadmap import graph, proposals, scoring
 
 from .generation import GenerationError, call_model, get_deliverable, new_nonce, record_run
 
@@ -84,7 +84,11 @@ def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
     not_sent = len(all_ids) - len(passages)  # coupe par le plafond ou la fenêtre : jamais silencieuse
     prompt = build_initiatives_prompt(findings, passages, criteria, nonce=nonce, budget=budget,
                                       lang=language, priorities=priorities, projects=projects)
-    llm, attempts, latency, error = call_model(provider, prompt, LLMInitiatives, lang=language)
+    schema = build_initiatives_schema(
+        [f"F{i}" for i in range(1, len(findings) + 1)],
+        [f"PR{i}" for i in range(1, len(priorities) + 1)],
+        [f"PJ{i}" for i in range(1, len(projects) + 1)], [c.key for c in criteria])
+    llm, attempts, latency, error = call_model(provider, prompt, schema, lang=language)
     run_id = record_run(repo, provider, dossier_id=dossier_id, kind="initiatives", prompt=prompt,
                         status="ok" if llm else "invalid", attempts=attempts, latency_ms=latency,
                         output=llm.model_dump_json() if llm else "")
@@ -121,9 +125,15 @@ def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
                 scores[sc.key] = CriterionScore(
                     key=sc.key, value=sc.value, rationale=sc.rationale,
                     source_ids=[plabel[_lbl(x)] for x in sc.sources if _lbl(x) in plabel])
+        fmap = {f.id: f for f in findings}
+        known = [fmap[i].text for i in fids] + [chunks[c].text for i in fids for c in
+                                               fmap[i].source_ids if c in chunks]
+        known += [p.title + " " + p.description for p in priorities] + [p.title for p in projects]
+        flags = proposals.unsourced_numbers(
+            f"{li.objective} {li.expected_result} {li.indicator}", known)
         drafts.append((Initiative(
             id=new_id("ini"), title=li.title, description=li.description, finding_ids=fids,
-            scores=list(scores.values()), objective=li.objective,
+            proposal_flags=flags, scores=list(scores.values()), objective=li.objective,
             expected_result=li.expected_result, indicator=li.indicator,
             priority_ids=resolve(li.priorities, prio_label, "priority", li.title),
             depends_on_projects=resolve(li.depends_on_projects, proj_label, "project", li.title)),
@@ -206,11 +216,17 @@ def patch(repo, deliverable_id: str, user: CurrentUser, changes: list[dict], *,
         for fld in ("objective", "expected_result", "indicator"):
             if ch.get(fld) is not None:
                 upd[fld] = ch[fld]
+                upd["proposal_status"] = "accepted"  # un humain a écrit ou corrigé le texte
+        if ch.get("accept_proposal") is not None:
+            upd["proposal_status"] = "accepted" if ch["accept_proposal"] else "proposed"
         if ch.get("priority_ids") is not None:
-            known = {p.id for p in repo.list_priorities(row["dossier_id"])}
+            known = {p.id: p for p in repo.list_priorities(row["dossier_id"])}
             for pid in ch["priority_ids"]:
                 if pid not in known:
                     raise GenerationError(422, "BAD_PRIORITY", f"Priorité inconnue : {pid}")
+                if known[pid].status != "validated" and pid not in ini.priority_ids:
+                    raise GenerationError(422, "PRIORITY_NOT_VALIDATED",
+                                          f"Priorité non validée : {known[pid].title}")
             upd["priority_ids"] = list(dict.fromkeys(ch["priority_ids"]))
         if ch.get("depends_on_projects") is not None:
             known = {p.id for p in repo.list_projects(row["dossier_id"])}

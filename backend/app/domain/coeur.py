@@ -26,6 +26,8 @@ class Priority(BaseModel):
     status: PriorityStatus = "proposed"
     source_ids: list[str] = []
     author_id: str | None = None
+    validated_by: str | None = None
+    validated_at: datetime | None = None
     created_at: datetime | None = None
 
 
