@@ -8,7 +8,12 @@ from app.domain.retrieval import Passage
 from app.domain.roadmap import Criterion, CriterionScore, Initiative, RoadmapResult
 from app.domain.workflow import CurrentUser
 from app.generation.llm_schemas import LLMInitiatives
-from app.generation.prompting import build_initiatives_prompt
+from app.generation.prompting import (
+    build_initiatives_prompt,
+    fit_passages,
+    passage_budget,
+    system_prompt,
+)
 from app.generation.template_loader import load_template
 from app.llm.base import LLMProvider
 from app.roadmap import graph, scoring
@@ -16,6 +21,7 @@ from app.roadmap import graph, scoring
 from .generation import GenerationError, call_model, get_deliverable, new_nonce, record_run
 
 MAX_PASSAGES = 30
+ROADMAP_REPLY_TOKENS = 1200
 
 
 def _lbl(x: str) -> str:
@@ -47,7 +53,12 @@ def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
     chunks = repo.get_chunks(dossier_id, ids)
     passages = [Passage(label=f"P{n}", chunk=chunks[i], score=0.0, ranks={})
                 for n, i in enumerate((i for i in ids if i in chunks), 1)]
-    prompt = build_initiatives_prompt(findings, passages, criteria, nonce=new_nonce(),
+    nonce = new_nonce()
+    fixed = system_prompt(language) + build_initiatives_prompt(findings, [], criteria, nonce=nonce,
+                                                              lang=language)
+    budget = passage_budget(getattr(provider, "context_tokens", None), fixed, ROADMAP_REPLY_TOKENS)
+    passages = fit_passages(passages, nonce, budget)  # seuls les passages lus sont citables
+    prompt = build_initiatives_prompt(findings, passages, criteria, nonce=nonce, budget=budget,
                                       lang=language)
     llm, attempts, latency, error = call_model(provider, prompt, LLMInitiatives, lang=language)
     run_id = record_run(repo, provider, dossier_id=dossier_id, kind="initiatives", prompt=prompt,

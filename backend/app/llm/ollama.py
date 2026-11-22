@@ -17,6 +17,8 @@ from pydantic import ValidationError
 
 from .base import LLMError, LLMProvider, T
 
+DEFAULT_NUM_CTX = 4096  # ce que tient un GPU de 4 Go (mesuré le 22/11/2026)
+
 
 class OllamaProvider(LLMProvider):
     def __init__(self, base_url: str, generation_model: str, embedding_model: str,
@@ -49,6 +51,8 @@ class OllamaProvider(LLMProvider):
         self.embed_batch = max(1, embed_batch)
         self._dim: int | None = None
         self.last_usage: dict = {}
+        self.context_tokens = int(self.extra_options.get("num_ctx") or DEFAULT_NUM_CTX)
+        self.extra_options["num_ctx"] = self.context_tokens  # explicite : le défaut d'Ollama varie selon la VRAM
 
     def _post(self, path: str, payload: dict) -> dict:
         try:
@@ -71,7 +75,9 @@ class OllamaProvider(LLMProvider):
         if max_tokens is not None:
             options["num_predict"] = max_tokens
         payload = {"model": self.generation_model, "messages": self._messages(prompt, system),
-                   "stream": False, "think": self.think, "options": options}
+                   "stream": False, "think": self.think, "options": options,
+                   # jamais de coupe silencieuse : par défaut Ollama jette le DÉBUT (règles, premiers passages)
+                   "truncate": False, "shift": False}
         if self.keep_alive:
             payload["keep_alive"] = self.keep_alive
         if fmt is not None:

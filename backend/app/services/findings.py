@@ -11,7 +11,12 @@ from app.domain.retrieval import Passage
 from app.domain.verification import VerificationReport
 from app.domain.workflow import CurrentUser
 from app.generation.llm_schemas import LLMFindings
-from app.generation.prompting import build_findings_prompt
+from app.generation.prompting import (
+    batch_passages,
+    build_findings_prompt,
+    passage_budget,
+    system_prompt,
+)
 from app.llm.base import LLMProvider
 from app.storage import schema as s
 from app.verification import verify_section
@@ -19,6 +24,9 @@ from app.verification import verify_section
 from .generation import GenerationError, call_model, new_nonce, record_run
 
 BATCH = 8  # passages par appel (06 §7)
+
+
+FINDINGS_REPLY_TOKENS = 1100
 
 
 def _norm(text: str) -> str:
@@ -53,11 +61,15 @@ def extract(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
     runs = 0
     for doc_id in _documents(repo, dossier_id):
         chunks = list(repo.iter_chunks(dossier_id, [doc_id]))
-        for i in range(0, len(chunks), BATCH):
-            batch = chunks[i:i + BATCH]
+        nonce = new_nonce()
+        fixed = system_prompt(lang) + build_findings_prompt([], nonce=nonce, lang=lang)
+        budget = passage_budget(getattr(provider, "context_tokens", None), fixed, FINDINGS_REPLY_TOKENS)
+        sized = [Passage(label=f"P{BATCH}", chunk=ch, score=0.0, ranks={}) for ch in chunks]
+        for group in batch_passages(sized, nonce, budget, BATCH):  # chaque passage est lu une fois
+            batch = [p.chunk for p in group]
             passages = [Passage(label=f"P{n}", chunk=ch, score=0.0, ranks={})
                         for n, ch in enumerate(batch, 1)]
-            prompt = build_findings_prompt(passages, nonce=new_nonce(), lang=lang)
+            prompt = build_findings_prompt(passages, nonce=nonce, budget=budget, lang=lang)
             llm, attempts, latency, _err = call_model(provider, prompt, LLMFindings, lang=lang)
             runs += 1
             run_id = record_run(repo, provider, dossier_id=dossier_id, kind="findings",

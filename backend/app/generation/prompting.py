@@ -114,11 +114,43 @@ def _t(lang: Lang) -> dict[str, str]:
 # Budget de contexte (08 §4.3) : passages 10 x 350 = 3 500 jetons sur un modèle de 4 k.
 DEFAULT_PASSAGE_BUDGET = 3500
 _WORD_FACTOR = 1.3
+# Mesuré sur qwen3 en français : 1 190 mots = 1 998 jetons, soit 1,68. Marge pour chiffres et sigles.
+_SAFE_WORD_FACTOR = 1.9
+_CHARS_PER_TOKEN = 3.2
 
 
 def estimate_tokens(text: str) -> int:
     """Estimation grossière : mots × 1,3."""
     return int(len(text.split()) * _WORD_FACTOR) + 1
+
+
+def safe_tokens(text: str) -> int:
+    """Majorant prudent des jetons, pour tenir dans la fenêtre (le découpage garde `estimate_tokens`)."""
+    return int(max(len(text.split()) * _SAFE_WORD_FACTOR, len(text) / _CHARS_PER_TOKEN)) + 1
+
+
+def passage_budget(context_tokens: int | None, fixed_text: str, reply_tokens: int) -> int:
+    """Place restante pour les passages : fenêtre - partie fixe - réponse attendue."""
+    if not context_tokens:
+        return DEFAULT_PASSAGE_BUDGET
+    return max(0, context_tokens - safe_tokens(fixed_text) - reply_tokens - 64)
+
+
+def fit_passages(passages: Sequence[Passage], nonce: str, budget: int) -> list[Passage]:
+    """Passages qui seront RÉELLEMENT envoyés : les seuls que le modèle a le droit de citer."""
+    return _select(passages, nonce, budget)[0]
+
+
+def batch_passages(passages: Sequence[Passage], nonce: str, budget: int,
+                   size: int) -> list[list[Passage]]:
+    """Découpe TOUS les passages en lots qui tiennent : aucun n'est abandonné."""
+    batches: list[list[Passage]] = []
+    rest = list(passages)
+    while rest:
+        kept = fit_passages(rest[:size], nonce, budget)
+        batches.append(kept)
+        rest = rest[len(kept):]
+    return batches
 
 
 def _render_passage(p: Passage, nonce: str) -> str:
@@ -134,7 +166,7 @@ def _select(passages: Sequence[Passage], nonce: str,
     used = 0
     for p in passages:
         block = _render_passage(p, nonce)
-        cost = estimate_tokens(block)
+        cost = safe_tokens(block)
         if parts and used + cost > budget:
             break
         kept.append(p)
@@ -150,16 +182,7 @@ def render_passages(
 
     Le premier passage est toujours conservé (le refus se décide avant l'appel, pas ici).
     """
-    parts: list[str] = []
-    used = 0
-    for p in passages:
-        block = _render_passage(p, nonce)
-        cost = estimate_tokens(block)
-        if parts and used + cost > budget:
-            break
-        parts.append(block)
-        used += cost
-    return "\n".join(parts)
+    return "\n".join(_select(passages, nonce, budget)[1])
 
 
 def _render_findings(findings: Sequence[Finding], nonce: str) -> str:
