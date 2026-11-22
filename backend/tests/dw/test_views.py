@@ -9,7 +9,7 @@ from alembic.config import Config
 from sqlalchemy import create_engine, inspect, text
 
 from app.dw import kpi
-from app.dw.etl import run_etl
+from app.dw.etl import DEFAULT_BASELINE_MINUTES, run_etl
 from app.dw.views_sql import VIEWS, create_views, drop_views
 from app.storage import schema as sc
 
@@ -70,6 +70,16 @@ def test_views_match_kpi(loaded):
     assert kpi.minutes_saved(out) == pytest.approx(30 * (1 - 0.125) + 30, abs=0.1)
     tps = rows(loaded, "SELECT SUM(tokens_out) * 1000.0 / SUM(latency_ms) AS t FROM v_llm_calls")[0]
     assert tps["t"] == pytest.approx(kpi.throughput_tokens_per_s(calls), abs=1e-9)
+
+
+def test_v_outcome_exposes_baseline_minutes(loaded):
+    """Dénominateur du « temps gagné » en pourcentage (H7) : le temps manuel de référence."""
+    out = rows(loaded, "SELECT * FROM v_outcome")
+    assert out
+    for o in out:
+        assert float(o["baseline_minutes"]) == DEFAULT_BASELINE_MINUTES
+        expected = round(float(o["baseline_minutes"]) * (1 - float(o["edit_ratio"])), 1)
+        assert float(o["minutes_saved_est"]) == pytest.approx(expected)
 
 
 def test_quality_by_model_matches_kpi(loaded):

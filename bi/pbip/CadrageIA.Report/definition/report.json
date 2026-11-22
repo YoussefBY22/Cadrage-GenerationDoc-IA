@@ -1,16 +1,46 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/2.0.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/3.2.0/schema.json",
   "themeCollection": {
     "baseTheme": {
-      "name": "CY24SU06",
-      "reportVersionAtImport": "5.55",
+      "name": "CY26SU02",
+      "reportVersionAtImport": {
+        "visual": "2.7.0",
+        "report": "3.2.0",
+        "page": "2.1.0"
+      },
       "type": "SharedResources"
     },
     "customTheme": {
       "name": "cadrage-ey.json",
-      "reportVersionAtImport": "5.55",
+      "reportVersionAtImport": {
+        "visual": "2.7.0",
+        "report": "3.2.0",
+        "page": "2.1.0"
+      },
       "type": "RegisteredResources"
     }
+  },
+  "objects": {
+    "outspacePane": [
+      {
+        "properties": {
+          "expanded": {
+            "expr": {
+              "Literal": {
+                "Value": "false"
+              }
+            }
+          },
+          "visible": {
+            "expr": {
+              "Literal": {
+                "Value": "false"
+              }
+            }
+          }
+        }
+      }
+    ]
   },
   "resourcePackages": [
     {
@@ -18,8 +48,8 @@
       "type": "SharedResources",
       "items": [
         {
-          "name": "CY24SU06",
-          "path": "BaseThemes/CY24SU06.json",
+          "name": "CY26SU02",
+          "path": "BaseThemes/CY26SU02.json",
           "type": "BaseTheme"
         }
       ]

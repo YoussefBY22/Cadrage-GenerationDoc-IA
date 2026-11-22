@@ -54,6 +54,16 @@ Mesurés sur un PC portable (GTX 1650, 4 Go de VRAM), modèle de génération **
 
 Le TPV (taux de phrases vérifiées) mesure l'ancrage dans les sources, pas la vérité : il ne remplace pas la relecture humaine. Détails et limites : [`docs/lots/T2.md`](docs/lots/T2.md), [`docs/lots/T4.md`](docs/lots/T4.md).
 
+## Tableau de bord Power BI
+
+Cinq pages, une question de pilotage chacune : le verdict sur les critères de réussite, la qualité des preuves, le temps gagné, le choix du modèle, la sécurité et l'usage. Les valeurs affichées sont **inventées** (jeu de démonstration).
+
+| Accueil : le verdict | Qualité et preuves |
+|---|---|
+| ![Accueil du tableau de bord Power BI](docs/img/powerbi-accueil.png) | ![Qualité et preuves](docs/img/powerbi-qualite.png) |
+
+Chaque indicateur est défini (formule, intérêt, cible, limite) dans [`bi/KPI.md`](bi/KPI.md). Ouverture du projet et autres pages : [`bi/README.md`](bi/README.md).
+
 ## Démo en 3 commandes (Windows, PowerShell)
 
 Prérequis : Python 3.12 et Node 22. Aucun modèle ni Docker : un modèle de démonstration cite de vraies phrases des documents.

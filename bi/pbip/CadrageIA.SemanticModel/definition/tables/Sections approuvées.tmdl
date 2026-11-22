@@ -1,0 +1,101 @@
+table 'Sections approuvées'
+
+	column 'Identifiant du livrable'
+		dataType: string
+		isHidden
+		sourceColumn: deliverable_id
+		summarizeBy: none
+
+	column 'Clé de date'
+		dataType: int64
+		isHidden
+		sourceColumn: date_key
+		summarizeBy: none
+
+	column 'Clé de mission'
+		dataType: int64
+		isHidden
+		sourceColumn: mission_key
+		summarizeBy: none
+
+	column 'Code de configuration'
+		dataType: string
+		isHidden
+		sourceColumn: config_label
+		summarizeBy: none
+
+	column 'Clé de configuration'
+		dataType: string
+		isHidden
+		sourceColumn: config
+		summarizeBy: none
+
+	column 'Clé de type'
+		dataType: int64
+		isHidden
+		sourceColumn: type_key
+		summarizeBy: none
+
+	column Section
+		dataType: string
+		sourceColumn: section_title
+		summarizeBy: none
+
+	column 'Part de texte modifiée'
+		dataType: double
+		isHidden
+		sourceColumn: edit_ratio
+		summarizeBy: none
+
+	column 'Sans retouche'
+		dataType: int64
+		isHidden
+		sourceColumn: unchanged
+		summarizeBy: none
+
+	column 'Refusée'
+		dataType: int64
+		isHidden
+		sourceColumn: was_refused
+		summarizeBy: none
+
+	column 'Minutes gagnées'
+		dataType: double
+		isHidden
+		sourceColumn: minutes_saved_est
+		summarizeBy: none
+
+	column 'Minutes de référence'
+		dataType: double
+		isHidden
+		sourceColumn: baseline_minutes
+		summarizeBy: none
+
+	column 'Ampleur de la retouche'
+		dataType: string
+		sourceColumn: retouche
+		sortByColumn: 'Ordre de retouche'
+		summarizeBy: none
+
+	column 'Ordre de retouche'
+		dataType: int64
+		isHidden
+		sourceColumn: retouche_ordre
+		summarizeBy: none
+
+	partition 'Sections approuvées' = m
+		mode: import
+		source =
+				let
+				    Brut = Vue("v_outcome"),
+				    Choix = Table.SelectColumns(Brut, {"deliverable_id", "date_key", "mission_key", "config_label", "section_title", "edit_ratio", "unchanged", "was_refused", "minutes_saved_est", "baseline_minutes"}, MissingField.UseNull),
+				    Typage = Table.TransformColumnTypes(Choix, {{"deliverable_id", type text}, {"date_key", Int64.Type}, {"mission_key", Int64.Type}, {"config_label", type text}, {"section_title", type text}, {"edit_ratio", type number}, {"unchanged", Int64.Type}, {"was_refused", Int64.Type}, {"minutes_saved_est", type number}, {"baseline_minutes", type number}}, CultureCsv),
+				    AvecReference = Table.TransformColumns(Typage, {{"baseline_minutes", each if _ = null then 30 else _, type number}}),
+				    AvecConfiguration = Table.AddColumn(AvecReference, "config", each if [config_label] = null or [config_label] = "" then "Non étiquetée" else [config_label], type text),
+				    TypeParLivrable = Table.TransformColumnTypes(Table.Distinct(Table.SelectColumns(Vue("v_review_funnel"), {"deliverable_id", "type_key"})), {{"type_key", Int64.Type}}),
+				    Jointure = Table.NestedJoin(AvecConfiguration, {"deliverable_id"}, TypeParLivrable, {"deliverable_id"}, "livrable", JoinKind.LeftOuter),
+				    AvecType = Table.ExpandTableColumn(Jointure, "livrable", {"type_key"}),
+				    AvecOrdre = Table.AddColumn(AvecType, "retouche_ordre", each if [was_refused] = 1 then 5 else if [edit_ratio] = null or [edit_ratio] = 0 then 1 else if [edit_ratio] < 0.2 then 2 else if [edit_ratio] < 0.5 then 3 else 4, Int64.Type),
+				    AvecRetouche = Table.AddColumn(AvecOrdre, "retouche", each {"Aucune", "Légère (< 20 %)", "Moyenne (20–50 %)", "Forte (≥ 50 %)", "Section refusée"}{[retouche_ordre] - 1}, type text)
+				in
+				    AvecRetouche

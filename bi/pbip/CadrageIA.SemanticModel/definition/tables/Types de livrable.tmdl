@@ -1,0 +1,29 @@
+table 'Types de livrable'
+
+	column 'Clé de type'
+		dataType: int64
+		isHidden
+		sourceColumn: type_key
+		summarizeBy: none
+
+	column 'Code du type'
+		dataType: string
+		isHidden
+		sourceColumn: type_code
+		summarizeBy: none
+
+	column 'Type de livrable'
+		dataType: string
+		sourceColumn: libelle
+		sortByColumn: 'Clé de type'
+		summarizeBy: none
+
+	partition 'Types de livrable' = m
+		mode: import
+		source =
+				let
+				    Tous = #table(type table [#"type_key" = Int64.Type, #"type_code" = text, #"libelle" = text], {{1, "findings", "Constats"}, {2, "roadmap", "Feuille de route"}, {3, "tor", "Termes de référence"}, {4, "cdc", "Cahier des charges"}}),
+				    Utilises = List.Buffer(List.Distinct(Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_generation"), {"type_code"}), {{"type_code", type text}}, CultureCsv), "type_code"))),
+				    Presents = Table.SelectRows(Tous, each List.Contains(Utilises, [type_code]))
+				in
+				    Presents
