@@ -56,7 +56,8 @@ GROUP BY r.deliverable_id, r.mission_key, r.type_key, r.is_demo
     "v_outcome": """
 SELECT o.outcome_key, o.deliverable_id, o.approved_version, o.date_key, o.mission_key,
        s.section_code, s.title_fr AS section_title, mo.config_label, o.generated_words,
-       o.final_words, o.edit_ratio, o.unchanged, o.was_refused, o.minutes_saved_est, o.is_demo
+       o.final_words, o.edit_ratio, o.unchanged, o.was_refused, o.minutes_saved_est, o.is_demo,
+       s.baseline_minutes
 FROM {s}fact_section_outcome o
 JOIN {s}dim_section s ON s.section_key = o.section_key
 JOIN {s}dim_model mo ON mo.model_key = o.model_key
