@@ -27,7 +27,7 @@ from training.runlog import RunLog
 
 OK, REFUSED_BUDGET, STOPPED, EXPORT_FAILED, DATA_REFUSED = 0, 3, 4, 5, 6
 PROFILES_DIR = Path(__file__).parent / "profiles"
-MEASURE_STEPS = 50
+MEASURE_STEPS = 50  # surchargeable par le profil (measure_steps)
 
 
 class SimulatedKill(BaseException):
@@ -49,6 +49,8 @@ class RunConfig:
     max_gpu_temp: float = 83.0
     simulate: bool = False
     base_tag: str = "qwen3:1.7b"
+    ollama_tag: str = "cadrage-lora"
+    stop_after_trial: bool = False
     sim: dict = field(default_factory=dict)
 
     @property
@@ -78,7 +80,19 @@ def check_data_policy(profile: dict, examples: list[dict]) -> str | None:
     return None
 
 
+def render_prompt(system: str, user: str) -> str:
+    """Invite identique, caractère pour caractère, à celle d'Ollama (qwen3:1.7b, think: false).
+
+    Le gabarit Hugging Face diffère : ni « /no_think », ni double saut de ligne après « system ».
+    L'égalité est revérifiée contre Ollama à la partie 0 (training/parts.py).
+    """
+    return (f"<|im_start|>system\n\n{system}<|im_end|>\n"
+            f"<|im_start|>user\n{user} /no_think<|im_end|>\n"
+            f"<|im_start|>assistant\n<think>\n\n</think>\n\n")
+
+
 def total_steps(n_examples: int, profile: dict) -> int:
+    n_examples = min(n_examples, profile.get("max_train_examples") or n_examples)
     per_step = profile["batch_size"] * profile["grad_accum"]
     return max(1, math.ceil(n_examples * profile["epochs"] / per_step))
 
@@ -137,7 +151,7 @@ class TorchBackend:
 
     def __init__(self, cfg: RunConfig, train: list[dict], val: list[dict]):
         import torch
-        from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+        from peft import LoraConfig, get_peft_model
         from transformers import (
             AutoModelForCausalLM,
             AutoTokenizer,
@@ -149,40 +163,58 @@ class TorchBackend:
         self.torch, self.p = torch, p
         torch.manual_seed(cfg.seed)
         self.tok = AutoTokenizer.from_pretrained(p["base_model"])
+        # GTX 1650 (sans cœurs tenseurs) : les produits fp16 y sont ~4x plus lents que fp32 (mesuré en T5).
+        self.fp16 = p.get("compute_dtype", "fp16") == "fp16"
+        self.dtype = torch.float16 if self.fp16 else torch.float32
         bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4",
-                                 bnb_4bit_use_double_quant=True, bnb_4bit_compute_dtype=torch.float16)
+                                 bnb_4bit_use_double_quant=True, bnb_4bit_compute_dtype=self.dtype)
+        self.quantized = p.get("quant", "none") != "none" and _bnb_available()
+        kw = {"quantization_config": bnb} if self.quantized else {}
         model = AutoModelForCausalLM.from_pretrained(
-            p["base_model"], quantization_config=bnb, torch_dtype=torch.float16, device_map="auto")
-        model.gradient_checkpointing_enable()
-        model = prepare_model_for_kbit_training(model)
+            p["base_model"], dtype=self.dtype, device_map={"": 0}, **kw)
+        # prepare_model_for_kbit_training passerait les plongements (151 k x 2 048) en fp32 : trop pour 4 Go.
+        model.config.use_cache = False
+        model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
+        model.enable_input_require_grads()
         lc = p["lora"]
         self.model = get_peft_model(model, LoraConfig(
             r=lc["r"], lora_alpha=lc["alpha"], lora_dropout=lc["dropout"],
             target_modules=lc["modules"], task_type="CAUSAL_LM"))
-        import bitsandbytes as bnb_lib
-
         params = [x for x in self.model.parameters() if x.requires_grad]
-        self.opt = bnb_lib.optim.PagedAdamW8bit(params, lr=p["lr"])
-        self.steps = total_steps(len(train), p)
+        for x in params:  # adaptateur en fp32 (maître), le calcul reste en fp16 (autocast)
+            x.data = x.data.float()
+        if self.quantized:
+            import bitsandbytes as bnb_lib
+
+            self.opt = bnb_lib.optim.PagedAdamW8bit(params, lr=p["lr"])
+        else:
+            self.opt = torch.optim.AdamW(params, lr=p["lr"])
+        import random
+
+        train = random.Random(cfg.seed).sample(train, len(train))  # le plafond garde un mélange représentatif
+        self.train = self._encode(train, p.get("max_train_examples"))
+        self.steps = total_steps(len(self.train), p)
         self.sched = get_cosine_schedule_with_warmup(
             self.opt, max(1, int(p["warmup_ratio"] * self.steps)), self.steps)
-        self.scaler = torch.amp.GradScaler("cuda")  # fp16 : pas de bf16 sur ces GPU
-        self.train = self._encode(train)
-        self.val = self._encode(val[:64])
+        self.scaler = torch.amp.GradScaler("cuda", enabled=self.fp16)  # fp16 : pas de bf16 sur ces GPU
+        self.val = self._encode(val, p.get("val_examples", 64))
         self.order = list(range(len(self.train)))
         import random
 
         random.Random(cfg.seed).shuffle(self.order)
 
-    def _encode(self, examples: list[dict]) -> list[tuple[list[int], list[int]]]:
+    def _encode(self, examples: list[dict], limit: int | None = None) -> list[tuple[list[int], list[int]]]:
         """Jetons + étiquettes ; la perte porte sur la réponse seulement (prompt masqué à -100)."""
         out = []
         for ex in examples:
             m = ex["messages"]
-            prompt = self.tok.apply_chat_template(m[:2], add_generation_prompt=True, tokenize=True)
-            answer = self.tok(m[2]["content"] + self.tok.eos_token, add_special_tokens=False)["input_ids"]
+            text = render_prompt(m[0]["content"], m[1]["content"])
+            prompt = self.tok(text, add_special_tokens=False)["input_ids"]
+            answer = self.tok(m[2]["content"] + "<|im_end|>", add_special_tokens=False)["input_ids"]
             if len(prompt) + len(answer) <= self.p["max_seq_len"]:
                 out.append((prompt + answer, [-100] * len(prompt) + answer))
+                if limit and len(out) >= limit:
+                    break
         return out
 
     def now(self) -> float:
@@ -197,6 +229,23 @@ class TorchBackend:
         att = t.tensor([[1] * len(i) + [0] * (n - len(i)) for i, _ in items]).cuda()
         return ids, att, lab
 
+    def _loss(self, ids, att, lab):
+        """Perte sur la réponse. Lot de 1 (sans bourrage) : logits calculés sur la fin seulement."""
+        if ids.shape[0] != 1:
+            return self.model(input_ids=ids, attention_mask=att, labels=lab).loss
+        n_ans = int((lab[0] != -100).sum())
+        out = self.model(input_ids=ids, attention_mask=att, logits_to_keep=n_ans + 1)
+        logits = out.logits[:, :-1].float()
+        return self.torch.nn.functional.cross_entropy(logits.reshape(-1, logits.shape[-1]), ids[0, -n_ans:])
+
+    def close(self) -> None:
+        import gc
+
+        for name in ("model", "opt", "sched", "scaler", "train", "val"):
+            setattr(self, name, None)
+        gc.collect()
+        self.torch.cuda.empty_cache()
+
     def train_step(self, step: int) -> float:
         t, p = self.torch, self.p
         self.model.train()
@@ -205,8 +254,8 @@ class TorchBackend:
             base = (step * p["grad_accum"] + k) * p["batch_size"]
             items = [self.train[self.order[(base + j) % len(self.order)]] for j in range(p["batch_size"])]
             ids, att, lab = self._batch(items)
-            with t.autocast("cuda", dtype=t.float16):
-                loss = self.model(input_ids=ids, attention_mask=att, labels=lab).loss / p["grad_accum"]
+            with t.autocast("cuda", dtype=t.float16, enabled=self.fp16):
+                loss = self._loss(ids, att, lab) / p["grad_accum"]
             self.scaler.scale(loss).backward()
             total += loss.item()
         self.scaler.unscale_(self.opt)
@@ -224,8 +273,8 @@ class TorchBackend:
         with t.no_grad():
             for item in self.val:
                 ids, att, lab = self._batch([item])
-                with t.autocast("cuda", dtype=t.float16):
-                    losses.append(self.model(input_ids=ids, attention_mask=att, labels=lab).loss.item())
+                with t.autocast("cuda", dtype=t.float16, enabled=self.fp16):
+                    losses.append(self._loss(ids, att, lab).item())
         return sum(losses) / max(1, len(losses))
 
     def free_gb(self, step: int) -> float | None:
@@ -247,10 +296,26 @@ class TorchBackend:
         from safetensors.torch import load_file
 
         set_peft_model_state_dict(self.model, load_file(str(d / "adapter" / "adapter_model.safetensors")))
-        st = self.torch.load(d / "opt.pt")
+        st = self.torch.load(d / "opt.pt", map_location="cpu", weights_only=True)
         self.opt.load_state_dict(st["opt"])
         self.sched.load_state_dict(st["sched"])
         self.scaler.load_state_dict(st["scaler"])
+
+
+def _bnb_available() -> bool:
+    try:
+        import bitsandbytes  # noqa: F401
+        import torch
+
+        return torch.cuda.is_available()
+    except (ImportError, OSError, RuntimeError):
+        return False
+
+
+def release(backend) -> None:
+    """Libère la VRAM d'un moteur avant d'en recréer un (mesure -> essai -> long entraînement)."""
+    if hasattr(backend, "close"):
+        backend.close()
 
 
 def make_backend(cfg: RunConfig, train: list[dict], val: list[dict]):
@@ -303,6 +368,15 @@ def _guard(cfg: RunConfig, backend, loss: float, state: dict, stop: guards.StopF
                             free_fn=free_fn, temp_fn=temp_fn, stop=stop)
 
 
+def _base_dir(cfg: RunConfig) -> Path | None:
+    """Dossier local du modèle de base (cache Hugging Face) : requis pour convertir l'adaptateur."""
+    if cfg.simulate:
+        return None
+    from huggingface_hub import snapshot_download
+
+    return Path(snapshot_download(cfg.profile["base_model"]))
+
+
 def run_training(cfg: RunConfig, stop: guards.StopFlag | None = None) -> int:
     """Exécute toutes les étapes ; retourne un code de sortie (voir l'en-tête du module)."""
     stop = stop or guards.StopFlag()
@@ -332,10 +406,12 @@ def run_training(cfg: RunConfig, stop: guards.StopFlag | None = None) -> int:
     if not ckpts:
         # (1) mesure de 50 pas -> estimation -> refus si au-dessus du budget
         backend = make_backend(cfg, train, val)
-        n_measure = min(MEASURE_STEPS, steps)
+        n_measure = min(p.get("measure_steps", MEASURE_STEPS), steps)
         t0 = backend.now()
         for i in range(n_measure):
             backend.train_step(i)
+            if (i + 1) % 10 == 0:
+                print(f"[mesure] {i + 1}/{n_measure} pas, {(backend.now() - t0) / (i + 1):.1f} s/pas", flush=True)
         per_step = (backend.now() - t0) / n_measure
         estimate_h = per_step * steps / 3600
         log.phase("measure", steps_measured=n_measure, seconds_per_step=round(per_step, 3),
@@ -345,6 +421,7 @@ def run_training(cfg: RunConfig, stop: guards.StopFlag | None = None) -> int:
             return finish("refused_budget", REFUSED_BUDGET,
                           f"durée estimée {estimate_h:.1f} h > budget {cfg.budget_hours} h")
         # (2) essai sur 1 % des pas, puis export test AVANT le long entraînement
+        release(backend)
         backend = make_backend(cfg, train, val)
         n_trial = max(2, math.ceil(0.01 * steps))
         trial_state = {"step": 0, "initial_loss": None}
@@ -358,13 +435,17 @@ def run_training(cfg: RunConfig, stop: guards.StopFlag | None = None) -> int:
                 return finish("stopped", STOPPED, f"essai : {why}", backend.now())
         trial_dir = cfg.run_dir / "trial"
         backend.save_adapter(trial_dir / "adapter")
+        release(backend)  # la VRAM doit être libre pour le test d'import dans Ollama
         try:
             export_gguf.export(trial_dir / "adapter", trial_dir / "export", cfg.base_tag,
-                               simulate=cfg.simulate)
+                               simulate=cfg.simulate, base_model_dir=_base_dir(cfg),
+                               ollama_tag=None if cfg.simulate else f"{cfg.ollama_tag}-trial")
         except export_gguf.ExportError as e:
             log.phase("trial", steps=n_trial, export_ok=False)
             return finish("export_failed", EXPORT_FAILED, str(e))
         log.phase("trial", steps=n_trial, data_fraction=0.01, export_ok=True)
+        if cfg.stop_after_trial:
+            return finish("trial_only", OK, "essai + export test terminés (--stop-after-trial)")
         backend = make_backend(cfg, train, val)  # repart de zéro pour le long entraînement
     else:
         backend = make_backend(cfg, train, val)
@@ -382,6 +463,8 @@ def run_training(cfg: RunConfig, stop: guards.StopFlag | None = None) -> int:
         loss = backend.train_step(state["step"])
         state["step"] += 1
         state["elapsed"] = backend.now() - clock0
+        if state["step"] % 5 == 0:
+            print(f"[pas {state['step']}/{steps}] perte {loss:.4f} écoulé {state['elapsed'] / 60:.1f} min", flush=True)
         if state["initial_loss"] is None and not math.isnan(loss):
             state["initial_loss"] = loss
         why = _guard(cfg, backend, loss, state, stop)
@@ -404,9 +487,11 @@ def run_training(cfg: RunConfig, stop: guards.StopFlag | None = None) -> int:
             last_save = backend.now()
     save_checkpoint(cfg, backend, state, p["keep_checkpoints"])
     backend.save_adapter(cfg.run_dir / "adapter")
+    release(backend)
     try:
         export_gguf.export(cfg.run_dir / "adapter", cfg.run_dir / "export", cfg.base_tag,
-                           simulate=cfg.simulate)
+                           simulate=cfg.simulate, base_model_dir=_base_dir(cfg),
+                           ollama_tag=None if cfg.simulate else cfg.ollama_tag)
     except export_gguf.ExportError as e:
         return finish("export_failed", EXPORT_FAILED, str(e), state["elapsed"])
     log.phase("final", steps=state["step"], best_eval=state["best_eval"])
@@ -427,12 +512,17 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--min-free-gb", type=float)
     ap.add_argument("--max-gpu-temp", type=float)
     ap.add_argument("--base-tag", default="qwen3:1.7b")
+    ap.add_argument("--measure-steps", type=int, help="pas de la mesure (défaut : profil ou 50)")
+    ap.add_argument("--ollama-tag", default="cadrage-lora")
+    ap.add_argument("--stop-after-trial", action="store_true", help="s'arrête après l'essai 1 % et l'export test")
     ap.add_argument("--simulate", action="store_true", help="boucle factice : ni torch ni GPU")
     ap.add_argument("--sim-step-seconds", type=float, default=30.0)
     for name in ("nan-at", "kill-at", "disk-full-at", "hot-at", "plateau-at"):
         ap.add_argument(f"--sim-{name}", type=int)
     a = ap.parse_args(argv)
     profile = load_profile(a.profile)
+    if a.measure_steps:
+        profile["measure_steps"] = a.measure_steps
     pick = lambda cli, key: cli if cli is not None else profile[key]
     cfg = RunConfig(
         profile=profile, run_id=a.run_id, runs_dir=a.runs_dir, train_path=a.train,
@@ -441,7 +531,8 @@ def main(argv: list[str] | None = None) -> int:
         save_every_min=pick(a.save_every_min, "save_every_min"),
         min_free_gb=pick(a.min_free_gb, "min_free_gb"),
         max_gpu_temp=pick(a.max_gpu_temp, "max_gpu_temp"),
-        simulate=a.simulate, base_tag=a.base_tag,
+        simulate=a.simulate, base_tag=a.base_tag, ollama_tag=a.ollama_tag,
+        stop_after_trial=a.stop_after_trial,
         sim={"step_seconds": a.sim_step_seconds, "nan_at": a.sim_nan_at, "kill_at": a.sim_kill_at,
              "disk_full_at": a.sim_disk_full_at, "hot_at": a.sim_hot_at,
              "plateau_at": a.sim_plateau_at})
