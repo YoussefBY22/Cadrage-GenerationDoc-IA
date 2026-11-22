@@ -26,15 +26,15 @@ Le prototype doit **rendre visibles les sources utilisées** et **intégrer une 
 
 ## 3. Choix de conception ajoutés par ce projet
 
-Ces points **ne figurent pas dans le sujet**. Ce sont des hypothèses de travail, à confirmer avec l'entreprise (voir §13).
+Ces points **ne figurent pas dans le sujet**. Ce sont des choix de travail (D1 à D5) ; les hypothèses à valider avec l'entreprise sont au §13 (H1 à H7).
 
 | # | Choix | Justification |
 |---|---|---|
-| H1 | **Aucun appel à une API ou un modèle hébergé** pendant l'utilisation du produit | Les documents de diagnostic sont confidentiels. |
-| H2 | Modèle de langage **ouvert, exécuté sur le serveur du client** | Même raison ; le client garde le contrôle. |
-| H3 | Le modèle est **adapté** (fine-tuning léger) pour **rédiger et structurer** les livrables | Qualité et cohérence de forme. |
-| H4 | Les **connaissances du client** restent dans une base interrogée à la demande (**RAG**), jamais dans les poids du modèle | Confidentialité, mise à jour, traçabilité. |
-| H5 | Un **tableau de bord** (Power BI ou équivalent sur site) mesure l'usage et la qualité | Les utilisateurs connaissent Power BI. |
+| D1 | **Aucun appel à une API ou un modèle hébergé** pendant l'utilisation du produit | Les documents de diagnostic sont confidentiels. |
+| D2 | Modèle de langage **ouvert, exécuté sur le serveur du client** | Même raison ; le client garde le contrôle. |
+| D3 | Le modèle est **adapté** (fine-tuning léger) pour **rédiger et structurer** les livrables | Qualité et cohérence de forme. |
+| D4 | Les **connaissances du client** restent dans une base interrogée à la demande (**RAG**), jamais dans les poids du modèle | Confidentialité, mise à jour, traçabilité. |
+| D5 | Un **tableau de bord** (Power BI ou équivalent sur site) mesure l'usage et la qualité | Les utilisateurs connaissent Power BI. |
 
 ## 4. Périmètre
 
@@ -143,15 +143,19 @@ Ces points **ne figurent pas dans le sujet**. Ce sont des hypothèses de travail
 | **J5** | Banc d'essai, résultats comparés, déploiement sur conteneurs |
 | **J6** | Version sur le serveur de l'entreprise : modèle plus grand, adaptation réelle, rapport final |
 
-## 13. Questions à poser à l'entreprise
+## 13. Hypothèses retenues (à valider avec l'entreprise)
 
-1. Le traitement doit-il rester **entièrement sur site**, ou un cloud privé est-il accepté ?
-2. Quel **matériel** (GPU, mémoire) sur le serveur cible ?
-3. Quels **types de documents** en entrée, quelles **langues**, quelle **taille** ?
-4. Existe-t-il des **trames et chartes** de livrables à respecter ?
-5. Des **exemples anonymisés** peuvent-ils servir à l'évaluation ?
-6. Qui valide quoi dans le circuit de relecture ?
-7. Quel est le **niveau de qualité attendu** pour considérer le prototype comme utile ?
+Faute de réponses de l'entreprise à ce stade, le projet retient les hypothèses suivantes. Ce sont des **hypothèses de travail**, pas des faits établis : chacune est à **confirmer ou à corriger** avec l'entreprise, et sa révision peut modifier le périmètre ou les mesures.
+
+| N° | Hypothèse retenue | Ce qui change si elle est fausse |
+|---|---|---|
+| H1 | Le traitement reste **100 % sur site** : aucun document ni aucune requête ne quitte le réseau de l'entreprise (ni cloud public, ni cloud privé). | Un cloud privé accepté élargirait le choix de modèles ; il faudrait revoir le garde-fou de réseau. |
+| H2 | **Serveur GPU de 24 Go** de mémoire vidéo en cible ; **PC de démonstration avec 4 Go**, donc un petit modèle quantifié. | Moins de mémoire : modèle plus petit, qualité plus faible. Plus de mémoire : modèle plus gros à évaluer. |
+| H3 | Documents en entrée : **PDF, DOCX et PPTX**, en **français et en anglais**, de **10 à 200 pages**. | D'autres formats (scans, tableurs) ou des volumes plus grands demandent de l'extraction et un indexage supplémentaires. |
+| H4 | Les livrables suivent des **trames génériques de bailleurs de fonds** ; les trames et chartes internes de l'entreprise ne sont pas connues. | Des trames internes imposeraient de nouveaux gabarits et une validation de leur structure. |
+| H5 | Le corpus de développement et d'évaluation est **public (réel) et synthétique** ; **aucune donnée client** n'est utilisée. | Des exemples anonymisés fournis par l'entreprise amélioreraient l'évaluation, sous accord écrit. |
+| H6 | Circuit de relecture : le **consultant rédige**, le **manager approuve**, et ce sont **deux personnes distinctes**. | Un autre circuit (relecteur supplémentaire, auto-approbation) modifie les rôles et l'entonnoir de validation. |
+| H7 | Critère de réussite du prototype : **0 citation inventée**, **au moins 50 %** des phrases générées **réutilisables telles quelles**, et **au moins 30 %** de **temps gagné** sur la rédaction. | Des seuils différents modifient la lecture des résultats d'évaluation ; le temps gagné reste une **estimation**, non une mesure. |
 
 ## 14. Risques
 

@@ -1,6 +1,6 @@
 # Maquette des 5 pages (07 §7)
 
-Charte : fond blanc, gris pour les séries, **une** couleur d'accent ; libellés en français ; en haut de chaque page un
+Charte EY : jaune `#FFE600` (accent), anthracite `#2E2E38`, gris `#747480` `#C4C4CD` `#F6F6FA`, Segoe UI, sans logo ; libellés en français ; en haut de chaque page un
 segment **Données de démonstration** (`is_demo`) et, en démo, le texte « Valeurs inventées — démonstration ».
 
 ## 1. Vue d'ensemble

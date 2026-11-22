@@ -1,19 +1,38 @@
-// Mesures Power BI (07 §6). À copier dans Power BI Desktop : Accueil > Nouvelle mesure (une par bloc).
-// Les noms de colonnes viennent des vues exportées (v_generation, v_outcome, v_llm_calls).
+// Mesures Power BI — GÉNÉRÉ par bi/pbip/build_pbip.py (ne pas éditer ici). 07 §5-6.
+// Sans PBIP : Accueil > Nouvelle mesure, une par bloc. Tables attendues : v_generation, v_outcome,
+// v_llm_calls, v_review_funnel, v_citations, v_security, Missions, Modèles, Dates, Etapes (bi/README.md §3).
 
 TPV = DIVIDE(SUM(v_generation[sentences_verified]), SUM(v_generation[sentences_total]))
 
 Citations valides = DIVIDE(SUM(v_generation[citations_valid]), SUM(v_generation[citations_total]))
 
-Fidélité chiffres = IF(SUM(v_generation[numbers_cited]) = 0, 1,
-    DIVIDE(SUM(v_generation[numbers_found]), SUM(v_generation[numbers_cited])))
+Fidélité chiffres = IF(SUM(v_generation[numbers_cited]) = 0, 1, DIVIDE(SUM(v_generation[numbers_found]), SUM(v_generation[numbers_cited])))
 
 Taux refus = DIVIDE(CALCULATE(COUNTROWS(v_generation), v_generation[status] = "refused"), COUNTROWS(v_generation))
 
-Acceptation sans modif = DIVIDE(CALCULATE(COUNTROWS(v_outcome), v_outcome[unchanged] = TRUE()), COUNTROWS(v_outcome))
+Acceptation sans modif = DIVIDE(CALCULATE(COUNTROWS(v_outcome), v_outcome[unchanged] = 1), COUNTROWS(v_outcome))
 
 Temps gagné (h) = SUM(v_outcome[minutes_saved_est]) / 60
 
 Latence p95 (s) = PERCENTILEX.INC(v_llm_calls, v_llm_calls[latency_ms], 0.95) / 1000
 
-Δ TPV vs B = [TPV] - CALCULATE([TPV], v_generation[config_label] = "B")
+Δ TPV vs B = [TPV] - CALCULATE([TPV], REMOVEFILTERS(Modèles[config_label]), Modèles[config_label] = "B")
+
+Livrables approuvés = DISTINCTCOUNT(v_outcome[deliverable_id])
+
+Générations = COUNTROWS(v_generation)
+
+Contrôles de citation = COUNTROWS(v_citations)
+
+Réécriture moyenne = AVERAGE(v_outcome[edit_ratio])
+
+Délai médian (h) = MEDIAN(v_review_funnel[delay_hours])
+
+Taux refus relecture = DIVIDE(SUM(v_review_funnel[rejections]), SUM(v_review_funnel[submissions]))
+
+Alertes d'injection = SUM(v_security[injection_alert_count])
+
+Documents = COUNTROWS(v_security)
+
+Livrables à l'étape = SWITCH(SELECTEDVALUE(Etapes[Ordre]), 1, DISTINCTCOUNT(v_review_funnel[deliverable_id]), 2, CALCULATE(DISTINCTCOUNT(v_review_funnel[deliverable_id]), v_review_funnel[submissions] > 0), 3, CALCULATE(DISTINCTCOUNT(v_review_funnel[deliverable_id]), v_review_funnel[approved_date_key] <> BLANK()))
+

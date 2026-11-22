@@ -1,9 +1,24 @@
 """Configuration : tout vient de l'environnement (jamais de secret dans le dépôt)."""
 
+import os
+import shutil
 from functools import lru_cache
 from typing import Literal
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _find_soffice(value: str) -> str:
+    """« soffice » n'est pas dans le PATH après une installation Windows : chercher l'emplacement standard."""
+    if value != "soffice" or shutil.which(value) or os.name != "nt":
+        return value
+    for base in (os.environ.get("ProgramFiles"), os.environ.get("ProgramFiles(x86)")):
+        if base:
+            candidate = os.path.join(base, "LibreOffice", "program", "soffice.exe")
+            if os.path.isfile(candidate):
+                return candidate
+    return value
 
 
 class Settings(BaseSettings):
@@ -45,11 +60,16 @@ class Settings(BaseSettings):
     rrf_k: int = 60
     support_threshold: float = 0.3
     session_ttl_hours: int = 12
-    soffice_path: str = "soffice"
+    soffice_path: str = "soffice"   # sous Windows, repli automatique sur Program Files\LibreOffice
     auth_mode: Literal["dev", "token"] = "token"
     # Origines autorisées à appeler l'API depuis un navigateur (front en développement sur :3000).
     # Vide = aucune (déploiement même origine derrière le proxy).
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+
+    @field_validator("soffice_path")
+    @classmethod
+    def _soffice_windows(cls, v: str) -> str:
+        return _find_soffice(v)
 
     @property
     def cors_origin_list(self) -> list[str]:

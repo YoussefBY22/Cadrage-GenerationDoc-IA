@@ -1,0 +1,71 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json",
+  "name": "p4_v05",
+  "position": {
+    "x": 24,
+    "y": 92,
+    "width": 620,
+    "height": 604,
+    "z": 5,
+    "tabOrder": 5
+  },
+  "visual": {
+    "visualType": "funnel",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Etapes"
+                    }
+                  },
+                  "Property": "Etape"
+                }
+              },
+              "queryRef": "Etapes.Etape",
+              "nativeQueryRef": "Etape"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Mesures"
+                    }
+                  },
+                  "Property": "Livrables à l'étape"
+                }
+              },
+              "queryRef": "_Mesures.Livrables à l'étape",
+              "nativeQueryRef": "Livrables à l'étape"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true,
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Entonnoir de validation'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

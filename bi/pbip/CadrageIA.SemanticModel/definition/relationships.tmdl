@@ -1,0 +1,53 @@
+relationship r01
+	fromColumn: v_generation.mission_key
+	toColumn: Missions.mission_key
+
+relationship r02
+	fromColumn: v_outcome.mission_key
+	toColumn: Missions.mission_key
+
+relationship r03
+	fromColumn: v_review_funnel.mission_key
+	toColumn: Missions.mission_key
+
+relationship r04
+	fromColumn: v_security.mission_key
+	toColumn: Missions.mission_key
+
+relationship r05
+	fromColumn: v_llm_calls.mission_key
+	toColumn: Missions.mission_key
+
+relationship r06
+	fromColumn: v_generation.model_key
+	toColumn: 'Modèles'.model_key
+
+relationship r07
+	fromColumn: v_llm_calls.model_key
+	toColumn: 'Modèles'.model_key
+
+relationship r08
+	fromColumn: v_quality_by_model.model_key
+	toColumn: 'Modèles'.model_key
+
+relationship r09
+	fromColumn: v_generation.date_key
+	toColumn: Dates.date_key
+
+relationship r10
+	fromColumn: v_outcome.date_key
+	toColumn: Dates.date_key
+
+relationship r11
+	fromColumn: v_llm_calls.date_key
+	toColumn: Dates.date_key
+
+relationship r12
+	isActive: false
+	fromColumn: v_review_funnel.submitted_date_key
+	toColumn: Dates.date_key
+
+relationship r13
+	fromColumn: v_citations.generation_key
+	toColumn: v_generation.generation_key
+
