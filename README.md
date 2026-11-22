@@ -56,13 +56,13 @@ Le TPV (taux de phrases vérifiées) mesure l'ancrage dans les sources, pas la v
 
 ## Tableau de bord Power BI
 
-Cinq pages, une question de pilotage chacune : le verdict sur les critères de réussite, la qualité des preuves, le temps gagné, le choix du modèle, la sécurité et l'usage. Les valeurs affichées sont **inventées** (jeu de démonstration).
+Un rapport pour les deux acteurs de l'application, le **consultant** qui rédige et le **responsable** qui valide : constat, recommandations par règles, prédiction testée contre une référence naïve, rapport PDF. Les valeurs affichées sont **inventées** (jeu de démonstration).
 
-| Accueil : le verdict | Qualité et preuves |
+| Synthèse | Validation |
 |---|---|
-| ![Accueil du tableau de bord Power BI](docs/img/powerbi-accueil.png) | ![Qualité et preuves](docs/img/powerbi-qualite.png) |
+| ![Synthèse du rapport Power BI](docs/img/powerbi-synthese.png) | ![Page Validation, pour le responsable](docs/img/powerbi-validation.png) |
 
-Chaque indicateur est défini (formule, intérêt, cible, limite) dans [`bi/KPI.md`](bi/KPI.md). Ouverture du projet et autres pages : [`bi/README.md`](bi/README.md).
+Qui voit quoi : [`docs/14`](docs/14-acteurs-dashboard.md). Indicateurs (formule, décision, cible, limite) : [`bi/KPI.md`](bi/KPI.md). Ouverture du projet et autres pages : [`bi/README.md`](bi/README.md).
 
 ## Démo en 3 commandes (Windows, PowerShell)
 
