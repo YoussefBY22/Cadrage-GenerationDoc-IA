@@ -1,8 +1,12 @@
-[data-sentence] { border-left: 4px solid #b8c2cf; padding: 0 .5rem; margin: .35rem 0; }
-[data-sentence][data-status="verified"] { border-left-color: green; background: #eaf6ec; }
-[data-sentence][data-status="warning"] { border-left-color: orange; background: #fff4e0; }
-[data-sentence][data-status="failed"] { border-left-color: red; background: #fdeaea; }
-.sentence-text { display: inline; margin: 0; }
-.diff-del { color: #9b1c1c; margin: 0; }
-.diff-add { color: #1c6b2c; margin: 0; }
+/* Chaque phrase porte la couleur de sa preuve : vert (vérifiée), ambre (à vérifier), rouge (non étayée). */
+[data-sentence] { border-left: 4px solid var(--grey-2); padding: 5px 10px; margin: 6px 0; border-radius: 0 4px 4px 0; display: flex; gap: 8px; align-items: baseline; justify-content: space-between; line-height: 1.6; font-size: 14.5px; }
+[data-sentence][data-status="verified"] { border-left-color: var(--ok); background: var(--ok-bg); }
+[data-sentence][data-status="warning"] { border-left-color: #f2a900; background: var(--warn-bg); }
+[data-sentence][data-status="failed"] { border-left-color: var(--bad); background: var(--bad-bg); }
+.sentence-text { display: block; margin: 0; flex: 1; min-width: 0; }
+.sentence-refs { display: inline-flex; gap: 4px; flex-shrink: 0; }
+.diff-del { color: var(--bad); margin: 2px 0; }
+.diff-add { color: var(--ok); margin: 2px 0; }
 .ProseMirror { outline: none; }
+.ProseMirror:focus-visible { box-shadow: none; }
+.ProseMirror-focused [data-sentence] { box-shadow: none; }

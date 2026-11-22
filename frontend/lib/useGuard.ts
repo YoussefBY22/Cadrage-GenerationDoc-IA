@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { ApiError } from "./api";
-import { t } from "./i18n/fr";
+import { t } from "./i18n";
 
 /** Renvoie un gestionnaire d'erreur : 401 -> page de connexion, sinon message lisible. */
 export function useGuard() {

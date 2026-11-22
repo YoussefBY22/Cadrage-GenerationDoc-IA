@@ -1,12 +1,15 @@
 "use client";
 
+import { ChevronRight, Search, TriangleAlert } from "lucide-react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import Shell from "@/components/Shell";
 import SourcePanel from "@/components/SourcePanel";
+import { Alert, Empty } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { Passage } from "@/lib/api-types";
-import { t } from "@/lib/i18n/fr";
+import { t } from "@/lib/i18n";
 import { useGuard } from "@/lib/useGuard";
 
 export default function SearchPage() {
@@ -29,35 +32,53 @@ export default function SearchPage() {
 
   return (
     <Shell>
-      <h1>{t.search.title}</h1>
-      <form onSubmit={submit} className="row">
+      <div className="page-head">
+        <div>
+          <div className="crumb">
+            <Link href={`/dossiers/${id}`}>{t.nav.dossiers}</Link>
+            <ChevronRight size={14} />
+          </div>
+          <h1>{t.search.title}</h1>
+        </div>
+      </div>
+      <form onSubmit={submit} className="search-bar">
         <input
           type="text"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={t.search.placeholder}
           aria-label={t.search.placeholder}
-          style={{ flex: 1 }}
         />
-        <button type="submit">{t.search.submit}</button>
+        <button type="submit" className="btn btn-primary">
+          <Search size={16} />
+          {t.search.submit}
+        </button>
       </form>
-      {error && <p role="alert">{error}</p>}
-      <div className="split">
-        <ul className="cards">
-          {results?.length === 0 && <li>{t.search.none}</li>}
-          {results?.map((p) => (
-            <li key={p.chunk.id} className="card">
-              <strong>{p.label}</strong>
-              {p.chunk.injection_flags.length > 0 && (
-                <span className="badge warn"> ⚠ {t.source.alert}</span>
-              )}
-              <p>{p.chunk.text.slice(0, 300)}</p>
-              <button className="link" onClick={() => setSource(p.chunk.id)}>
-                {t.source.title}
-              </button>
-            </li>
-          ))}
-        </ul>
+      {error && <Alert>{error}</Alert>}
+      <div className={`split${source ? " with-panel" : ""}`}>
+        <div>
+          {results === null && <Empty icon={Search} label={t.search.placeholder} />}
+          {results?.length === 0 && <Empty icon={Search} label={t.search.none} />}
+          <ul className="cards">
+            {results?.map((p) => (
+              <li key={p.chunk.id} className="card">
+                <div className="card-head">
+                  <strong>{p.label}</strong>
+                  {p.chunk.injection_flags.length > 0 && (
+                    <span className="badge warn plain">
+                      <TriangleAlert size={13} />
+                      {t.source.alert}
+                    </span>
+                  )}
+                </div>
+                <p style={{ margin: "0 0 10px" }}>{p.chunk.text.slice(0, 300)}</p>
+                <button className="link" onClick={() => setSource(p.chunk.id)}>
+                  {t.source.title}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
         {source && <SourcePanel chunkId={source} onClose={() => setSource(null)} />}
       </div>
     </Shell>

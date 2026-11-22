@@ -1,9 +1,12 @@
 "use client";
 
+import { ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { Footer } from "@/components/Shell";
+import { Alert, LangSwitch, Logo } from "@/components/ui";
 import { ApiError, api } from "@/lib/api";
-import { t } from "@/lib/i18n/fr";
+import { t } from "@/lib/i18n";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,31 +26,40 @@ export default function LoginPage() {
   };
 
   return (
-    <main>
-      <h1>{t.login.title}</h1>
-      <form onSubmit={submit} className="card">
-        <p>
-          <label>
+    <div className="auth">
+      <section className="auth-art">
+        <Logo />
+        <h2>{t.login.tagline}</h2>
+        <span />
+      </section>
+      <main className="auth-form">
+        <div className="auth-top">
+          <LangSwitch />
+        </div>
+        <form onSubmit={submit}>
+          <h1>{t.login.title}</h1>
+          <label className="field">
             {t.login.email}
-            <br />
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="username" />
           </label>
-        </p>
-        <p>
-          <label>
+          <label className="field">
             {t.login.password}
-            <br />
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="current-password"
             />
           </label>
-        </p>
-        {error && <p role="alert">{error}</p>}
-        <button type="submit">{t.login.submit}</button>
-      </form>
-    </main>
+          {error && <Alert>{error}</Alert>}
+          <button type="submit" className="btn btn-primary" style={{ justifyContent: "center", padding: "10px 14px" }}>
+            {t.login.submit}
+            <ArrowRight size={16} />
+          </button>
+        </form>
+        <Footer />
+      </main>
+    </div>
   );
 }

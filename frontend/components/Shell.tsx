@@ -1,13 +1,47 @@
 "use client";
 
+import { FileText, FolderOpen, LayoutDashboard, ListChecks, LogOut, Route, Search } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import type { ReactNode } from "react";
+import { useParams, usePathname, useRouter } from "next/navigation";
+import { useEffect, useState, type ReactNode } from "react";
+import { LangSwitch, Logo } from "@/components/ui";
 import { api } from "@/lib/api";
-import { t } from "@/lib/i18n/fr";
+import { t } from "@/lib/i18n";
+import { getLastDossier, getRefs, setLastDossier, type DossierRefs } from "@/lib/refs";
+
+export function Footer() {
+  return <p className="legal">{t.footer}</p>;
+}
+
+function NavLink({ href, icon: Icon, label, exact }: { href: string; icon: typeof Search; label: string; exact?: boolean }) {
+  const path = usePathname();
+  const active = exact ? path === href : path === href || path.startsWith(href + "/");
+  return (
+    <Link href={href} aria-current={active ? "page" : undefined}>
+      <Icon size={17} strokeWidth={1.9} />
+      {label}
+    </Link>
+  );
+}
 
 export default function Shell({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const params = useParams<{ id?: string }>();
+  const path = usePathname();
+  const [last, setLast] = useState<string | null>(null);
+  const [refs, setRefs] = useState<DossierRefs>({});
+  const onDossier = path.startsWith("/dossiers/");
+  const dossierId = onDossier ? params.id : path.startsWith("/deliverables/") ? (last ?? undefined) : undefined;
+
+  useEffect(() => {
+    if (onDossier && params.id) setLastDossier(params.id);
+    setLast(getLastDossier());
+  }, [onDossier, params.id]);
+
+  useEffect(() => {
+    if (dossierId) setRefs(getRefs(dossierId));
+  }, [dossierId, path]);
+
   const logout = async () => {
     try {
       await api.logout();
@@ -16,13 +50,38 @@ export default function Shell({ children }: { children: ReactNode }) {
     }
     router.push("/login");
   };
+
   return (
-    <>
-      <header className="topbar">
-        <Link href="/dossiers">{t.appName}</Link>
-        <button onClick={logout}>{t.nav.logout}</button>
-      </header>
-      <main>{children}</main>
-    </>
+    <div className="app">
+      <aside className="sidebar">
+        <Link href="/dossiers" aria-label={t.appName} style={{ textDecoration: "none" }}>
+          <Logo />
+        </Link>
+        <nav className="nav" aria-label="Navigation">
+          <NavLink href="/dossiers" icon={LayoutDashboard} label={t.nav.dashboard} exact />
+          {dossierId && (
+            <>
+              <div className="nav-title">{t.nav.dossiers}</div>
+              <NavLink href={`/dossiers/${dossierId}`} icon={FolderOpen} label={t.nav.documents} exact />
+              <NavLink href={`/dossiers/${dossierId}/search`} icon={Search} label={t.nav.search} />
+              <NavLink href={`/dossiers/${dossierId}/findings`} icon={ListChecks} label={t.nav.findings} />
+              {refs.roadmap && <NavLink href={`/deliverables/${refs.roadmap}/roadmap`} icon={Route} label={t.nav.roadmap} />}
+              {refs.tor && <NavLink href={`/deliverables/${refs.tor}`} icon={FileText} label={t.nav.tor} />}
+            </>
+          )}
+        </nav>
+        <div className="sidebar-foot">
+          <LangSwitch />
+          <button type="button" className="btn" onClick={logout}>
+            <LogOut size={16} />
+            {t.nav.logout}
+          </button>
+          <Footer />
+        </div>
+      </aside>
+      <main className="content">
+        <div className="page">{children}</div>
+      </main>
+    </div>
   );
 }

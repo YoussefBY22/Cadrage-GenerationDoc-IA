@@ -6,6 +6,7 @@ import type {
   FindingPatch,
   LoginResponse,
   Passage,
+  RoadmapGenerated,
   UploadResult,
 } from "./api-types";
 
@@ -120,4 +121,8 @@ export const api = {
     request<unknown>(`/dossiers/${dossierId}/findings:extract`, { method: "POST" }),
   patchFinding: (id: string, patch: FindingPatch) =>
     request<Finding>(`/findings/${id}`, json("PATCH", patch)),
+  generateRoadmap: (dossierId: string) =>
+    request<RoadmapGenerated>(`/dossiers/${dossierId}/roadmap:generate`, json("POST", {})),
+  createDeliverable: (dossierId: string, type: "tor" | "cdc", initiative_id?: string) =>
+    request<{ deliverable_id: string }>(`/dossiers/${dossierId}/deliverables`, json("POST", { type, initiative_id })),
 };
