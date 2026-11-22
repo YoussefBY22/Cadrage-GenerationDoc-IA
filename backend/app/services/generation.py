@@ -16,6 +16,7 @@ from app.domain.verification import VerificationReport
 from app.domain.workflow import CurrentUser
 from app.generation.llm_schemas import LLMSection
 from app.generation.prompting import build_section_prompt, estimate_tokens, system_prompt
+from app.generation.relevance import below_threshold, resolve_threshold
 from app.generation.template_loader import SectionSpec, Template, load_template
 from app.llm.base import LLMError, LLMProvider
 from app.storage import schema as s
@@ -165,10 +166,21 @@ def generate_section(repo, provider: LLMProvider, search, deliverable_id: str, s
     prompt, status, attempts, latency = "", "ok", 0, 0
     answer = ""
 
+    gated, relevance = (False, None)
+    if len(passages) >= spec.min_sources:
+        gated, relevance = below_threshold(search, dossier_id, queries, resolve_threshold(settings))
     if len(passages) < spec.min_sources:  # refus SANS appel au modèle
         draft = SectionDraft(
             section_key=section_key, status="insufficient_evidence", sentences=[],
             missing_evidence="Passages insuffisants pour les requêtes : " + " ; ".join(queries))
+        status = "refused"
+    elif gated:  # porte de pertinence : rien de assez proche, refus SANS appel au modèle
+        draft = SectionDraft(
+            section_key=section_key, status="insufficient_evidence", sentences=[],
+            missing_evidence=("Aucun passage assez proche (pertinence "
+                              f"{relevance:.2f}) pour les requêtes : " + " ; ".join(queries)
+                              if relevance is not None else
+                              "Aucun passage trouvé pour les requêtes : " + " ; ".join(queries)))
         status = "refused"
     else:
         prompt = build_section_prompt(spec, passages, findings=findings, context=ctx,
@@ -206,7 +218,7 @@ def generate_section(repo, provider: LLMProvider, search, deliverable_id: str, s
     version = repo.add_version(deliverable_id, new_content, user.id, "generated")
     repo.audit(user.id, "section.generate", "deliverable", deliverable_id,
                {"section": section_key, "version": version, "run_id": run_id, "status": status,
-                "tpv": report.tpv, "blocking": sum(i.severity == "blocking" for i in report.issues),
+                "tpv": report.tpv, "relevance": relevance, "blocking": sum(i.severity == "blocking" for i in report.issues),
                 "model": provider.name})
     return {"version": version, "run_id": run_id, "status": status, "attempts": attempts,
             "section": draft.model_dump(mode="json"), "report": report.model_dump(mode="json"),

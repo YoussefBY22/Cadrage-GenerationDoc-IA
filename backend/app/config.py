@@ -59,6 +59,8 @@ class Settings(BaseSettings):
     retrieval_pool: int = 50
     rrf_k: int = 60
     support_threshold: float = 0.3
+    # Porte de pertinence (cosinus) avant l'appel au modèle ; None = seuil du modèle d'embeddings, 0 = désactivée.
+    relevance_threshold: float | None = None
     session_ttl_hours: int = 12
     soffice_path: str = "soffice"   # sous Windows, repli automatique sur Program Files\LibreOffice
     auth_mode: Literal["dev", "token"] = "token"

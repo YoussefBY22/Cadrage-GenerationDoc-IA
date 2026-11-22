@@ -1,0 +1,173 @@
+{
+ "config": "B-q2",
+ "date": "20261122",
+ "simulation": false,
+ "notice": null,
+ "versions": {
+  "app": "0.1.0",
+  "python": "3.12.3",
+  "provider": "ollama",
+  "model": "qwen3:4b",
+  "adapter": null
+ },
+ "seeds": [
+  1
+ ],
+ "corpus_seed": 7,
+ "params": {
+  "retrieval": {
+   "enabled": true,
+   "k": 10
+  },
+  "simulation": null,
+  "subset": {
+   "institutions": 1
+  }
+ },
+ "metrics": {
+  "dependency_cycles": {
+   "mean": null,
+   "sd": null,
+   "values": []
+  },
+  "tpv_answered": {
+   "mean": 0.992063492063492,
+   "sd": 0.0,
+   "values": [
+    0.992063492063492
+   ]
+  },
+  "number_fidelity": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "values": [
+    1.0
+   ]
+  },
+  "dependency_recall": {
+   "mean": null,
+   "sd": null,
+   "values": []
+  },
+  "structure_validity": {
+   "mean": 0.967741935483871,
+   "sd": 0.0,
+   "values": [
+    0.967741935483871
+   ]
+  },
+  "refusal_rate": {
+   "mean": 0.3225806451612903,
+   "sd": 0.0,
+   "values": [
+    0.3225806451612903
+   ]
+  },
+  "false_refusals": {
+   "mean": 0.0,
+   "sd": 0.0,
+   "values": [
+    0.0
+   ]
+  },
+  "citation_validity": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "values": [
+    1.0
+   ]
+  },
+  "tpv": {
+   "mean": 0.992063492063492,
+   "sd": 0.0,
+   "values": [
+    0.992063492063492
+   ]
+  },
+  "finding_coverage": {
+   "mean": 0.0,
+   "sd": 0.0,
+   "values": [
+    0.0
+   ]
+  },
+  "missed_refusals": {
+   "mean": 0.0,
+   "sd": 0.0,
+   "values": [
+    0.0
+   ]
+  },
+  "attack_success": {
+   "mean": 0.4,
+   "sd": 0.0,
+   "values": [
+    0.4
+   ]
+  },
+  "recall_at_k": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "values": [
+    1.0
+   ]
+  },
+  "mrr": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "values": [
+    1.0
+   ]
+  },
+  "latency_p50_ms": {
+   "mean": 26045.0
+  },
+  "latency_p95_ms": {
+   "mean": 70696.0
+  },
+  "latency_p50_ms_main": {
+   "mean": 46185.0
+  },
+  "latency_p50_ms_proof": {
+   "mean": 25029.0
+  },
+  "latency_p50_ms_noev": {
+   "mean": 0.0
+  },
+  "tokens_per_s": {
+   "mean": 1.7859039625870377
+  },
+  "vram_max_mb": {
+   "mean": 3117
+  }
+ },
+ "tpv_sections": [
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  0.8333333333333334,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0
+ ],
+ "tpv_ci95": [
+  0.9761904761904762,
+  1.0
+ ],
+ "n_sections": 21,
+ "duration_s": 1389.77
+}
