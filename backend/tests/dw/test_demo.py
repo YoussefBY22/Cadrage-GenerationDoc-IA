@@ -6,7 +6,7 @@ from sqlalchemy import create_engine, text
 from app.domain.workflow import State
 from app.dw import kpi
 from app.dw import schema as dws
-from app.dw.demo import BENCH, generate_demo
+from app.dw.demo import generate_demo
 from app.ingest.registry import MIME
 from app.storage import schema as sc
 from app.workflow.state_machine import ALLOWED
@@ -44,7 +44,10 @@ def test_is_demo_everywhere_in_dw(demo):
         if "is_demo" in table.c:
             row = q(engine, f"SELECT COUNT(*) AS n, SUM(CASE WHEN is_demo THEN 1 ELSE 0 END) AS d "
                             f"FROM {table.name}")[0]
-            assert row["n"] > 0 and row["n"] == row["d"], table.name
+            if table.name == "fact_bench":
+                assert row["n"] == 0, "la démo n'invente aucun résultat de banc"
+            else:
+                assert row["n"] > 0 and row["n"] == row["d"], table.name
             checked += 1
     assert checked >= 13
 
@@ -82,19 +85,19 @@ def test_there_is_work_to_steer(demo):
     assert [r["status"] for r in overall] == ["ok"]
 
 
-def test_configurations_follow_the_protocol(demo):
-    """08 §6 : A sans recherche, C = B + LoRA, D = autre taille sans LoRA ; banc hors production."""
+def test_demo_invents_no_experiment_result(demo):
+    """Ni banc, ni livrable approuvé avec une source absente : rien qui ressemble à une mesure."""
     engine, _ = demo
-    by = {r["config_label"]: r for r in q(engine, "SELECT * FROM v_bench")}
-    assert set(by) == set(BENCH) == {"A", "B", "C", "D"}
-    a, b, c, d = (by[k] for k in "ABCD")
-    assert not a["has_retrieval"] and b["has_retrieval"] and a["model_name"] == b["model_name"]
-    assert c["model_name"] == b["model_name"] and c["adapter"] and not b["adapter"]
-    assert d["model_name"] != b["model_name"] and not d["adapter"]
-    assert all(r["simulated"] for r in by.values())
-    assert b["decision"] == "reference" and a["decision"] == "worse"
-    assert c["decision"] == "inconclusive" and c["delta_low"] <= 0 < c["delta_high"]
+    assert not q(engine, "SELECT * FROM v_bench")
     assert {r["config_label"] for r in q(engine, "SELECT config_label FROM v_generation")} == {None}
+    approved = q(engine, "SELECT citations_invalid FROM v_deliverable WHERE state = 'approved'")
+    assert approved and not any(r["citations_invalid"] for r in approved)
+
+
+def test_refused_sections_save_no_minutes(demo):
+    engine, _ = demo
+    refused = [r for r in q(engine, "SELECT was_refused, minutes_saved_est FROM v_outcome") if r["was_refused"]]
+    assert refused and not any(float(r["minutes_saved_est"]) for r in refused)
 
 
 def test_same_seed_same_rows_other_seed_differs(tmp_path):

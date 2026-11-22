@@ -36,23 +36,8 @@ table Indicateurs
 	/// Limite : H7 raisonne par phrase, l'entrepôt par section (plus sévère). Pas de taux sous 30 sections.
 	measure 'Sections acceptées sans retouche' =
 			VAR vN = [Sections rédigées puis approuvées]
-			RETURN IF(vN >= 30, DIVIDE([Nombre de sections sans retouche], vN))
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF(vN >= 30, DIVIDE([Nombre de sections sans retouche], vN)))
 		formatString: 0 %
-		displayFolder: Consultant
-
-	measure 'Sections du temps gagné' = COUNTROWS('Sections approuvées') + 0
-		formatString: #,0
-		displayFolder: Consultant
-
-	/// Formule : minutes gagnées sur les sections rédigées ÷ minutes d'une rédaction manuelle des sections approuvées.
-	/// Décision : Pour quels livrables utiliser l'assistant
-	/// Cible : au moins 30 % (H7)
-	/// Flux : suit la période.
-	/// Limite : HYPOTHÈSE, pas une mesure : 30 min par section, gain proportionnel au texte conservé, relecture non déduite.
-	measure 'Temps gagné' =
-			IF([Sections du temps gagné] >= 30, DIVIDE(
-			    CALCULATE(SUM('Sections approuvées'[Minutes gagnées]), KEEPFILTERS('Sections approuvées'[Refusée] = 0)), SUM('Sections approuvées'[Minutes de référence])))
-		formatString: "≈ "0 %
 		displayFolder: Consultant
 
 	/// Formule : livrables en relecture, dont ceux qui attendent depuis plus de 48 h.
@@ -124,7 +109,7 @@ table Indicateurs
 	/// Cible : 0 (H7)
 	/// Flux : suit la période.
 	/// Limite : « non mesuré » si la version approuvée n'a pas de sections lisibles ; qu'une source existe ne prouve pas qu'elle soutient la phrase.
-	measure 'Citations sans source après approbation' = IF([Livrables mesurés] > 0, CALCULATE(SUM(Livrables[Citations sans source]), KEEPFILTERS(Livrables[Code d'état] IN {"approved"}), USERELATIONSHIP(Livrables[Clé d'approbation], Calendrier[Clé de date])) + 0)
+	measure 'Citations sans source après approbation' = IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF([Livrables mesurés] > 0, CALCULATE(SUM(Livrables[Citations sans source]), KEEPFILTERS(Livrables[Code d'état] IN {"approved"}), USERELATIONSHIP(Livrables[Clé d'approbation], Calendrier[Clé de date])) + 0))
 		formatString: #,0
 		displayFolder: Rapport
 
@@ -140,7 +125,7 @@ table Indicateurs
 	/// Décision : Régler la recherche ou le modèle
 	/// Cible : aucune : le critère H7 porte sur ce qui reste après approbation
 	/// Flux : suit la période.
-	measure 'Citations sans source avant relecture' = IF([Citations générées] >= 30, DIVIDE([Nombre de citations sans source avant relecture], [Citations générées]))
+	measure 'Citations sans source avant relecture' = IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF([Citations générées] >= 30, DIVIDE([Nombre de citations sans source avant relecture], [Citations générées])))
 		formatString: 0 %
 		displayFolder: Rapport
 
@@ -157,7 +142,7 @@ table Indicateurs
 	/// Cible : aucune : H7 ne fixe pas de seuil sur le TPV
 	/// Flux : suit la période.
 	/// Limite : mesure l'ancrage dans les sources, pas la vérité.
-	measure 'Phrases vérifiées' = IF([Phrases générées] >= 30, DIVIDE([Nombre de phrases vérifiées], [Phrases générées]))
+	measure 'Phrases vérifiées' = IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF([Phrases générées] >= 30, DIVIDE([Nombre de phrases vérifiées], [Phrases générées])))
 		formatString: 0 %
 		displayFolder: Rapport
 
@@ -627,14 +612,7 @@ table Indicateurs
 	measure 'Note Sections acceptées sans retouche' =
 			VAR vPart = [Nombre de sections sans retouche] + 0
 			VAR vN = [Sections rédigées puis approuvées] + 0
-			RETURN IF(vN < 30, "Effectif insuffisant (n = " & vN & ")", FORMAT(vPart, "#,0", "fr-FR") & " sur " & FORMAT(vN, "#,0", "fr-FR") & " · cible H7 ≥ 50 %")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Note Temps gagné' =
-			VAR vN = [Sections du temps gagné]
-			RETURN IF(vN < 30, "Effectif insuffisant (n = " & vN & ")",
-			    "Hypothèse de 30 min par section, n = " & vN)
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(vN < 30, "Effectif insuffisant (n = " & vN & ")", FORMAT(vPart, "#,0", "fr-FR") & " sur " & FORMAT(vN, "#,0", "fr-FR") & " · cible H7 ≥ 50 %"))
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -662,21 +640,21 @@ table Indicateurs
 
 	measure 'Note Citations sans source après approbation' =
 			VAR vN = [Livrables mesurés]
-			RETURN IF(vN = 0, "Non mesuré", "sur " & FORMAT([Citations approuvées], "#,0", "fr-FR") & " citations, " & vN & IF(vN > 1, " livrables mesurés", " livrable mesuré"))
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(vN = 0, "Non mesuré", "sur " & FORMAT([Citations approuvées], "#,0", "fr-FR") & " citations, " & vN & IF(vN > 1, " livrables mesurés", " livrable mesuré")))
 		displayFolder: 9. Présentation
 		isHidden
 
 	measure 'Note Citations sans source avant relecture' =
 			VAR vPart = [Nombre de citations sans source avant relecture] + 0
 			VAR vN = [Citations générées] + 0
-			RETURN IF(vN < 30, "Effectif insuffisant (n = " & vN & ")", FORMAT(vPart, "#,0", "fr-FR") & " sur " & FORMAT(vN, "#,0", "fr-FR") & " citations")
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(vN < 30, "Effectif insuffisant (n = " & vN & ")", FORMAT(vPart, "#,0", "fr-FR") & " sur " & FORMAT(vN, "#,0", "fr-FR") & " citations"))
 		displayFolder: 9. Présentation
 		isHidden
 
 	measure 'Note Phrases vérifiées' =
 			VAR vPart = [Nombre de phrases vérifiées] + 0
 			VAR vN = [Phrases générées] + 0
-			RETURN IF(vN < 30, "Effectif insuffisant (n = " & vN & ")", FORMAT(vPart, "#,0", "fr-FR") & " sur " & FORMAT(vN, "#,0", "fr-FR") & " phrases")
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(vN < 30, "Effectif insuffisant (n = " & vN & ")", FORMAT(vPart, "#,0", "fr-FR") & " sur " & FORMAT(vN, "#,0", "fr-FR") & " phrases"))
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -747,7 +725,7 @@ table Indicateurs
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'File priorité' = IF(NOT ISBLANK([File attente]), [File attente] * (1 + COALESCE(MAX(Livrables[Risque]), 0)))
+	measure 'File priorité' = IF(NOT ISBLANK([File attente]), [File attente] * (1 + IF(MAX('Source des données'[Est une démonstration]) = 1, 0, COALESCE(MAX(Livrables[Risque]), 0))))
 		formatString: #,0
 		displayFolder: 9. Présentation
 		isHidden
@@ -761,9 +739,9 @@ table Indicateurs
 		isHidden
 
 	measure 'File risque' =
-			IF(NOT ISBLANK([File attente]), IF(ISBLANK(MAX(Livrables[Risque])), "non estimé", FORMAT(MAX(Livrables[Risque]), "0 %") & " ["
+			IF(NOT ISBLANK([File attente]), IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(ISBLANK(MAX(Livrables[Risque])), "non estimé", FORMAT(MAX(Livrables[Risque]), "0 %") & " ["
 			    & FORMAT(MAX(Livrables[Risque bas]), "0 %") & " à " & FORMAT(MAX(Livrables[Risque haut]), "0 %")
-			    & "], n = " & MAX(Livrables[Risque effectif])))
+			    & "], n = " & MAX(Livrables[Risque effectif]))))
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -784,26 +762,19 @@ table Indicateurs
 	measure 'H7 citations' =
 			VAR vN = [Livrables mesurés]
 			VAR vReste = [Citations sans source après approbation]
-			RETURN IF(vN = 0, "Non mesuré", vReste & " sur " & FORMAT([Citations approuvées], "#,0", "fr-FR") & " citations (" & vN & IF(vN > 1, " livrables", " livrable") & ") · cible 0 · "
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(vN = 0, "Non mesuré", vReste & " sur " & FORMAT([Citations approuvées], "#,0", "fr-FR") & " citations (" & vN & IF(vN > 1, " livrables", " livrable") & ") · cible 0 · "
 			    & IF(vReste > 0, "non atteint",
 			        IF(vN < [Livrables approuvés], "non mesuré en totalité",
-			            IF(vN < 30, "effectif insuffisant pour conclure", "atteint"))))
+			            IF(vN < 30, "effectif insuffisant pour conclure", "atteint")))))
 		displayFolder: 9. Présentation
 		isHidden
 
 	measure 'H7 retouche' =
 			VAR vN = [Sections rédigées puis approuvées]
 			VAR vTaux = [Sections acceptées sans retouche]
-			RETURN IF(vN < 30, "Effectif insuffisant (n = " & vN & ")",
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(vN < 30, "Effectif insuffisant (n = " & vN & ")",
 			    FORMAT(vTaux, "0 %") & " (" & [Nombre de sections sans retouche] & " sur " & vN & ") · cible ≥ 50 % · "
-			    & IF(vTaux >= 0.5, "atteint", "non atteint") & ", approximation par section")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'H7 temps' =
-			VAR vN = [Sections du temps gagné]
-			RETURN IF(vN < 30, "Effectif insuffisant (n = " & vN & ")",
-			    "≈ " & FORMAT([Temps gagné], "0 %") & " (" & vN & " sections) · cible ≥ 30 % · hypothèse, non mesuré")
+			    & IF(vTaux >= 0.5, "atteint", "non atteint") & ", approximation par section"))
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -838,29 +809,26 @@ table Indicateurs
 
 	measure 'Rapport vérifiées' =
 			VAR vN = [Phrases générées]
-			RETURN IF(vN < 30, "Effectif insuffisant",
-			    FORMAT([Phrases vérifiées], "0 %") & " de " & FORMAT(vN, "#,0", "fr-FR") & " phrases générées")
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(vN < 30, "Effectif insuffisant",
+			    FORMAT([Phrases vérifiées], "0 %") & " de " & FORMAT(vN, "#,0", "fr-FR") & " phrases générées"))
 		displayFolder: 9. Présentation
 		isHidden
 
 	measure 'Rapport détectées' =
 			VAR vN = [Citations générées]
-			RETURN IF(vN < 30, "Effectif insuffisant",
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(vN < 30, "Effectif insuffisant",
 			    FORMAT([Citations sans source avant relecture], "0.0 %", "fr-FR") & " ("
-			    & [Nombre de citations sans source avant relecture] & " sur " & FORMAT(vN, "#,0", "fr-FR") & ")")
+			    & [Nombre de citations sans source avant relecture] & " sur " & FORMAT(vN, "#,0", "fr-FR") & ")"))
 		displayFolder: 9. Présentation
 		isHidden
 
 	measure 'Banc décision' =
 			VAR vRetenues = FILTER(ALL(Banc), Banc[Code de décision] = "retain")
+			VAR vMesurees = COUNTROWS(FILTER(ALL(Banc), NOT ISBLANK(Banc[TPV]))) + 0
 			VAR vNombre = COUNTROWS(vRetenues) + 0
-			RETURN IF(COUNTROWS(ALL(Banc)) + 0 = 0, "Aucun résultat de banc chargé",
+			RETURN IF(vMesurees = 0, "Banc d'essai non mesuré",
 			    IF(vNombre = 0, "Rester sur B : aucun écart favorable concluant",
 			        "Écart concluant pour : " & CONCATENATEX(vRetenues, Banc[Configuration], ", ")))
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Banc mention' = IF(MAXX(ALL(Banc), Banc[Simulé]) = 1, "Banc simulé : valeurs inventées", " ")
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -873,8 +841,8 @@ table Indicateurs
 		isHidden
 
 	measure 'Banc TPV' =
-			IF(COUNTROWS(Banc) = 1 && NOT ISBLANK(MAX(Banc[TPV])), FORMAT(MAX(Banc[TPV]), "0 %")
-			    & " [" & FORMAT(MAX(Banc[TPV bas]), "0 %") & " à " & FORMAT(MAX(Banc[TPV haut]), "0 %") & "]")
+			IF(COUNTROWS(Banc) = 1, IF(ISBLANK(MAX(Banc[TPV])), "Non mesuré", FORMAT(MAX(Banc[TPV]), "0 %")
+			    & " [" & FORMAT(MAX(Banc[TPV bas]), "0 %") & " à " & FORMAT(MAX(Banc[TPV haut]), "0 %") & "]"))
 		displayFolder: 9. Présentation
 		isHidden
 

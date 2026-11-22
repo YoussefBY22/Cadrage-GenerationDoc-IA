@@ -30,6 +30,7 @@ from .etl import TYPES
 from .views_sql import _prefix
 
 ALL = "Tous"
+NOT_MEASURED = "Non mesuré"
 INTERNAL, CLIENT = "interne", "client"
 SIMULATION = "Simulation sur données inventées : aucun de ces chiffres ne décrit une mission réelle."
 
@@ -135,12 +136,14 @@ def collect(engine: Engine, scope: Scope) -> dict:
     def total(items, key):
         return sum(x[key] or 0 for x in items)
 
-    baseline = float(sum(o["baseline_minutes"] for o in outs))
     queue = [d for d in ds if d["state"] == "in_review"]
+    simulated = any(d["is_demo"] for d in ds)
+    if simulated:  # des données inventées ne mesurent aucun risque
+        queue = [d | {"risk": None} for d in queue]
     return {
         "scope": scope,
         "as_of": max((d["as_of"] for d in ds), default=None),
-        "simulated": any(d["is_demo"] for d in ds),
+        "simulated": simulated,
         "todo": sum(d["state"] in ("draft", "rejected") for d in ds),
         "returned": sum(bool(d["returned"]) for d in ds),
         "to_review": len(queue),
@@ -154,9 +157,6 @@ def collect(engine: Engine, scope: Scope) -> dict:
         "citations_generated": total(gens, "citations_total"),
         "verified": total(gens, "sentences_verified"), "generated": total(gens, "sentences_total"),
         "unchanged": sum(bool(o["unchanged"]) for o in written), "written": len(written),
-        "time_saved": (float(sum(o["minutes_saved_est"] for o in written)) / baseline
-                       if baseline and len(outs) >= pilotage.MIN_SAMPLE else None),
-        "outcomes": len(outs),
         "delay": statistics.median(delays) if delays else None, "delays": len(delays),
         "rejected_first": sum(bool(d["first_rejected"]) for d in first), "decided_first": len(first),
         "recommendations": pilotage.recommendations(ds, actions),
@@ -168,6 +168,9 @@ def collect(engine: Engine, scope: Scope) -> dict:
 
 def h7_rows(r: dict) -> list[tuple[str, str, str, str]]:
     """Critère, cible, mesure, verdict. Jamais de verdict sur ce qui n'est pas mesuré."""
+    if r["simulated"]:
+        return [("Citations sans source dans les livrables approuvés", "0", "—", "Non mesuré"),
+                ("Sections acceptées sans retouche", f"≥ {pct(pilotage.H7_REUSABLE)}", "—", "Non mesuré")]
     left = r["invalid_left"]
     if left is None:
         verdict, value = "Non mesuré", "—"
@@ -190,10 +193,6 @@ def h7_rows(r: dict) -> list[tuple[str, str, str, str]]:
         verdict = "Non atteint (approximation)"
     rows.append(("Sections acceptées sans retouche", f"≥ {pct(pilotage.H7_REUSABLE)}",
                  rate(r["unchanged"], r["written"]), verdict))
-    rows.append(("Temps gagné", f"≥ {pct(pilotage.H7_TIME_SAVED)}",
-                 "effectif insuffisant" if r["time_saved"] is None
-                 else f"{pct(r['time_saved'])} ({r['outcomes']} sections)",
-                 "Hypothèse, non mesuré"))
     return rows
 
 
@@ -204,7 +203,7 @@ def forecast_lines(r: dict) -> list[str]:
     if f["status"] == "not_better":
         return [("Aucune prévision publiée : sur l'historique, la méthode ne fait pas mieux que la "
                 "référence naïve (répéter les deux dernières semaines).")]
-    return [
+    lines = [
         (f"{num(f['point'])} soumissions attendues dans les 2 prochaines semaines (intervalle de "
         f"{pct(pilotage.INTERVAL)} : {num(f['low'])} à {num(f['high'])}), en plus des "
         f"{r['to_review']} déjà en attente."),
@@ -212,12 +211,11 @@ def forecast_lines(r: dict) -> list[str]:
         f"{f['events']} soumissions sur {f['weeks']} semaines. Sur {f['origins']} prévisions "
         f"rétrospectives, elle se trompe de {num(f['mae'], 1)} soumissions en moyenne, contre "
         f"{num(f['mae_naive'], 1)} pour la référence naïve.")]
+    return [lines[0], "Fiabilité non mesurée : volumes inventés."] if r["simulated"] else lines
 
 
 def limits(r: dict) -> list[str]:
     out = [
-        ("Le temps gagné est une hypothèse : 30 minutes par section manuelle, gain proportionnel au "
-        "texte conservé, relecture non déduite."),
         ("H7 raisonne par phrase et l'entrepôt par section : « sans retouche » est une approximation "
         "plus sévère."),
         ("Une citation « sans source » désigne une source absente du dossier. Qu'une source existe ne "
@@ -350,10 +348,10 @@ def render_docx(r: dict, path: Path) -> None:
          "Ce qui se vérifie en premier"),
         ("Phrases bloquantes à corriger", f"{r['blocking_draft']} chez les consultants",
          "Ce qui se corrige avant de soumettre"),
-        ("Phrases vérifiées à la génération", rate(r["verified"], r["generated"]),
+        ("Phrases vérifiées à la génération", NOT_MEASURED if r["simulated"] else rate(r["verified"], r["generated"]),
          "Effort de relecture à prévoir"),
         ("Citations sans source détectées avant relecture",
-         rate(r["invalid_detected"], r["citations_generated"]),
+         NOT_MEASURED if r["simulated"] else rate(r["invalid_detected"], r["citations_generated"]),
          "Régler la recherche ou le modèle"),
     ], [6.4, 5.6, 5.4])
 
@@ -361,7 +359,7 @@ def render_docx(r: dict, path: Path) -> None:
     for line in forecast_lines(r):
         para(line)
     f = r["forecast"]
-    if internal and f and f["risk_status"] == "ok":
+    if internal and f and f["risk_status"] == "ok" and not r["simulated"]:
         para(f"Le risque de renvoi vient de l'historique global : taux observé selon la présence d'une "
              f"phrase bloquante. Sur {f['risk_tested']} cas rétrospectifs, score de Brier "
              f"{num(f['risk_brier'], 3)}, contre {num(f['risk_brier_naive'], 3)} pour le taux global.")

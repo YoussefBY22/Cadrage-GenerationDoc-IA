@@ -32,19 +32,7 @@ CALCULATE(COUNTROWS('Sections approuvées'), KEEPFILTERS('Sections approuvées'[
 // Limite : H7 raisonne par phrase, l'entrepôt par section (plus sévère). Pas de taux sous 30 sections.
 Sections acceptées sans retouche =
 VAR vN = [Sections rédigées puis approuvées]
-RETURN IF(vN >= 30, DIVIDE([Nombre de sections sans retouche], vN))
-
-Sections du temps gagné =
-COUNTROWS('Sections approuvées') + 0
-
-// Formule : minutes gagnées sur les sections rédigées ÷ minutes d'une rédaction manuelle des sections approuvées.
-// Décision : Pour quels livrables utiliser l'assistant
-// Cible : au moins 30 % (H7)
-// Flux : suit la période.
-// Limite : HYPOTHÈSE, pas une mesure : 30 min par section, gain proportionnel au texte conservé, relecture non déduite.
-Temps gagné =
-IF([Sections du temps gagné] >= 30, DIVIDE(
-    CALCULATE(SUM('Sections approuvées'[Minutes gagnées]), KEEPFILTERS('Sections approuvées'[Refusée] = 0)), SUM('Sections approuvées'[Minutes de référence])))
+RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF(vN >= 30, DIVIDE([Nombre de sections sans retouche], vN)))
 
 // Formule : livrables en relecture, dont ceux qui attendent depuis plus de 48 h.
 // Décision : Qui relit quoi aujourd'hui
@@ -104,7 +92,7 @@ CALCULATE(SUM(Livrables[Citations finales]), KEEPFILTERS(Livrables[Code d'état]
 // Flux : suit la période.
 // Limite : « non mesuré » si la version approuvée n'a pas de sections lisibles ; qu'une source existe ne prouve pas qu'elle soutient la phrase.
 Citations sans source après approbation =
-IF([Livrables mesurés] > 0, CALCULATE(SUM(Livrables[Citations sans source]), KEEPFILTERS(Livrables[Code d'état] IN {"approved"}), USERELATIONSHIP(Livrables[Clé d'approbation], Calendrier[Clé de date])) + 0)
+IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF([Livrables mesurés] > 0, CALCULATE(SUM(Livrables[Citations sans source]), KEEPFILTERS(Livrables[Code d'état] IN {"approved"}), USERELATIONSHIP(Livrables[Clé d'approbation], Calendrier[Clé de date])) + 0))
 
 Citations générées =
 CALCULATE(SUM('Générations'[Citations produites]), KEEPFILTERS('Générations'[Statut] = "ok"), KEEPFILTERS('Générations'[Code du type] <> "findings")) + 0
@@ -117,7 +105,7 @@ Nombre de citations sans source avant relecture =
 // Cible : aucune : le critère H7 porte sur ce qui reste après approbation
 // Flux : suit la période.
 Citations sans source avant relecture =
-IF([Citations générées] >= 30, DIVIDE([Nombre de citations sans source avant relecture], [Citations générées]))
+IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF([Citations générées] >= 30, DIVIDE([Nombre de citations sans source avant relecture], [Citations générées])))
 
 Phrases générées =
 CALCULATE(SUM('Générations'[Phrases produites]), KEEPFILTERS('Générations'[Statut] = "ok"), KEEPFILTERS('Générations'[Code du type] <> "findings")) + 0
@@ -131,7 +119,7 @@ CALCULATE(SUM('Générations'[Phrases validées]), KEEPFILTERS('Générations'[S
 // Flux : suit la période.
 // Limite : mesure l'ancrage dans les sources, pas la vérité.
 Phrases vérifiées =
-IF([Phrases générées] >= 30, DIVIDE([Nombre de phrases vérifiées], [Phrases générées]))
+IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF([Phrases générées] >= 30, DIVIDE([Nombre de phrases vérifiées], [Phrases générées])))
 
 // Formule : consignes cachées détectées dans les documents importés.
 // Décision : Examiner chaque passage signalé

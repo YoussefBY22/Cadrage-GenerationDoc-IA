@@ -37,24 +37,12 @@ table 'Sections approuvées'
 		sourceColumn: was_refused
 		summarizeBy: none
 
-	column 'Minutes gagnées'
-		dataType: double
-		isHidden
-		sourceColumn: minutes_saved_est
-		summarizeBy: none
-
-	column 'Minutes de référence'
-		dataType: double
-		isHidden
-		sourceColumn: baseline_minutes
-		summarizeBy: none
-
 	partition 'Sections approuvées' = m
 		mode: import
 		source =
 				let
 				    Brut = Vue("v_outcome"),
-				    Choix = Table.SelectColumns(Brut, {"date_key", "mission_key", "type_key", "author_key", "unchanged", "was_refused", "minutes_saved_est", "baseline_minutes"}),
-				    Typage = Table.TransformColumnTypes(Choix, {{"date_key", Int64.Type}, {"mission_key", Int64.Type}, {"type_key", Int64.Type}, {"author_key", Int64.Type}, {"unchanged", Int64.Type}, {"was_refused", Int64.Type}, {"minutes_saved_est", type number}, {"baseline_minutes", type number}}, CultureCsv)
+				    Choix = Table.SelectColumns(Brut, {"date_key", "mission_key", "type_key", "author_key", "unchanged", "was_refused"}),
+				    Typage = Table.TransformColumnTypes(Choix, {{"date_key", Int64.Type}, {"mission_key", Int64.Type}, {"type_key", Int64.Type}, {"author_key", Int64.Type}, {"unchanged", Int64.Type}, {"was_refused", Int64.Type}}, CultureCsv)
 				in
 				    Typage

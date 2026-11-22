@@ -5,7 +5,7 @@
     "x": 288.0,
     "y": 186,
     "z": 2300,
-    "width": 308.0,
+    "width": 416.0,
     "height": 122,
     "tabOrder": 2300
   },
@@ -107,7 +107,7 @@
             "showBlankAs": {
               "expr": {
                 "Literal": {
-                  "Value": "'—'"
+                  "Value": "'Non mesuré'"
                 }
               }
             },

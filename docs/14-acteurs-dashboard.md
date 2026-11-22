@@ -11,7 +11,7 @@ l'assistant, le **responsable** valide. Deux lecteurs secondaires : le **profil 
 
 | Acteur | Ses questions | Page | KPI (4 au plus) | Décision | Ce qu'il ne doit pas voir |
 |---|---|---|---|---|---|
-| **Consultant** | Que reprendre ? Pourquoi m'a-t-on renvoyé ? Quoi corriger avant de soumettre ? | Production | livrables à traiter · phrases bloquantes · sections sans retouche · temps gagné (hypothèse) | quel livrable commencer, quoi corriger, garder ou retravailler le premier jet | les livrables, clients et prévisions des autres consultants |
+| **Consultant** | Que reprendre ? Pourquoi m'a-t-on renvoyé ? Quoi corriger avant de soumettre ? | Production | livrables à traiter · phrases bloquantes · sections sans retouche | quel livrable commencer, quoi corriger, garder ou retravailler le premier jet | les livrables, clients et prévisions des autres consultants |
 | **Responsable** | Que valider d'abord ? Qu'est-ce qui attend trop ? Qui est chargé ? | Validation | livrables à valider · délai · renvois en 1re relecture · phrases bloquantes à vérifier | ordre de relecture, répartition, renvoi avec motif | les dossiers dont il n'est pas le responsable ; un classement des personnes |
 | Les deux, et la **direction du cabinet** | Où en est-on ? Que faire en premier ? Quelle charge arrive ? | Synthèse | livrables à valider · à traiter · citations sans source après approbation · délai | priorités, envoi au client, renfort de relecture | le texte des livrables et des documents (absent de l'entrepôt) |
 | **Profil technique** | Le modèle tient-il ? Faut-il en changer ? Des documents sont-ils piégés ? | Administration | phrases vérifiées · sans source avant relecture · alertes · documents signalés | régler la recherche, garder B, examiner un document | le texte des documents (absent de l'entrepôt) |
@@ -45,6 +45,9 @@ H7, indicateurs, prédiction, limites, date. Elle suit les quatre filtres.
   citation sans source » ne vaut « atteint » qu'à partir de 30 livrables mesurés, alors qu'une seule suffit pour
   « non atteint ».
 
+- **Démonstration** : seuls les volumes et les délais s'affichent. La qualité du modèle (phrases vérifiées, sans
+  retouche, citations sans source), le risque de renvoi, la fiabilité de la prévision et le banc sont « non mesuré ».
+
 ## 3. Recommandations
 
 Sept règles déterministes, sans LLM : constat chiffré, seuil, acteur, action. Elles sont définies une seule fois dans
@@ -62,25 +65,25 @@ commande de rapport ne font que compter dans le périmètre filtré. Table compl
 | Référence naïve | répéter les 2 dernières semaines | taux de renvoi global |
 | Publiée si | ≥ 30 soumissions, ≥ 10 prévisions testées, erreur plus faible | ≥ 20 cas par groupe, ≥ 30 testés, Brier meilleur |
 | Sinon | « historique insuffisant » ou « pas de prévision fiable » | « non publié » |
-| Sur la démo (simulation) | 10 [8 ; 12], n = 199 ; erreur 1,6 contre 2,3 | 6 % (n = 104) ou 41 % (n = 61) ; Brier 0,126 contre 0,151 |
+| Sur la démo | estimation affichée, fiabilité **non mesurée** | **non mesuré** |
 
 La série affichée est régulière, au pas de 14 jours, celui de la prévision. Il n'y a pas de visuel d'IA : le volume
 ne le justifie pas, et la méthode doit pouvoir s'expliquer en une phrase. Les fenêtres des tests se chevauchent, donc
-l'intervalle est indicatif. Ces résultats viennent de données inventées : ils prouvent le mécanisme, pas son pouvoir
-prédictif.
+l'intervalle est indicatif. Sur la démo, la méthode bat sa référence **par construction du générateur** : cela teste le
+mécanisme et ne mesure aucun pouvoir prédictif.
 
 ## 5. Audit du 22/11/2026 : avant, après
 
 | # | Avant | Après | Preuve |
 |---|---|---|---|
-| 1 | A/B/C/D de la démo contredisait [08 §6](08-modele-rag-evaluation.md) (LoRA en D, modèles 7, 8 et 14 B inventés) | banc séparé : A sans recherche, C = B + LoRA, D = autre taille ; production sans étiquette | `test_configurations_follow_the_protocol` |
+| 1 | A/B/C/D de la démo contredisait [08 §6](08-modele-rag-evaluation.md) (LoRA en D, modèles 7, 8 et 14 B inventés) | banc séparé, protocole affiché, **non mesuré** sans résultat réel ; production sans étiquette | `test_demo_invents_no_experiment_result` |
 | 2 | 13 fichiers Excel, format refusé à l'import | uniquement les formats de `app/ingest` | `test_only_formats_the_ingestion_accepts` |
 | 3 | « Excel le plus signalé », faux en taux | taux, n et nombre par format, titre neutre | page Administration |
 | 4 | novembre à 7 générations, tendances artefacts | 38 semaines régulières, n affiché, aucun taux sous 30 | `pilotage.MIN_SAMPLE` |
 | 5 | citations détectées présentées comme le critère H7 | deux mesures : avant relecture, et **après approbation** (version approuvée) | `test_snapshot_measures_what_remains_after_approval` |
-| 6 | « plancher 50 % » avec coche verte, temps gagné présenté comme acquis | coche retirée, temps « ≈ », « hypothèse, non mesuré » | cartes, rapport |
+| 6 | « plancher 50 % » avec coche verte, temps gagné présenté comme acquis | coche retirée, **temps gagné retiré** tant qu'il n'est pas chronométré | cartes, rapport |
 | 7 | « aucune donnée client », segments « All » | « Traitement local · confidentiel » hors démo, vraie valeur « Tous » | `modele.py` |
-| 8 | « retenir C » sans intervalle ni règle | IC 95 % et règle de 08 §6, même calcul que le banc d'évaluation : C non concluant | `test_bench_decision_is_the_one_of_the_eval_harness` |
+| 8 | « retenir C » sans intervalle ni règle | IC 95 % et règle de 08 §6, même calcul que le banc d'évaluation ; aucun résultat en démo | `test_bench_decision_is_the_one_of_the_eval_harness` |
 | 9 | pages qui jugent le produit, ni auteur ni relecteur | pages par acteur, KPI liés à une décision, auteur et responsable exposés | `v_deliverable` |
 | 10 | 16 livrables approuvés sur 16, rien à piloter | brouillons, file, renvois avec motif, transitions conformes au circuit | `test_there_is_work_to_steer` |
 

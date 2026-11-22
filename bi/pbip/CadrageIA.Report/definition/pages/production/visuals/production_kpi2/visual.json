@@ -2,10 +2,10 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
   "name": "production_kpi2",
   "position": {
-    "x": 612.0,
+    "x": 720.0,
     "y": 186,
     "z": 2600,
-    "width": 308.0,
+    "width": 416.0,
     "height": 122,
     "tabOrder": 2600
   },
@@ -107,7 +107,7 @@
             "showBlankAs": {
               "expr": {
                 "Literal": {
-                  "Value": "'—'"
+                  "Value": "'Non mesuré'"
                 }
               }
             },

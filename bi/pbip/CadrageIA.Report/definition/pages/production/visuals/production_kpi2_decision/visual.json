@@ -2,10 +2,10 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
   "name": "production_kpi2_decision",
   "position": {
-    "x": 628.0,
+    "x": 736.0,
     "y": 308,
     "z": 2800,
-    "width": 288.0,
+    "width": 396.0,
     "height": 30,
     "tabOrder": 2800
   },

@@ -54,7 +54,8 @@ Dans Power BI Desktop, les boutons de navigation se suivent avec **Ctrl + clic**
 
 ### Avec de vraies données
 
-- CSV : `python -m app.dw.etl`, puis le même export.
+- CSV : `python -m app.dw.etl`, puis le même export. Sur un entrepôt antérieur à la correction des refus :
+  recharger avec `--full`.
 - PostgreSQL, en lecture seule : `psql -f db/dw/roles.sql` (changer le mot de passe), puis dans les paramètres
   `Source` = `PostgreSQL`, `PgServer`, `PgDatabase`. Importer avec `bi_reader`. **Ce chemin n'a pas été testé dans
   Power BI Desktop** (pilote Npgsql, port 5432 à exposer en local seulement).
@@ -101,7 +102,7 @@ Pièges rencontrés :
 
 Chaque segment lit une table de choix avec une vraie valeur « Tous », reliée en plusieurs-à-plusieurs : le libellé
 ne suit pas la langue de Power BI et la prévision sait quel périmètre lire. Le banc d'essai se charge à part :
-`python -m app.dw.bench eval/results/<A>.json <B>.json …` (la démo en charge un simulé).
+`python -m app.dw.bench eval/results/<A>.json <B>.json …` (la démo n'en charge aucun ; un résultat simulé ne s'affiche pas).
 
 ## Charte
 

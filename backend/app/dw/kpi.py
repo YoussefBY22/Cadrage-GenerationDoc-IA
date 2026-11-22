@@ -56,7 +56,7 @@ def mean_edit_ratio(outcomes: Iterable[Row]) -> float | None:
 
 
 def minutes_saved(outcomes: Iterable[Row]) -> float:
-    """Temps gagné estimé (minutes) = Σ minutes_saved_est (= baseline × (1 − edit_ratio))."""
+    """Σ minutes_saved_est : hypothèse non mesurée, jamais affichée ; un refus vaut 0."""
     return float(sum(o["minutes_saved_est"] for o in outcomes))
 
 

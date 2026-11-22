@@ -2,10 +2,10 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
   "name": "production_kpi3_bande",
   "position": {
-    "x": 936.0,
+    "x": 1152.0,
     "y": 308,
     "z": 3000,
-    "width": 308.0,
+    "width": 416.0,
     "height": 30,
     "tabOrder": -31
   },

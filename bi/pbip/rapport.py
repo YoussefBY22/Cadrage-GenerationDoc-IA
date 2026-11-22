@@ -217,7 +217,7 @@ class Page:
 
     def cartes(self, liste: list[tuple[str, str | None]]) -> None:
         assert len(liste) <= 4, "au plus 4 KPI par page"
-        for i, ((nom, titre), (x, w)) in enumerate(zip(liste, colonnes(4), strict=True), 1):
+        for i, ((nom, titre), (x, w)) in enumerate(zip(liste, colonnes(len(liste)), strict=True), 1):
             self.kpi(i, (x, 186, w, 152), nom, titre)
 
     def kpi(self, i: int, boite: tuple, indicateur: str, titre: str | None) -> None:
@@ -236,7 +236,7 @@ class Page:
         self.poser(f"kpi{i}", "cardVisual", (x, y, w, h - 30), req=requete({"Data": [mes(indicateur)]}),
                    conteneur=conteneur, objets={
             "layout": [props(maxTiles=1), props(DEFAUT, backgroundShow=False, paddingUniform=0, cellPadding=0)],
-            "value": [props(DEFAUT, fontSize=28.0, fontColor=ANTHRACITE, fontFamily=SEMIBOLD, showBlankAs="—",
+            "value": [props(DEFAUT, fontSize=28.0, fontColor=ANTHRACITE, fontFamily=SEMIBOLD, showBlankAs="Non mesuré",
                             labelDisplayUnits=1.0, horizontalAlignment="left")],
             "label": [props(DEFAUT, show=False)], "outline": [props(DEFAUT, show=False)],
             "fillCustom": [props(DEFAUT, show=False)],
@@ -356,8 +356,7 @@ def production() -> Page:
     p = Page("production")
     p.entete()
     p.cartes([("Livrables à traiter", None), ("Phrases bloquantes à corriger", "Phrases bloquantes"),
-              ("Sections acceptées sans retouche", "Acceptées sans retouche"),
-              ("Temps gagné", "Temps gagné (hypothèse)")])
+              ("Sections acceptées sans retouche", "Acceptées sans retouche")])
     gauche, droite = 808, LC - 808 - G
     p.tableau("a_traiter", (X0, HAUT_CORPS, gauche, 254), col("Livrables", "Livrable"),
               [("À traiter état", "État"), ("À traiter motif", "Motif du renvoi"),
@@ -486,8 +485,7 @@ def impression() -> Page:
 
     titre("h7", 548, "Critères de réussite (hypothèse H7)")
     lignes("h7", 586, [("Citations sans source après approbation", "H7 citations"),
-                       ("Sections acceptées sans retouche", "H7 retouche"),
-                       ("Temps gagné", "H7 temps")], 42)
+                       ("Sections acceptées sans retouche", "H7 retouche")], 42)
 
     titre("kpi", 714, "Indicateurs")
     lignes("kpi", 752, [("Livrables à valider", "Rapport file"),
@@ -503,7 +501,6 @@ def impression() -> Page:
 
     titre("limites", 1066, "Limites")
     for i, ligne in enumerate([
-        "Temps gagné : hypothèse de 30 min par section, relecture non déduite.",
         "Sans retouche : mesuré par section, alors que H7 raisonne par phrase.",
         "Une source qui existe ne prouve pas qu'elle soutient la phrase.",
         "Une phrase modifiée n'est pas revérifiée ici : seule sa source est contrôlée.",

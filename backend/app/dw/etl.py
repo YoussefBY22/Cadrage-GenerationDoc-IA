@@ -483,7 +483,8 @@ class _Loader:
                                          m.config_label if m else None, demo),
                     "generated_words": len(gw), "final_words": len(fw), "edit_ratio": ratio,
                     "unchanged": ratio == 0, "was_refused": refused,
-                    "minutes_saved_est": round(float(baseline) * (1 - ratio), 1), "is_demo": demo})
+                    "minutes_saved_est": 0.0 if refused else round(float(baseline) * (1 - ratio), 1),
+                    "is_demo": demo})
                 existing.add((d.id, t.version, skey))
         _insert(c, dw.fact_section_outcome, rows)
         self.counts["fact_section_outcome"] += len(rows)

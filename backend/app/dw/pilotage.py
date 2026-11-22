@@ -20,7 +20,7 @@ REVIEW_OVERDUE_HOURS = 48          # au-delà, un livrable soumis attend trop
 DRAFT_STALE_HOURS = 120            # brouillon sans activité depuis 5 jours
 MIN_SAMPLE = 30                    # en dessous : le nombre s'affiche, pas le taux
 MAX_RECOMMENDATIONS = 3
-H7_REUSABLE, H7_TIME_SAVED, H7_INVALID_LEFT = 0.50, 0.30, 0
+H7_REUSABLE, H7_INVALID_LEFT = 0.50, 0
 
 # --- prédiction de la charge de relecture
 HORIZON_WEEKS, WINDOW_WEEKS = 2, 8

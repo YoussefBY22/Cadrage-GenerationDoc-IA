@@ -3,7 +3,7 @@
 Le jeu rejoue le produit : des consultants rédigent avec la configuration de production (recherche
 + modèle de base), soumettent, et des responsables approuvent ou renvoient avec motif (H6, 06 §8).
 L'histoire s'arrête à `AS_OF` : il reste donc des brouillons, des livrables en relecture et des
-renvois. Les configurations A/B/C/D n'existent que dans le banc d'essai (08 §6, `bench_results`).
+renvois. Aucun banc A/B/C/D n'est inventé : sans résultat réel, il s'affiche « non mesuré ».
 
 Les lignes sont écrites en lot dans les tables opérationnelles, puis l'ETL les charge : la démo
 teste aussi le chargement. Toutes les valeurs sont **inventées**, tirées d'une graine fixe.
@@ -29,21 +29,10 @@ WEEKS = 38
 COUNT_KEYS = ("dossiers", "documents", "chunks", "deliverables", "versions", "transitions", "runs",
               "alerts")
 
-BASE_MODEL, OTHER_MODEL = "demo-base-1.7b", "demo-base-4b"
+BASE_MODEL = "demo-base-1.7b"
 # Production : le service écrit `config_label="default"` (services/generation.py).
 PRODUCTION = {"model": BASE_MODEL, "adapter": "DemoProvider", "label": "default", "tpv": 0.82,
               "cite": 0.975, "refusal": 0.05, "latency": 9000, "unchanged": 0.50}
-# Banc d'essai, conforme à 08 §6 : A sans recherche, C = B + LoRA, D = autre taille sans LoRA.
-BENCH = {
-    "A": {"model": BASE_MODEL, "adapter": None, "retrieval": False, "tpv": 0.35, "cite": 0.85,
-          "numbers": 0.76, "attack": 0.12, "latency": 4000},
-    "B": {"model": BASE_MODEL, "adapter": None, "retrieval": True, "tpv": 0.82, "cite": 0.975,
-          "numbers": 0.93, "attack": 0.0, "latency": 9000},
-    "C": {"model": BASE_MODEL, "adapter": "lora-demo", "retrieval": True, "tpv": 0.835,
-          "cite": 0.975, "numbers": 0.93, "attack": 0.0, "latency": 9600},
-    "D": {"model": OTHER_MODEL, "adapter": None, "retrieval": True, "tpv": 0.80, "cite": 0.975,
-          "numbers": 0.92, "attack": 0.0, "latency": 16000},
-}
 TEMPLATES = {
     "tor": ("tor-fr-standard", ["contexte", "objectifs", "livrables", "calendrier", "profil",
                                 "evaluation"]),
@@ -221,11 +210,15 @@ class _Demo:
             sentences, remaining = [], set()
             for i, s in enumerate(sec.sentences):
                 if i in bad:
-                    # une source absente se voit dans l'éditeur : elle est presque toujours corrigée
-                    chance = fix_probability if s.source_ids[0] in dos["chunks"] else 0.96
-                    if rng.random() < chance:
+                    # une source absente est toujours corrigée : la démo n'invente pas d'approbation sans source
+                    absent = s.source_ids[0] not in dos["chunks"]
+                    if rng.random() < (0.96 if absent else fix_probability):
                         s = s.model_copy(update={"text": _revise(rng, s.text, 0.4),
                                                  "source_ids": [rng.choice(dos["chunks"])]})
+                    elif absent:  # hors du tirage principal : le scénario reste le même
+                        fix = random.Random(s.text)
+                        s = s.model_copy(update={"text": _revise(fix, s.text, 0.4),
+                                                 "source_ids": [fix.choice(dos["chunks"])]})
                     else:
                         remaining.add(i)
                 elif ratio:
@@ -334,34 +327,12 @@ class _Demo:
         return self.rows
 
 
-def bench_results(seed: int = 42, sections: int = 63) -> list[dict]:
-    """Banc d'essai **simulé**, au format de `eval/results/*.json`, sections appariées entre configs."""
-    rng = random.Random(seed)
-    difficulty = [rng.gauss(0, 0.11) for _ in range(sections)]
-    out = []
-    for label, cfg in BENCH.items():
-        values = [round(min(1.0, max(0.0, cfg["tpv"] + d + rng.gauss(0, 0.07))), 4) for d in difficulty]
-        out.append({
-            "config": label, "date": AS_OF.isoformat(), "simulation": True,
-            "notice": "Valeurs inventées (démonstration), sans valeur scientifique.",
-            "versions": {"provider": "demo", "model": cfg["model"], "adapter": cfg["adapter"]},
-            "params": {"retrieval": {"enabled": cfg["retrieval"], "k": 10}},
-            "n_sections": sections, "tpv_sections": values,
-            "metrics": {"tpv": {"mean": sum(values) / sections},
-                        "citation_validity": {"mean": cfg["cite"]},
-                        "number_fidelity": {"mean": cfg["numbers"]},
-                        "attack_success": {"mean": cfg["attack"]},
-                        "latency_p95_ms": {"mean": cfg["latency"] * 1.7}}})
-    return out
-
-
 def generate_demo(op_engine: Engine, *, seed: int = 42, clients: int = 5, weeks: int = WEEKS,
                   as_of: date = AS_OF) -> dict[str, int]:
     """Crée le jeu de démonstration, charge l'entrepôt et crée les vues ; renvoie les comptes.
 
     Sans effet (comptes à zéro) si des dossiers de démonstration existent déjà.
     """
-    from .bench import load_bench
     from .etl import run_etl
     from .views_sql import create_views
 
@@ -376,7 +347,6 @@ def generate_demo(op_engine: Engine, *, seed: int = 42, clients: int = 5, weeks:
             for i in range(0, len(data), 400):
                 c.execute(insert(table), data[i:i + 400])
     loaded = run_etl(op_engine, op_engine, full=True, now=demo.now)
-    load_bench(op_engine, bench_results(seed), is_demo=True)
     create_views(op_engine)
     names = {"versions": "deliverable_versions", "transitions": "state_transitions",
              "runs": "generation_runs", "alerts": "injection_alerts"}

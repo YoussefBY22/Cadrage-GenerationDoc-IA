@@ -139,7 +139,7 @@ Pas de fonctions propres à Postgres dans les vues (pas de `percentile_cont`) : 
 | Taux d'invalides | nb status=invalid / nb générations (JSON non conforme après essais) | |
 | Acceptation sans modification | nb outcome.unchanged / nb outcome | |
 | Distance d'édition moyenne | AVG(edit_ratio) | |
-| Temps gagné estimé (min) | Σ baseline_minutes × (1 − edit_ratio) − 0 (temps de relecture non mesuré) | **hypothèse** : `baseline_minutes` par section à faire valider par EY ; affiché « estimation » |
+| Temps gagné estimé (min) | Σ baseline_minutes × (1 − edit_ratio), 0 pour un refus | **hypothèse non mesurée** : conservée dans l'entrepôt, jamais affichée tant qu'aucun chronométrage n'existe |
 | Délai de validation (h) | médiane(heures entre 1ʳᵉ soumission et approbation) | |
 | Taux de refus en relecture | nb transitions →rejected / nb soumissions | |
 | Latence p50 / p95 | percentiles de `fact_llm_call.latency_ms` | DAX `PERCENTILEX.INC`, `kpi.percentile` |
@@ -177,8 +177,8 @@ def generate_demo(op_engine: Engine, *, seed: int = 42, clients: int = 5, weeks:
 - Rejoue le produit : 4 consultants, 2 responsables (rôle `reviewer`), transitions de la machine à états, motifs,
   acquittements, formats acceptés à l'import. L'histoire s'arrête à `as_of` : il reste des brouillons, une file et
   des renvois. Scénario : un responsable absent en fin de période.
-- Production = recherche + modèle de base, sans étiquette de configuration. A/B/C/D n'existent que dans le banc
-  simulé (`bench_results`), conforme à 08 §6.
+- Production = recherche + modèle de base, sans étiquette de configuration. Aucun banc A/B/C/D n'est inventé :
+  `fact_bench` reste vide jusqu'au chargement de résultats réels.
 - Toutes les valeurs sont **inventées**. Commande : `python -m app.dw.demo --seed 42`.
 
 ## 10. Alternative libre : Metabase

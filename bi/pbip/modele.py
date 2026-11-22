@@ -120,6 +120,7 @@ TYPES_COURTS = {"1": "constats", "2": "feuille de route", "3": "TdR", "4": "CdC"
 ETATS = {"draft": "Brouillon", "in_review": "En relecture", "approved": "Approuvé", "rejected": "Renvoyé"}
 DECISIONS = {"reference": "Référence", "retain": "À retenir", "inconclusive": "Non concluant",
              "unsafe": "Rejetée : sécurité dégradée", "worse": "Moins bonne", "not_paired": "Non comparable"}
+MONTAGES = {"A": "Sans recherche", "B": "Référence", "C": "B + LoRA", "D": "Autre taille de modèle"}
 MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août",
         "Septembre", "Octobre", "Novembre", "Décembre"]
 VERS_DATE = ("(k as number) as date => #date(Number.IntegerDivide(k, 10000), "
@@ -149,8 +150,6 @@ def tables_de_faits() -> dict[str, str]:
         Col("date_key", "Clé de date", ENTIER), Col("mission_key", "Clé de mission", ENTIER),
         Col("type_key", "Clé de type", ENTIER), Col("author_key", "Clé de consultant", ENTIER),
         Col("unchanged", "Sans retouche", ENTIER), Col("was_refused", "Refusée", ENTIER),
-        Col("minutes_saved_est", "Minutes gagnées", DECIMAL),
-        Col("baseline_minutes", "Minutes de référence", DECIMAL),
     ]
     t["Sections approuvées"] = table_tmdl("Sections approuvées", cols, depuis_vue("v_outcome", cols), masquee=True)
 
@@ -262,10 +261,16 @@ def tables_de_faits() -> dict[str, str]:
         Col("simulated", "Simulé", ENTIER),
     ]
     t["Banc"] = table_tmdl("Banc", cols, depuis_vue("v_bench", cols) + [
-        ("AvecMontage", 'Table.AddColumn(Typage, "montage", each [model_name] & '
+        # Un résultat simulé n'est pas une mesure ; le protocole reste lisible sans résultat.
+        ("Mesures", "Table.Buffer(Table.SelectRows(Typage, each [simulated] <> 1))"),
+        ("Absentes", "Table.SelectRows(" + m_table([("config_label", "text")], [(k,) for k in MONTAGES])
+                     + ', each not List.Contains(Table.Column(Mesures, "config_label"), [config_label]))'),
+        ("Completees", "Table.Combine({Mesures, Absentes})"),
+        ("AvecMontage", 'Table.AddColumn(Completees, "montage", each if [model_name] = null '
+                        f'then Record.FieldOrDefault({m_libelles(MONTAGES)}, [config_label], "") else [model_name] & '
                         '(if [adapter] = null or [adapter] = "" then "" else " + LoRA") & '
                         '(if [has_retrieval] = 1 then "" else ", sans recherche"), type text)'),
-        ("AvecVerdict", f'Table.AddColumn(AvecMontage, "verdict", {m_libelle("decision", DECISIONS, "Inconnu")})'),
+        ("AvecVerdict", f'Table.AddColumn(AvecMontage, "verdict", {m_libelle("decision", DECISIONS, "Non mesuré")})'),
     ])
 
     cols = [

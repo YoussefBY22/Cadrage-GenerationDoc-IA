@@ -107,7 +107,7 @@
             "showBlankAs": {
               "expr": {
                 "Literal": {
-                  "Value": "'—'"
+                  "Value": "'Non mesuré'"
                 }
               }
             },

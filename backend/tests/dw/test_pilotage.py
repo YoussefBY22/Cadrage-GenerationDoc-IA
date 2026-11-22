@@ -7,6 +7,7 @@ import pytest
 from sqlalchemy import text
 
 from app.dw import pilotage, report
+from app.dw.bench import bench_rows
 from app.dw.etl import run_etl
 from app.dw.views_sql import create_views
 from eval.harness.bootstrap import bootstrap_ci
@@ -131,6 +132,15 @@ def test_risk_model_is_checked_against_the_global_rate():
     assert good["groups"][True]["rate"] == pytest.approx(0.8) and good["groups"][True]["n"] == 60
     assert pilotage.risk_model(cases(0.3, 0.3))["status"] == "not_better"
     assert pilotage.risk_model(cases(0.1, 0.8, 30))["status"] == "insufficient"
+
+
+def test_bench_rows_keep_the_reference_and_the_decision():
+    def result(label, value):
+        return {"config": label, "tpv_sections": [value] * 12, "versions": {"model": "m"},
+                "params": {"retrieval": {"enabled": True}}, "metrics": {}}
+
+    rows = bench_rows([result("B", 0.5), result("C", 0.4)], is_demo=False)
+    assert [(r["config_label"], r["decision"]) for r in rows] == [("B", "reference"), ("C", "worse")]
 
 
 def test_bench_decision_is_the_one_of_the_eval_harness():

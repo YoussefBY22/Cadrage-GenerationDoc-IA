@@ -4,7 +4,7 @@
 > et [`pilotage.py`](../backend/app/dw/pilotage.py), la source unique des seuils et des règles.
 > Qui voit quoi : [docs/14](../docs/14-acteurs-dashboard.md).
 
-Principes : au plus 4 indicateurs par page acteur, chacun lié à une décision ; un taux va avec son effectif et disparaît sous 30 cas ; un critère non mesuré s'affiche « non mesuré », sans verdict.
+Principes : au plus 4 indicateurs par page acteur, chacun lié à une décision ; un taux va avec son effectif et disparaît sous 30 cas ; un critère non mesuré s'affiche « non mesuré », sans verdict. Sur les données de démonstration, aucune qualité de modèle n'est mesurée.
 
 ## Consultant
 
@@ -44,21 +44,7 @@ CALCULATE(SUM(Livrables[Phrases bloquantes]), KEEPFILTERS(Livrables[Code d'état
 ```dax
 Sections acceptées sans retouche =
 VAR vN = [Sections rédigées puis approuvées]
-RETURN IF(vN >= 30, DIVIDE([Nombre de sections sans retouche], vN))
-```
-
-### Temps gagné
-
-- **Décision** : Pour quels livrables utiliser l'assistant
-- **Formule** : minutes gagnées sur les sections rédigées ÷ minutes d'une rédaction manuelle des sections approuvées.
-- **Cible** : au moins 30 % (H7)
-- **Portée** : Flux : suit la période.
-- **Limite** : HYPOTHÈSE, pas une mesure : 30 min par section, gain proportionnel au texte conservé, relecture non déduite.
-
-```dax
-Temps gagné =
-IF([Sections du temps gagné] >= 30, DIVIDE(
-    CALCULATE(SUM('Sections approuvées'[Minutes gagnées]), KEEPFILTERS('Sections approuvées'[Refusée] = 0)), SUM('Sections approuvées'[Minutes de référence])))
+RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF(vN >= 30, DIVIDE([Nombre de sections sans retouche], vN)))
 ```
 
 ## Responsable
@@ -126,7 +112,7 @@ CALCULATE(SUM(Livrables[Phrases bloquantes]), KEEPFILTERS(Livrables[Code d'état
 
 ```dax
 Citations sans source après approbation =
-IF([Livrables mesurés] > 0, CALCULATE(SUM(Livrables[Citations sans source]), KEEPFILTERS(Livrables[Code d'état] IN {"approved"}), USERELATIONSHIP(Livrables[Clé d'approbation], Calendrier[Clé de date])) + 0)
+IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF([Livrables mesurés] > 0, CALCULATE(SUM(Livrables[Citations sans source]), KEEPFILTERS(Livrables[Code d'état] IN {"approved"}), USERELATIONSHIP(Livrables[Clé d'approbation], Calendrier[Clé de date])) + 0))
 ```
 
 ### Citations sans source avant relecture
@@ -138,7 +124,7 @@ IF([Livrables mesurés] > 0, CALCULATE(SUM(Livrables[Citations sans source]), KE
 
 ```dax
 Citations sans source avant relecture =
-IF([Citations générées] >= 30, DIVIDE([Nombre de citations sans source avant relecture], [Citations générées]))
+IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF([Citations générées] >= 30, DIVIDE([Nombre de citations sans source avant relecture], [Citations générées])))
 ```
 
 ### Phrases vérifiées
@@ -151,7 +137,7 @@ IF([Citations générées] >= 30, DIVIDE([Nombre de citations sans source avant 
 
 ```dax
 Phrases vérifiées =
-IF([Phrases générées] >= 30, DIVIDE([Nombre de phrases vérifiées], [Phrases générées]))
+IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF([Phrases générées] >= 30, DIVIDE([Nombre de phrases vérifiées], [Phrases générées])))
 ```
 
 ## Administration

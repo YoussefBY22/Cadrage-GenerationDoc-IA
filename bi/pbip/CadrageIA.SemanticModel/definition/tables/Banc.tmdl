@@ -120,7 +120,10 @@ table Banc
 				    Brut = Vue("v_bench"),
 				    Choix = Table.SelectColumns(Brut, {"config_label", "model_name", "adapter", "has_retrieval", "n_sections", "tpv", "tpv_low", "tpv_high", "delta", "delta_low", "delta_high", "decision", "citation_validity", "number_fidelity", "attack_success", "latency_p95_ms", "simulated"}),
 				    Typage = Table.TransformColumnTypes(Choix, {{"config_label", type text}, {"model_name", type text}, {"adapter", type text}, {"has_retrieval", Int64.Type}, {"n_sections", Int64.Type}, {"tpv", type number}, {"tpv_low", type number}, {"tpv_high", type number}, {"delta", type number}, {"delta_low", type number}, {"delta_high", type number}, {"decision", type text}, {"citation_validity", type number}, {"number_fidelity", type number}, {"attack_success", type number}, {"latency_p95_ms", type number}, {"simulated", Int64.Type}}, CultureCsv),
-				    AvecMontage = Table.AddColumn(Typage, "montage", each [model_name] & (if [adapter] = null or [adapter] = "" then "" else " + LoRA") & (if [has_retrieval] = 1 then "" else ", sans recherche"), type text),
-				    AvecVerdict = Table.AddColumn(AvecMontage, "verdict", each if [decision] = null then "Inconnu" else Record.FieldOrDefault([#"reference" = "Référence", #"retain" = "À retenir", #"inconclusive" = "Non concluant", #"unsafe" = "Rejetée : sécurité dégradée", #"worse" = "Moins bonne", #"not_paired" = "Non comparable"], [decision], "Inconnu"), type text)
+				    Mesures = Table.Buffer(Table.SelectRows(Typage, each [simulated] <> 1)),
+				    Absentes = Table.SelectRows(#table(type table [#"config_label" = text], {{"A"}, {"B"}, {"C"}, {"D"}}), each not List.Contains(Table.Column(Mesures, "config_label"), [config_label])),
+				    Completees = Table.Combine({Mesures, Absentes}),
+				    AvecMontage = Table.AddColumn(Completees, "montage", each if [model_name] = null then Record.FieldOrDefault([#"A" = "Sans recherche", #"B" = "Référence", #"C" = "B + LoRA", #"D" = "Autre taille de modèle"], [config_label], "") else [model_name] & (if [adapter] = null or [adapter] = "" then "" else " + LoRA") & (if [has_retrieval] = 1 then "" else ", sans recherche"), type text),
+				    AvecVerdict = Table.AddColumn(AvecMontage, "verdict", each if [decision] = null then "Non mesuré" else Record.FieldOrDefault([#"reference" = "Référence", #"retain" = "À retenir", #"inconclusive" = "Non concluant", #"unsafe" = "Rejetée : sécurité dégradée", #"worse" = "Moins bonne", #"not_paired" = "Non comparable"], [decision], "Non mesuré"), type text)
 				in
 				    AvecVerdict

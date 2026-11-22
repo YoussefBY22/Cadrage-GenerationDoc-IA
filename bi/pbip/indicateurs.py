@@ -68,12 +68,6 @@ KPIS: list[Kpi] = [
         "Partir du premier jet ou le retravailler",
         f"au moins {pilotage.H7_REUSABLE * 100:.0f} % (H7)", FLUX,
         f"H7 raisonne par phrase, l'entrepôt par section (plus sévère). Pas de taux sous {N_MIN} sections."),
-    Kpi("Temps gagné", CONSULTANT,
-        "minutes gagnées sur les sections rédigées ÷ minutes d'une rédaction manuelle des sections approuvées.",
-        "Pour quels livrables utiliser l'assistant",
-        f"au moins {pilotage.H7_TIME_SAVED * 100:.0f} % (H7)", FLUX,
-        "HYPOTHÈSE, pas une mesure : 30 min par section, gain proportionnel au texte conservé, "
-        "relecture non déduite."),
 
     Kpi("Livrables à valider", RESPONSABLE,
         f"livrables en relecture, dont ceux qui attendent depuis plus de {RETARD} h.",
@@ -115,6 +109,14 @@ KPIS: list[Kpi] = [
 ]
 
 
+DEMO = "MAX('Source des données'[Est une démonstration]) = 1"
+
+
+def mesure_reelle(valeur: str, sinon: str = "BLANK()") -> str:
+    """Une mesure de qualité du modèle n'existe pas sur des données inventées."""
+    return f"IF({DEMO}, {sinon}, {valeur})"
+
+
 def entier(expr: str) -> str:
     return f'FORMAT({expr}, "#,0", "fr-FR")'
 
@@ -150,13 +152,9 @@ def _appui() -> list[Mesure]:
         Mesure("Nombre de sections sans retouche", c,
                f"CALCULATE(COUNTROWS({sections}), {redigee}, KEEPFILTERS({sections}[Sans retouche] = 1)) + 0", ENTIER),
         Mesure("Sections acceptées sans retouche", c,
-               f"VAR vN = [Sections rédigées puis approuvées]\n"
-               f"RETURN IF(vN >= {N_MIN}, DIVIDE([Nombre de sections sans retouche], vN))", PCT),
-        Mesure("Sections du temps gagné", c, f"COUNTROWS({sections}) + 0", ENTIER),
-        Mesure("Temps gagné", c,
-               f"IF([Sections du temps gagné] >= {N_MIN}, DIVIDE(\n"
-               f"    CALCULATE(SUM({sections}[Minutes gagnées]), {redigee}), SUM({sections}[Minutes de référence])))",
-               '"≈ "0 %'),
+               "VAR vN = [Sections rédigées puis approuvées]\n"
+               "RETURN " + mesure_reelle(
+                   f"IF(vN >= {N_MIN}, DIVIDE([Nombre de sections sans retouche], vN))"), PCT),
 
         Mesure("Livrables à valider", r, f"CALCULATE(COUNTROWS(Livrables), {EN_RELECTURE}) + 0", ENTIER),
         Mesure("Relectures en retard", r,
@@ -183,20 +181,24 @@ def _appui() -> list[Mesure]:
         Mesure("Citations approuvées", p,
                f"CALCULATE(SUM(Livrables[Citations finales]), {APPROUVE}, {PAR_APPROBATION})", ENTIER),
         Mesure("Citations sans source après approbation", p,
-               "IF([Livrables mesurés] > 0, "
-               f"CALCULATE(SUM(Livrables[Citations sans source]), {APPROUVE}, {PAR_APPROBATION}) + 0)", ENTIER),
+               mesure_reelle(
+                   "IF([Livrables mesurés] > 0, "
+                   f"CALCULATE(SUM(Livrables[Citations sans source]), {APPROUVE}, {PAR_APPROBATION}) + 0)"), ENTIER),
         Mesure("Citations générées", p, f"CALCULATE(SUM('Générations'[Citations produites]), {generee}) + 0", ENTIER),
         Mesure("Nombre de citations sans source avant relecture", p,
                "[Citations générées] - CALCULATE(SUM('Générations'[Citations valides en nombre]), "
                f"{generee})", ENTIER),
         Mesure("Citations sans source avant relecture", p,
-               f"IF([Citations générées] >= {N_MIN}, "
-               "DIVIDE([Nombre de citations sans source avant relecture], [Citations générées]))", PCT),
+               mesure_reelle(f"IF([Citations générées] >= {N_MIN}, "
+                             "DIVIDE([Nombre de citations sans source avant relecture], [Citations générées]))"),
+               PCT),
         Mesure("Phrases générées", p, f"CALCULATE(SUM('Générations'[Phrases produites]), {generee}) + 0", ENTIER),
         Mesure("Nombre de phrases vérifiées", p,
                f"CALCULATE(SUM('Générations'[Phrases validées]), {generee}) + 0", ENTIER),
         Mesure("Phrases vérifiées", p,
-               f"IF([Phrases générées] >= {N_MIN}, DIVIDE([Nombre de phrases vérifiées], [Phrases générées]))", PCT),
+               mesure_reelle(
+                   f"IF([Phrases générées] >= {N_MIN}, DIVIDE([Nombre de phrases vérifiées], [Phrases générées]))"),
+               PCT),
 
         Mesure("Alertes d'injection", a, "SUM(Documents[Alertes]) + 0", ENTIER),
         Mesure("Documents analysés", a, "COUNTROWS(Documents)", ENTIER),
@@ -345,9 +347,6 @@ def presentation() -> list[Mesure]:
     m["Note Sections acceptées sans retouche"] = effectif(
         "[Nombre de sections sans retouche]", "[Sections rédigées puis approuvées]",
         f"· cible H7 ≥ {pilotage.H7_REUSABLE * 100:.0f} %")
-    m["Note Temps gagné"] = (
-        f'VAR vN = [Sections du temps gagné]\nRETURN IF(vN < {N_MIN}, "Effectif insuffisant (n = " & vN & ")",\n'
-        '    "Hypothèse de 30 min par section, n = " & vN)')
     m["Note Livrables à valider"] = f'"dont " & [Relectures en retard] & " depuis plus de {RETARD} h"'
     m["Note Délai de validation"] = (
         f'VAR vN = [Livrables avec délai]\nRETURN IF(vN < {N_MIN}, "Effectif insuffisant (n = " & vN & ")",\n'
@@ -387,13 +386,15 @@ def presentation() -> list[Mesure]:
     m["Charge chez le consultant"] = "VAR v = [Livrables à traiter]\nRETURN IF(v > 0, v)"
     m["File attente"] = f"CALCULATE(MAX(Livrables[Heures dans l'état]), {EN_RELECTURE}) / 24"
     si_file = "IF(NOT ISBLANK([File attente]), "
-    m["File priorité"] = si_file + "[File attente] * (1 + COALESCE(MAX(Livrables[Risque]), 0)))"
+    m["File priorité"] = si_file + (
+        f"[File attente] * (1 + IF({DEMO}, 0, COALESCE(MAX(Livrables[Risque]), 0))))")
     m["File consultant"] = si_file + "CALCULATE(SELECTEDVALUE(Personnes[Consultant]), CROSSFILTER(Livrables[Clé de consultant], Personnes[Clé de personne], BOTH)))"
     m["File bloquantes"] = si_file + "SUM(Livrables[Phrases bloquantes]) + 0)"
     m["File risque"] = si_file + (
+        f'IF({DEMO}, "Non mesuré", '
         'IF(ISBLANK(MAX(Livrables[Risque])), "non estimé", FORMAT(MAX(Livrables[Risque]), "0 %") & " ["\n'
         '    & FORMAT(MAX(Livrables[Risque bas]), "0 %") & " à " & FORMAT(MAX(Livrables[Risque haut]), "0 %")\n'
-        '    & "], n = " & MAX(Livrables[Risque effectif])))')
+        '    & "], n = " & MAX(Livrables[Risque effectif]))))')
     m["Couleur d'attente"] = (
         f'VAR v = [File attente]\nRETURN IF(NOT ISBLANK(v), IF(v * 24 > {RETARD}, "{FOND_ROUGE}", "{FOND_BLANC}"))')
     m["Couleur de blocage"] = f'IF([File bloquantes] > 0, "{FOND_GRIS}", "{FOND_BLANC}")'
@@ -413,11 +414,6 @@ def presentation() -> list[Mesure]:
         f'RETURN IF(vN < {N_MIN}, "Effectif insuffisant (n = " & vN & ")",\n'
         f'    FORMAT(vTaux, "0 %") & " (" & [Nombre de sections sans retouche] & " sur " & vN & ") · {cible} · "\n'
         f'    & IF(vTaux >= {pilotage.H7_REUSABLE}, "atteint", "non atteint") & ", approximation par section")')
-    m["H7 temps"] = (
-        "VAR vN = [Sections du temps gagné]\n"
-        f'RETURN IF(vN < {N_MIN}, "Effectif insuffisant (n = " & vN & ")",\n'
-        f'    "≈ " & FORMAT([Temps gagné], "0 %") & " (" & vN & " sections) · cible ≥ '
-        f'{pilotage.H7_TIME_SAVED * 100:.0f} % · hypothèse, non mesuré")')
     m["Rapport synthèse"] = (
         '[Livrables à valider] & " livrables attendent une relecture, dont " & [Relectures en retard]\n'
         f'    & " depuis plus de {RETARD} h. " & [Livrables à traiter] & " sont chez les consultants, dont "\n'
@@ -445,16 +441,16 @@ def presentation() -> list[Mesure]:
     # --- administration
     m["Banc décision"] = (
         'VAR vRetenues = FILTER(ALL(Banc), Banc[Code de décision] = "retain")\n'
+        "VAR vMesurees = COUNTROWS(FILTER(ALL(Banc), NOT ISBLANK(Banc[TPV]))) + 0\n"
         "VAR vNombre = COUNTROWS(vRetenues) + 0\n"
-        'RETURN IF(COUNTROWS(ALL(Banc)) + 0 = 0, "Aucun résultat de banc chargé",\n'
+        'RETURN IF(vMesurees = 0, "Banc d\'essai non mesuré",\n'
         f'    IF(vNombre = 0, "Rester sur {pilotage.REFERENCE_CONFIG} : aucun écart favorable concluant",\n'
         '        "Écart concluant pour : " & CONCATENATEX(vRetenues, Banc[Configuration], ", ")))')
-    m["Banc mention"] = 'IF(MAXX(ALL(Banc), Banc[Simulé]) = 1, "Banc simulé : valeurs inventées", " ")'
     m["Banc montage"] = "SELECTEDVALUE(Banc[Montage])"
     m["Banc effectif"] = "MAX(Banc[Sections du banc])"
     m["Banc TPV"] = (
-        "IF(COUNTROWS(Banc) = 1 && NOT ISBLANK(MAX(Banc[TPV])), FORMAT(MAX(Banc[TPV]), \"0 %\")\n"
-        '    & " [" & FORMAT(MAX(Banc[TPV bas]), "0 %") & " à " & FORMAT(MAX(Banc[TPV haut]), "0 %") & "]")')
+        "IF(COUNTROWS(Banc) = 1, IF(ISBLANK(MAX(Banc[TPV])), \"Non mesuré\", FORMAT(MAX(Banc[TPV]), \"0 %\")\n"
+        '    & " [" & FORMAT(MAX(Banc[TPV bas]), "0 %") & " à " & FORMAT(MAX(Banc[TPV haut]), "0 %") & "]"))')
     ecart = 'FORMAT(100 * MAX(Banc[{}]), "+0.0;-0.0;0.0", "fr-FR")'
     m["Banc écart"] = (
         "IF(COUNTROWS(Banc) = 1, IF(ISBLANK(MAX(Banc[Écart])), \"—\",\n"
@@ -476,6 +472,13 @@ def presentation() -> list[Mesure]:
 
     formats = {"À traiter inactivité": JOURS, "File attente": JOURS, "File priorité": ENTIER,
                "Banc chiffres": PCT, "Banc attaque": PCT, "Banc latence": '0 "s"'}
+    for nom in ("Note Sections acceptées sans retouche", "Note Citations sans source après approbation",
+                "Note Citations sans source avant relecture", "Note Phrases vérifiées",
+                "H7 citations", "H7 retouche", "Rapport vérifiées", "Rapport détectées"):
+        corps = m[nom]
+        tete, _, fin = corps.rpartition("RETURN ")
+        retour = mesure_reelle(fin, '"Non mesuré"')
+        m[nom] = f"{tete}RETURN {retour}" if tete else retour
     return [Mesure(nom, "9. Présentation", dax, formats.get(nom), masquee=True) for nom, dax in m.items()]
 
 
@@ -494,7 +497,8 @@ def kpi_md() -> str:
         "> Qui voit quoi : [docs/14](../docs/14-acteurs-dashboard.md).", "",
         "Principes : au plus 4 indicateurs par page acteur, chacun lié à une décision ; "
         f"un taux va avec son effectif et disparaît sous {N_MIN} cas ; "
-        "un critère non mesuré s'affiche « non mesuré », sans verdict.",
+        "un critère non mesuré s'affiche « non mesuré », sans verdict. "
+        "Sur les données de démonstration, aucune qualité de modèle n'est mesurée.",
     ]
     for acteur in (CONSULTANT, RESPONSABLE, RAPPORT, ADMINISTRATION):
         out += ["", f"## {acteur}"]

@@ -28,7 +28,7 @@ def test_internal_report_has_every_part(engine, tmp_path):
     for part in ("Synthèse", "Recommandations prioritaires", "Critères de réussite", "Indicateurs",
                  "Prédiction", "Limites", "Situation au 20/11/2026", report.SIMULATION):
         assert part in body
-    assert "Hypothèse, non mesuré" in body
+    assert "Non mesuré" in body and "Temps gagné" not in body
 
 
 def test_filters_reach_kpis_and_recommendations(engine):
@@ -58,9 +58,9 @@ def test_client_report_must_be_scoped():
 def test_no_rate_and_no_verdict_without_measure(engine):
     assert "insuffisant" in report.rate(3, pilotage.MIN_SAMPLE - 1)
     assert "%" in report.rate(3, pilotage.MIN_SAMPLE)
-    empty = report.collect(engine, report.Scope()) | {"invalid_left": None, "written": 4, "unchanged": 4}
+    empty = report.collect(engine, report.Scope()) | {"simulated": False, "invalid_left": None, "written": 4, "unchanged": 4}
     verdicts = [row[3] for row in report.h7_rows(empty)]
-    assert verdicts == ["Non mesuré", "Effectif insuffisant", "Hypothèse, non mesuré"]
+    assert verdicts == ["Non mesuré", "Effectif insuffisant"]
 
 
 @pytest.mark.parametrize(("measured", "left", "verdict"), [
@@ -70,5 +70,13 @@ def test_no_rate_and_no_verdict_without_measure(engine):
 ])
 def test_h7_citations_needs_a_sample_to_pass(engine, measured, left, verdict):
     data = report.collect(engine, report.Scope()) | {
-        "approved": measured, "measured": measured, "invalid_left": left}
+        "simulated": False, "approved": measured, "measured": measured, "invalid_left": left}
     assert report.h7_rows(data)[0][3] == verdict
+
+
+def test_invented_data_measures_no_model_quality(engine):
+    data = report.collect(engine, report.Scope())
+    assert data["simulated"]
+    assert {row[3] for row in report.h7_rows(data)} == {"Non mesuré"}
+    assert all(d["risk"] is None for d in data["queue"])
+    assert "référence naïve" not in " ".join(report.forecast_lines(data))
