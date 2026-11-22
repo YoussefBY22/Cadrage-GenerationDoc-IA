@@ -47,13 +47,13 @@ table _Mesures
 	measure 'Taux refus relecture' = DIVIDE(SUM(v_review_funnel[rejections]), SUM(v_review_funnel[submissions]))
 		formatString: 0.0%
 
-	measure 'Alertes d'injection' = SUM(v_security[injection_alert_count])
+	measure 'Alertes d''injection' = SUM(v_security[injection_alert_count])
 		formatString: #,0
 
 	measure Documents = COUNTROWS(v_security)
 		formatString: #,0
 
-	measure 'Livrables à l'étape' = SWITCH(SELECTEDVALUE(Etapes[Ordre]), 1, DISTINCTCOUNT(v_review_funnel[deliverable_id]), 2, CALCULATE(DISTINCTCOUNT(v_review_funnel[deliverable_id]), v_review_funnel[submissions] > 0), 3, CALCULATE(DISTINCTCOUNT(v_review_funnel[deliverable_id]), v_review_funnel[approved_date_key] <> BLANK()))
+	measure 'Livrables à l''étape' = SWITCH(SELECTEDVALUE(Etapes[Ordre]), 1, DISTINCTCOUNT(v_review_funnel[deliverable_id]), 2, CALCULATE(DISTINCTCOUNT(v_review_funnel[deliverable_id]), v_review_funnel[submissions] > 0), 3, CALCULATE(DISTINCTCOUNT(v_review_funnel[deliverable_id]), v_review_funnel[approved_date_key] <> BLANK()))
 		formatString: #,0
 
 	partition _Mesures = m
