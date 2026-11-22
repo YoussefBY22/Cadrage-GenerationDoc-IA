@@ -1,0 +1,126 @@
+table Banc
+
+	column Configuration
+		dataType: string
+		sourceColumn: config_label
+		summarizeBy: none
+
+	column 'Modèle du banc'
+		dataType: string
+		isHidden
+		sourceColumn: model_name
+		summarizeBy: none
+
+	column Adaptation
+		dataType: string
+		isHidden
+		sourceColumn: adapter
+		summarizeBy: none
+
+	column 'Avec recherche'
+		dataType: int64
+		isHidden
+		sourceColumn: has_retrieval
+		summarizeBy: none
+
+	column Montage
+		dataType: string
+		isHidden
+		sourceColumn: montage
+		summarizeBy: none
+
+	column 'Sections du banc'
+		dataType: int64
+		isHidden
+		sourceColumn: n_sections
+		summarizeBy: none
+
+	column TPV
+		dataType: double
+		isHidden
+		sourceColumn: tpv
+		summarizeBy: none
+
+	column 'TPV bas'
+		dataType: double
+		isHidden
+		sourceColumn: tpv_low
+		summarizeBy: none
+
+	column 'TPV haut'
+		dataType: double
+		isHidden
+		sourceColumn: tpv_high
+		summarizeBy: none
+
+	column 'Écart'
+		dataType: double
+		isHidden
+		sourceColumn: delta
+		summarizeBy: none
+
+	column 'Écart bas'
+		dataType: double
+		isHidden
+		sourceColumn: delta_low
+		summarizeBy: none
+
+	column 'Écart haut'
+		dataType: double
+		isHidden
+		sourceColumn: delta_high
+		summarizeBy: none
+
+	column 'Code de décision'
+		dataType: string
+		isHidden
+		sourceColumn: decision
+		summarizeBy: none
+
+	column 'Décision'
+		dataType: string
+		isHidden
+		sourceColumn: verdict
+		summarizeBy: none
+
+	column 'Citations valides'
+		dataType: double
+		isHidden
+		sourceColumn: citation_validity
+		summarizeBy: none
+
+	column 'Chiffres fidèles'
+		dataType: double
+		isHidden
+		sourceColumn: number_fidelity
+		summarizeBy: none
+
+	column 'Attaques réussies'
+		dataType: double
+		isHidden
+		sourceColumn: attack_success
+		summarizeBy: none
+
+	column 'Latence p95'
+		dataType: double
+		isHidden
+		sourceColumn: latency_p95_ms
+		summarizeBy: none
+
+	column 'Simulé'
+		dataType: int64
+		isHidden
+		sourceColumn: simulated
+		summarizeBy: none
+
+	partition Banc = m
+		mode: import
+		source =
+				let
+				    Brut = Vue("v_bench"),
+				    Choix = Table.SelectColumns(Brut, {"config_label", "model_name", "adapter", "has_retrieval", "n_sections", "tpv", "tpv_low", "tpv_high", "delta", "delta_low", "delta_high", "decision", "citation_validity", "number_fidelity", "attack_success", "latency_p95_ms", "simulated"}),
+				    Typage = Table.TransformColumnTypes(Choix, {{"config_label", type text}, {"model_name", type text}, {"adapter", type text}, {"has_retrieval", Int64.Type}, {"n_sections", Int64.Type}, {"tpv", type number}, {"tpv_low", type number}, {"tpv_high", type number}, {"delta", type number}, {"delta_low", type number}, {"delta_high", type number}, {"decision", type text}, {"citation_validity", type number}, {"number_fidelity", type number}, {"attack_success", type number}, {"latency_p95_ms", type number}, {"simulated", Int64.Type}}, CultureCsv),
+				    AvecMontage = Table.AddColumn(Typage, "montage", each [model_name] & (if [adapter] = null or [adapter] = "" then "" else " + LoRA") & (if [has_retrieval] = 1 then "" else ", sans recherche"), type text),
+				    AvecVerdict = Table.AddColumn(AvecMontage, "verdict", each if [decision] = null then "Inconnu" else Record.FieldOrDefault([#"reference" = "Référence", #"retain" = "À retenir", #"inconclusive" = "Non concluant", #"unsafe" = "Rejetée : sécurité dégradée", #"worse" = "Moins bonne", #"not_paired" = "Non comparable"], [decision], "Inconnu"), type text)
+				in
+				    AvecVerdict

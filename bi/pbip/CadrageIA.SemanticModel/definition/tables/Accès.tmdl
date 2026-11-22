@@ -1,0 +1,28 @@
+table 'Accès'
+	isHidden
+
+	column Utilisateur
+		dataType: string
+		isHidden
+		sourceColumn: utilisateur
+		summarizeBy: none
+
+	column 'Clé de personne autorisée'
+		dataType: int64
+		isHidden
+		sourceColumn: user_key
+		summarizeBy: none
+
+	partition 'Accès' = m
+		mode: import
+		source =
+				let
+				    Vide = #table(type table [utilisateur = text, user_id = text], {}),
+				    Fichier = if Source = "CSV" then (try Table.SelectColumns(Vue("acces"), {"utilisateur", "user_id"}) otherwise Vide) else Vide,
+				    Typage = Table.TransformColumnTypes(Fichier, {{"utilisateur", type text}, {"user_id", type text}}),
+				    Connus = Table.TransformColumnTypes(Table.SelectColumns(Vue("v_person"), {"user_key", "user_id"}), {{"user_key", Int64.Type}, {"user_id", type text}}, CultureCsv),
+				    Jointure = Table.NestedJoin(Typage, {"user_id"}, Connus, {"user_id"}, "p", JoinKind.Inner),
+				    AvecCle = Table.ExpandTableColumn(Jointure, "p", {"user_key"}),
+				    Resultat = Table.SelectColumns(AvecCle, {"utilisateur", "user_key"})
+				in
+				    Resultat

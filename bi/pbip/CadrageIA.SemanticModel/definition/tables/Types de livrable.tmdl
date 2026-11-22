@@ -22,8 +22,6 @@ table 'Types de livrable'
 		mode: import
 		source =
 				let
-				    Tous = #table(type table [#"type_key" = Int64.Type, #"type_code" = text, #"libelle" = text], {{1, "findings", "Constats"}, {2, "roadmap", "Feuille de route"}, {3, "tor", "Termes de référence"}, {4, "cdc", "Cahier des charges"}}),
-				    Utilises = List.Buffer(List.Distinct(Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_generation"), {"type_code"}), {{"type_code", type text}}, CultureCsv), "type_code"))),
-				    Presents = Table.SelectRows(Tous, each List.Contains(Utilises, [type_code]))
+				    Resultat = #table(type table [#"type_key" = Int64.Type, #"type_code" = text, #"libelle" = text], {{1, "findings", "Constats"}, {2, "roadmap", "Feuille de route"}, {3, "tor", "Termes de référence"}, {4, "cdc", "Cahier des charges"}})
 				in
-				    Presents
+				    Resultat
