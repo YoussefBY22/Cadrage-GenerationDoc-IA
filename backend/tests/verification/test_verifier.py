@@ -170,3 +170,32 @@ def test_resolve_labels():
     assert d.sentences[0].source_ids == ["c2", "c1"] and d.sentences[0].finding_ids == ["F1"]
     assert d.sentences[1].source_ids == ["P7"]  # inconnu conservé
     assert "UNKNOWN_SOURCE" in codes(verify_section(d, SRC, dossier_id=DOSSIER))
+
+
+EN_SRC = {
+    "e1": chunk("e1", "The network loss rate is 32 percent in 2023. The annual budget reaches 3.2 bn."),
+    "e2": chunk("e2", "The agency has 1,250.5 FTE spread over twelve regional sites."),
+    "f1": chunk("f1", "Le budget annuel atteint 3,2 Md€ et l'agence compte 1 250,5 agents."),
+}
+
+
+def _en(text, *ids, kind="fact"):
+    d = SectionDraft(section_key="s", status="ok",
+                     sentences=[Sentence(text=text, kind=kind, source_ids=list(ids))])
+    return verify_section(d, EN_SRC, dossier_id=DOSSIER, lang="en")
+
+
+def test_nombres_anglais_verifies():
+    assert _en("The loss rate is 32 percent.", "e1").issues == []
+    assert _en("The annual budget reaches 3.2 bn.", "e1").issues == []
+    assert _en("The agency has 1,250.5 FTE.", "e2").issues == []
+
+
+def test_nombre_anglais_invente_rejete():
+    assert "NUMBER_NOT_FOUND" in [i.code for i in _en("The loss rate is 33 percent.", "e1").issues]
+    assert "NUMBER_NOT_FOUND" in [i.code for i in _en("The agency has 1,300 FTE.", "e2").issues]
+
+
+def test_dossier_mixte_phrase_anglaise_source_francaise():
+    rep = _en("The budget reaches 3.2 bn and the agency has 1,250.5 FTE.", "f1")
+    assert [i for i in rep.issues if i.code == "NUMBER_NOT_FOUND"] == []

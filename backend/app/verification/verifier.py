@@ -85,7 +85,9 @@ def _check(
         if mentions:
             add("TRANSITION_WITH_NUMBER", "transition contenant un nombre")
     else:
-        pool = {(n.value, n.is_percent) for c in valid for n in extract_numbers(c.text, lang)}
+        other: Lang = "en" if lang == "fr" else "fr"  # dossier mixte : source dans l'autre langue
+        pool = {(n.value, n.is_percent) for c in valid
+                for lg in (lang, other) for n in extract_numbers(c.text, lg)}
         for n in mentions:
             if (n.value, n.is_percent) in pool:
                 found += 1

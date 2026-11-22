@@ -17,6 +17,36 @@ from app.storage import schema as s
 
 EXCERPT_CHARS = 200
 
+# Libellés des exports, par langue du livrable (le contenu suit la langue choisie, pas celle du dossier).
+LABELS: dict[str, dict[str, str]] = {
+    "fr": {
+        "footer": "Version {version} · SHA-256 {sha} · Approuvé par {approver} le {date}",
+        "insufficient": "Éléments insuffisants : {detail}", "unspecified": "non précisé",
+        "initiatives": "Initiatives priorisées", "matrix": "Matrice constats → initiatives",
+        "rank": "Rang", "wave": "Vague", "score": "Score", "initiative": "Initiative",
+        "finding": "Constat", "sources": "Sources", "document": "Document", "page": "Page",
+        "section": "Section", "excerpt": "Extrait", "summary": "Synthèse",
+        "wave_slide": "Vague {wave}", "score_inline": "score {score}",
+        "gantt": "Calendrier (Gantt, semaines)", "weeks": "sem.",
+        "priority_matrix": "Matrice de priorité ({x} × {y})", "unknown": "inconnu",
+    },
+    "en": {
+        "footer": "Version {version} · SHA-256 {sha} · Approved by {approver} on {date}",
+        "insufficient": "Insufficient evidence: {detail}", "unspecified": "not specified",
+        "initiatives": "Prioritised initiatives", "matrix": "Findings → initiatives matrix",
+        "rank": "Rank", "wave": "Wave", "score": "Score", "initiative": "Initiative",
+        "finding": "Finding", "sources": "Sources", "document": "Document", "page": "Page",
+        "section": "Section", "excerpt": "Excerpt", "summary": "Executive summary",
+        "wave_slide": "Wave {wave}", "score_inline": "score {score}",
+        "gantt": "Timeline (Gantt, weeks)", "weeks": "wk.",
+        "priority_matrix": "Priority matrix ({x} × {y})", "unknown": "unknown",
+    },
+}
+
+
+def labels(lang: str) -> dict[str, str]:
+    return LABELS.get(lang, LABELS["fr"])
+
 
 class ExportForbidden(Exception):
     """Le livrable n'est pas à l'état « approved »."""
@@ -68,10 +98,12 @@ class ExportData:
 
     @property
     def footer(self) -> str:
-        return (
-            f"Version {self.version} · SHA-256 {self.sha256[:16]} · "
-            f"Approuvé par {self.approver} le {self.approved_at}"
-        )
+        return labels(self.content.language)["footer"].format(
+            version=self.version, sha=self.sha256[:16], approver=self.approver, date=self.approved_at)
+
+    @property
+    def labels(self) -> dict[str, str]:
+        return labels(self.content.language)
 
 
 def content_sha256(content: DeliverableContent) -> str:
@@ -183,7 +215,7 @@ def load_export_data(repo, deliverable_id: str) -> ExportData:
         titles, title = {x.key: x.title for x in tpl.sections}, tpl.title
     except TemplateError:
         titles, title = {}, content.template_id
-    approver = tr.user_id if tr else "inconnu"
+    approver = tr.user_id if tr else labels(content.language)["unknown"]
     approved_at = "—"
     if tr:
         approved_at = tr.at.strftime("%Y-%m-%d") if isinstance(tr.at, datetime) else str(tr.at)[:10]

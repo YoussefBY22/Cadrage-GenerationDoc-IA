@@ -6,7 +6,7 @@ from pathlib import Path
 
 from docx import Document
 
-from .common import ExportData
+from .common import ExportData, labels
 
 REFERENCE_DIR = Path(__file__).parent / "reference"
 
@@ -38,16 +38,17 @@ def _roadmap(doc, data: ExportData) -> None:
     if rm is None:
         return
     items = sorted(rm.items, key=lambda x: x.rank)
-    doc.add_heading("Initiatives priorisées", level=1)
+    lb = data.labels
+    doc.add_heading(lb["initiatives"], level=1)
     keys = [c.key for c in rm.criteria]
     rows = []
     for it in items:
         by = {sc.key: sc.value for sc in it.initiative.scores}
         rows.append([it.rank, it.wave, f"{it.score:.2f}", it.initiative.title, *[by.get(k, "—") for k in keys]])
-    _table(doc, ["Rang", "Vague", "Score", "Initiative", *keys], rows)
-    doc.add_heading("Matrice constats → initiatives", level=1)
+    _table(doc, [lb["rank"], lb["wave"], lb["score"], lb["initiative"], *keys], rows)
+    doc.add_heading(lb["matrix"], level=1)
     findings = list(dict.fromkeys(f for it in items for f in it.initiative.finding_ids))
-    head = ["Constat", *[f"I{i}" for i in range(1, len(items) + 1)]]
+    head = [lb["finding"], *[f"I{i}" for i in range(1, len(items) + 1)]]
     rows = [[f, *["●" if f in it.initiative.finding_ids else "" for it in items]] for f in findings]
     _table(doc, head, rows)
     for i, it in enumerate(items, 1):
@@ -58,17 +59,18 @@ def render_docx(data: ExportData, path: Path) -> None:
     ref = reference_path(data.content.type, data.content.language)
     doc = Document(str(ref)) if ref.is_file() else Document()
     _clear_body(doc)
+    lb = labels(data.content.language)
     doc.add_heading(data.title, level=0)
     for sec in data.sections:
         doc.add_heading(sec.title, level=1)
         if sec.status == "insufficient_evidence":
-            doc.add_paragraph(f"Éléments insuffisants : {sec.missing_evidence or 'non précisé'}")
+            doc.add_paragraph(lb["insufficient"].format(detail=sec.missing_evidence or lb["unspecified"]))
         for sent in sec.sentences:
             doc.add_paragraph(sent.rendered)
     _roadmap(doc, data)
-    doc.add_heading("Sources", level=1)
+    doc.add_heading(lb["sources"], level=1)
     _table(
-        doc, ["n", "Document", "Page", "Section", "Extrait"],
+        doc, ["n", lb["document"], lb["page"], lb["section"], lb["excerpt"]],
         [[x.n, x.document, x.page, x.section, x.excerpt] for x in data.sources],
     )
     for section in doc.sections:

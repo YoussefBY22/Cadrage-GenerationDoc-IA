@@ -68,3 +68,32 @@ def test_span_and_raw():
 
 def test_forty_cases():
     assert len(CASES) >= 40
+
+
+EN_CASES = [
+    ("a load of 1,250.5 MW", [(D("1250.5"), False)]),
+    ("1,250,000.75 users", [(D("1250000.75"), False)]),
+    ("budget of 3.2 bn", [(D(3200000000), False)]),
+    ("budget of 3.2bn", [(D(3200000000), False)]),
+    ("3.2 billion dollars", [(D(3200000000), False)]),
+    ("4 thousand sites", [(D(4000), False)]),
+    ("1.5 million people", [(D(1500000), False)]),
+    ("$2 mn", [(D(2000000), False)]),
+    ("15 percent of sites", [(D(15), P)]),
+    ("15 per cent of sites", [(D(15), P)]),
+    ("rate of 12.5%", [(D("12.5"), P)]),
+    ("12,345.67 percent", [(D("12345.67"), P)]),
+    ("1,250 users", [(D(1250), False)]),
+]
+
+
+@pytest.mark.parametrize("text,expected", EN_CASES)
+def test_extract_numbers_en(text, expected):
+    got = [(n.value, n.is_percent) for n in extract_numbers(text, "en")]
+    assert got == expected, text
+
+
+def test_fr_inchange_avec_separateur_milliers_point():
+    assert extract_numbers("1.250,5 MW")[0].value == D("1250.5")
+    assert extract_numbers("3,2 Md€")[0].value == D(3200000000)
+    assert extract_numbers("price of 3.2 billion")[0].value == D("3.2")  # faux ami : non mis à l'échelle

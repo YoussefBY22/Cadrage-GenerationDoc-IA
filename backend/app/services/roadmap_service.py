@@ -47,8 +47,9 @@ def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
     chunks = repo.get_chunks(dossier_id, ids)
     passages = [Passage(label=f"P{n}", chunk=chunks[i], score=0.0, ranks={})
                 for n, i in enumerate((i for i in ids if i in chunks), 1)]
-    prompt = build_initiatives_prompt(findings, passages, criteria, nonce=new_nonce())
-    llm, attempts, latency, error = call_model(provider, prompt, LLMInitiatives)
+    prompt = build_initiatives_prompt(findings, passages, criteria, nonce=new_nonce(),
+                                      lang=language)
+    llm, attempts, latency, error = call_model(provider, prompt, LLMInitiatives, lang=language)
     run_id = record_run(repo, provider, dossier_id=dossier_id, kind="initiatives", prompt=prompt,
                         status="ok" if llm else "invalid", attempts=attempts, latency_ms=latency,
                         output=llm.model_dump_json() if llm else "")

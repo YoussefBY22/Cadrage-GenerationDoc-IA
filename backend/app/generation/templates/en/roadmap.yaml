@@ -1,0 +1,56 @@
+id: roadmap-en-standard
+version: '1.0'
+type: roadmap
+language: en
+title: Roadmap
+sections:
+- key: synthese
+  title: Executive summary
+  instructions: Summarise in a few sentences the situation and the ambition of the roadmap, based on the validated findings.
+  queries:
+  - diagnostic summary
+  - ambition and objectives
+  - priority findings
+  min_sources: 2
+  max_sentences: 6
+  uses_findings: true
+- key: axes
+  title: Strategic pillars
+  instructions: Present the strategic pillars that group the initiatives, each linked to findings.
+  queries:
+  - strategic pillars
+  - strategic directions
+  - priorities
+  min_sources: 2
+  max_sentences: 10
+  uses_findings: true
+- key: initiatives
+  title: Initiatives
+  instructions: 'Describe each selected initiative: purpose, findings addressed, order of implementation and dependencies.'
+  queries:
+  - project initiatives
+  - dependencies between projects
+  - proposed actions
+  min_sources: 2
+  max_sentences: 12
+  uses_findings: true
+- key: calendrier
+  title: Implementation timeline
+  instructions: Propose a sequencing in waves based on priorities and dependencies, without inventing dates absent from the sources.
+  queries:
+  - timeline and deadlines
+  - phasing
+  - time constraints
+  min_sources: 2
+  max_sentences: 8
+  uses_findings: true
+- key: risques
+  title: Risks
+  instructions: List the implementation risks mentioned or inferred from the passages, with their source.
+  queries:
+  - risks
+  - constraints and obstacles
+  - points of attention
+  min_sources: 2
+  max_sentences: 8
+  uses_findings: true

@@ -45,6 +45,7 @@ def extract(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
     """Renvoie {findings, rejected, runs}. Un constat n'est enregistré que s'il n'a aucun
     problème bloquant ; les autres sont renvoyés dans `rejected` avec leur rapport."""
     settings = settings or get_settings()
+    lang = repo.get_dossier(dossier_id)["language"]
     existing = {_norm(f.text) for f in repo.list_findings(dossier_id)}
     kept: list[Finding] = []
     reports: dict[str, dict] = {}
@@ -56,8 +57,8 @@ def extract(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
             batch = chunks[i:i + BATCH]
             passages = [Passage(label=f"P{n}", chunk=ch, score=0.0, ranks={})
                         for n, ch in enumerate(batch, 1)]
-            prompt = build_findings_prompt(passages, nonce=new_nonce())
-            llm, attempts, latency, _err = call_model(provider, prompt, LLMFindings)
+            prompt = build_findings_prompt(passages, nonce=new_nonce(), lang=lang)
+            llm, attempts, latency, _err = call_model(provider, prompt, LLMFindings, lang=lang)
             runs += 1
             run_id = record_run(repo, provider, dossier_id=dossier_id, kind="findings",
                                 prompt=prompt, status="ok" if llm else "invalid",
@@ -77,7 +78,7 @@ def extract(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
                                           source_ids=ids or list(lf.sources)))
             report = verify_section(
                 SectionDraft(section_key="findings", status="ok", sentences=sentences), by_id,
-                dossier_id=dossier_id, support_threshold=settings.support_threshold)
+                dossier_id=dossier_id, support_threshold=settings.support_threshold, lang=lang)
             repo.record_verification(run_id, report)
             for idx, lf in enumerate(built):
                 blocking = [x for x in report.issues

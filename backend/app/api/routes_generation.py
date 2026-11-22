@@ -16,6 +16,7 @@ router = APIRouter(tags=["generation"])
 
 
 class RoadmapBody(BaseModel):
+    language: Literal["fr", "en"] | None = None  # défaut : langue du dossier
     criteria: list[Criterion] | None = None
     waves: int = Field(default=3, ge=1, le=6)
 
@@ -42,6 +43,7 @@ class DeliverableBody(BaseModel):
     type: Literal["tor", "cdc", "roadmap", "findings"]
     template_id: str | None = None
     initiative_id: str | None = None
+    language: Literal["fr", "en"] | None = None  # défaut : langue du dossier
 
 
 def _member(repo, dossier_id, user) -> bool:
@@ -60,7 +62,7 @@ def generate_roadmap(dossier_id: str, body: RoadmapBody, repo: Repo, provider: P
     try:
         return roadmap_service.generate(
             repo, provider, dossier_id, user, criteria=body.criteria, waves=body.waves,
-            language=repo.get_dossier(dossier_id)["language"])
+            language=body.language or repo.get_dossier(dossier_id)["language"])
     except GenerationError as exc:
         return error_response(exc.status, exc.code, exc.message)
 
@@ -84,7 +86,7 @@ def create_deliverable(dossier_id: str, body: DeliverableBody, repo: Repo, user:
     try:
         did = generation.create_deliverable(
             repo, dossier_id, body.type, user, initiative_id=body.initiative_id,
-            language=repo.get_dossier(dossier_id)["language"])
+            language=body.language or repo.get_dossier(dossier_id)["language"])
     except GenerationError as exc:
         return error_response(exc.status, exc.code, exc.message)
     return {"deliverable_id": did, "type": body.type}

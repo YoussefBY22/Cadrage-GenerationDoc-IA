@@ -16,12 +16,15 @@ _LEAD = re.compile(
 )
 
 _SUFFIX = (
-    rf"(?P<suf>[{_SP}]*(?:%|(?i:pour[{_SP}]*cent|pourcent|percent)|(?i:milliards?)|Md|(?i:millions?)"
+    rf"(?P<suf>[{_SP}]*(?:%|(?i:pour[{_SP}]*cent|pourcent|per[{_SP}]*cent|percent)|(?i:milliards?)|Md"
+    r"|(?i:billions?)|(?i:bn)|(?i:millions?)|(?i:mn)|(?i:thousands?)"
     r"|(?i:mille)|M|k)(?![^\W\d_]))"
 )
 _NUMBER = (
     r"(?<![^\W\d_])(?P<num>"
     r"\d{1,3}(?:,\d{3}){2,}(?:\.\d+)?"  # 1,250,000.5 (EN)
+    r"|\d{1,3},\d{3}\.\d+"  # 1,250.5 (EN)
+    r"|\d{1,3}\.\d{3},\d+"  # 1.250,5 (FR)
     r"|\d{1,3}(?:\.\d{3}){2,}(?:,\d+)?"  # 1.250.000,5 (FR)
     rf"|\d{{1,3}}(?:[{_SP}]\d{{3}})+(?:[.,]\d+)?"  # 1 250,5
     r"|\d+(?:[.,]\d+)?)"
@@ -31,7 +34,10 @@ _RE = re.compile(_NUMBER + r"(?:" + _SUFFIX + r")?")
 _MULT = {
     "k": 10**3, "mille": 10**3, "m": 10**6, "million": 10**6, "millions": 10**6,
     "md": 10**9, "milliard": 10**9, "milliards": 10**9,
+    "mn": 10**6, "thousand": 10**3, "thousands": 10**3,
 }
+# « billion » : 10^9 en anglais ; en français (faux ami, échelle longue) on ne met pas à l'échelle.
+_BILLION = {"en": 10**9}
 
 
 @dataclass(frozen=True)
@@ -74,6 +80,10 @@ def extract_numbers(text: str, lang: Lang = "fr") -> list[NumberMention]:
         is_percent = key == "%" or key.startswith("pourcent") or key in {"percent"}
         if suf and not is_percent:
             mult = _MULT.get(key)
+            if key in {"billion", "billions"}:
+                mult = _BILLION.get(lang)
+            elif key == "bn":
+                mult = 10**9
             if mult:
                 value = value * mult
         out.append(NumberMention(m.group(0).strip(), value.normalize() + 0, is_percent, m.span()))

@@ -1,0 +1,16 @@
+id: findings-en-standard
+version: '1.0'
+type: findings
+language: en
+title: Diagnostic findings
+sections:
+- key: constats
+  title: Diagnostic findings
+  instructions: 'Extract the observable findings from the documents: problem, theme, severity, with the source of each.'
+  queries:
+  - diagnostic findings
+  - identified problems
+  - shortcomings and risks
+  min_sources: 2
+  max_sentences: 12
+  uses_findings: false

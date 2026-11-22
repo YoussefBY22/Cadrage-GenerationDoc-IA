@@ -15,7 +15,7 @@ from app.domain.retrieval import Passage
 from app.domain.verification import VerificationReport
 from app.domain.workflow import CurrentUser
 from app.generation.llm_schemas import LLMSection
-from app.generation.prompting import SYSTEM_PROMPT_FR, build_section_prompt, estimate_tokens
+from app.generation.prompting import build_section_prompt, estimate_tokens, system_prompt
 from app.generation.template_loader import SectionSpec, Template, load_template
 from app.llm.base import LLMError, LLMProvider
 from app.storage import schema as s
@@ -37,17 +37,24 @@ def new_nonce() -> str:
     return secrets.token_hex(8)
 
 
-def call_model(provider: LLMProvider, prompt: str, schema, *, system: str = SYSTEM_PROMPT_FR):
+def call_model(provider: LLMProvider, prompt: str, schema, *, lang: str = "fr",
+               system: str | None = None):
     """Un appel structuré, avec UN nouvel essai si le modèle répond mal (l'erreur est rappelée).
 
     Renvoie (résultat | None, tentatives, latence_ms, erreur | None).
     """
     start = time.perf_counter()
     error: str | None = None
+    system = system or system_prompt(lang)
     for attempt in (1, 2):
-        text = prompt if error is None else (
-            f"{prompt}\n\nTa réponse précédente était invalide ({error}). "
-            "Réponds uniquement par un JSON conforme au schéma.")
+        if error is None:
+            text = prompt
+        elif lang == "en":
+            text = (f"{prompt}\n\nYour previous answer was invalid ({error}). "
+                    "Reply only with a JSON object matching the schema.")
+        else:
+            text = (f"{prompt}\n\nTa réponse précédente était invalide ({error}). "
+                    "Réponds uniquement par un JSON conforme au schéma.")
         try:
             result = provider.generate_structured(text, schema, system=system, temperature=0.0)
             return result, attempt, int((time.perf_counter() - start) * 1000), None
@@ -165,8 +172,10 @@ def generate_section(repo, provider: LLMProvider, search, deliverable_id: str, s
         status = "refused"
     else:
         prompt = build_section_prompt(spec, passages, findings=findings, context=ctx,
-                                      nonce=new_nonce())
-        llm, attempts, latency, error = call_model(provider, prompt, LLMSection)
+                                      nonce=new_nonce(),
+                                      lang=content.language)
+        llm, attempts, latency, error = call_model(provider, prompt, LLMSection,
+                                                   lang=content.language)
         if llm is None:
             status = "invalid"
             draft = SectionDraft(section_key=section_key, status="insufficient_evidence",

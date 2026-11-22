@@ -1,0 +1,66 @@
+id: tor-en-standard
+version: '1.0'
+type: tor
+language: en
+title: Terms of Reference
+sections:
+- key: contexte
+  title: Background and rationale
+  instructions: Summarise the institutional context and the findings that justify the assignment.
+  queries:
+  - institutional context
+  - diagnostic findings
+  - challenges
+  min_sources: 2
+  max_sentences: 10
+  uses_findings: true
+- key: objectifs
+  title: Objectives of the assignment
+  instructions: State the overall and specific objectives of the assignment, linked to the findings.
+  queries:
+  - objectives of the assignment
+  - expected results
+  - stated needs
+  min_sources: 2
+  max_sentences: 8
+  uses_findings: true
+- key: livrables
+  title: Expected deliverables
+  instructions: List the expected deliverables with their content, only those supported by the sources.
+  queries:
+  - expected deliverables
+  - outputs to be submitted
+  - documents to be produced
+  min_sources: 2
+  max_sentences: 10
+  uses_findings: false
+- key: calendrier
+  title: Assignment schedule
+  instructions: Describe the duration and milestones of the assignment as they appear in the passages.
+  queries:
+  - assignment schedule
+  - duration and milestones
+  - deadlines
+  min_sources: 1
+  max_sentences: 8
+  uses_findings: false
+- key: profil
+  title: Expert profiles
+  instructions: Describe the required profiles and qualifications of the experts according to the sources.
+  queries:
+  - expert profiles
+  - required qualifications
+  - required experience
+  min_sources: 1
+  max_sentences: 8
+  uses_findings: false
+- key: evaluation
+  title: Evaluation criteria
+  instructions: Present the evaluation criteria for proposals or deliverables mentioned in the sources.
+  queries:
+  - evaluation criteria
+  - scoring grid
+  - selection of proposals
+  min_sources: 1
+  max_sentences: 8
+  uses_findings: false

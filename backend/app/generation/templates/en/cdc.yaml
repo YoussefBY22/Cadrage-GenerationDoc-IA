@@ -1,0 +1,56 @@
+id: cdc-en-standard
+version: '1.0'
+type: cdc
+language: en
+title: Functional Specifications
+sections:
+- key: perimetre
+  title: Scope
+  instructions: 'Define the scope of the project: what is included and excluded, according to the sources.'
+  queries:
+  - project scope
+  - purpose of the requirement
+  - limits and exclusions
+  min_sources: 2
+  max_sentences: 8
+  uses_findings: true
+- key: fonctionnelles
+  title: Functional requirements
+  instructions: List the functional requirements, each linked to a source or a finding.
+  queries:
+  - functional requirements
+  - expected features
+  - business needs
+  min_sources: 2
+  max_sentences: 12
+  uses_findings: true
+- key: non_fonctionnelles
+  title: Non-functional requirements
+  instructions: List performance, security, availability and other sourced non-functional requirements.
+  queries:
+  - non-functional requirements
+  - security and performance
+  - availability and operations
+  min_sources: 2
+  max_sentences: 10
+  uses_findings: false
+- key: contraintes
+  title: Constraints
+  instructions: Describe the technical, regulatory, budgetary and schedule constraints cited in the sources.
+  queries:
+  - technical constraints
+  - regulatory and budget constraints
+  - imposed deadlines
+  min_sources: 2
+  max_sentences: 8
+  uses_findings: false
+- key: recette
+  title: Acceptance conditions
+  instructions: Describe the acceptance procedures and criteria stated in the sources.
+  queries:
+  - acceptance and validation
+  - acceptance criteria
+  - acceptance testing
+  min_sources: 1
+  max_sentences: 8
+  uses_findings: false

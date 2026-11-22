@@ -45,24 +45,25 @@ def render_pptx(data: ExportData, path: Path) -> None:
 
     synth = data.sections[0] if data.sections else None
     s = prs.slides.add_slide(prs.slide_layouts[1])
-    s.shapes.title.text = "Synthèse"
+    s.shapes.title.text = data.labels["summary"]
     _bullets(s, [x.rendered for x in synth.sentences][:6] if synth else [])
 
     items = sorted(rm.items, key=lambda x: x.rank) if rm else []
     for wave in sorted({it.wave for it in items}):
         s = prs.slides.add_slide(prs.slide_layouts[1])
-        s.shapes.title.text = f"Vague {wave}"
-        _bullets(s, [f"{it.rank}. {it.initiative.title} (score {it.score:.2f})" for it in items if it.wave == wave])
+        s.shapes.title.text = data.labels["wave_slide"].format(wave=wave)
+        _bullets(s, [f"{it.rank}. {it.initiative.title} ({data.labels['score_inline'].format(score=f'{it.score:.2f}')})"
+                     for it in items if it.wave == wave])
 
     if rm and items:
-        _gantt(prs, items)
-        _matrix(prs, items, [c.key for c in rm.criteria])
+        _gantt(prs, items, data.labels)
+        _matrix(prs, items, [c.key for c in rm.criteria], data.labels)
     prs.save(str(path))
 
 
-def _gantt(prs, items) -> None:
+def _gantt(prs, items, lb) -> None:
     s = prs.slides.add_slide(prs.slide_layouts[5])
-    s.shapes.title.text = "Calendrier (Gantt, semaines)"
+    s.shapes.title.text = lb["gantt"]
     sched = gantt_schedule(items)
     total = max(e for *_, e in sched) or 1
     left, width, top, row_h = Inches(3.5), Inches(9), Inches(1.6), Inches(0.45)
@@ -75,15 +76,15 @@ def _gantt(prs, items) -> None:
             RECT, left + Emu(int(width * a / total)), y + Inches(0.05),
             Emu(max(int(width * (b - a) / total), 1)), row_h - Inches(0.1),
         )
-        bar.text_frame.text = f"V{wave} · {b - a} sem."
+        bar.text_frame.text = f"V{wave} · {b - a} {lb['weeks']}"
         bar.text_frame.paragraphs[0].font.size = Pt(10)
 
 
-def _matrix(prs, items, keys: list[str]) -> None:
+def _matrix(prs, items, keys: list[str], lb) -> None:
     kx = "impact" if "impact" in keys else (keys[0] if keys else "")
     ky = next((k for k in ("faisabilite", "faisabilité", "feasibility") if k in keys), keys[1] if len(keys) > 1 else kx)
     s = prs.slides.add_slide(prs.slide_layouts[5])
-    s.shapes.title.text = f"Matrice de priorité ({kx} × {ky})"
+    s.shapes.title.text = lb["priority_matrix"].format(x=kx, y=ky)
     x0, y0, w, h = Inches(1), Inches(1.6), Inches(11), Inches(5)
     frame = s.shapes.add_shape(RECT, x0, y0, w, h)
     frame.fill.background()
