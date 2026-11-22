@@ -163,3 +163,43 @@ Rien n'a été vérifié en ligne ; **toutes** les tailles, licences et disponib
 - Chiffres (rappel@10 = 1,000 ; 23/23 ; TPV simulé 0,847 IC95 [0,815 ; 0,877]) : corpus synthétique à gabarits et faux modèle, donc sans valeur scientifique. Le TPV prouve l'ancrage, pas la vérité.
 - Demandes non intégrées : méthodes `Repository` manquantes, `dw_pseudonymize`, `package-data`, `.gitattributes` (`*.sh text eol=lf`), endpoint `GET /templates/{type}`, `alerts` par document (STATUS §3).
 - **Suite** : T1 (PostgreSQL) → T2 (Ollama, licences, éval B) → T3 et T6 (navigateur, LibreOffice, Power BI, Docker) → T4 (corpus public) → T5 (LoRA, éval C vs B). Commandes : `docs/STATUS.md` §5.
+
+---
+
+# Nuit 2 (22/11, ~01 h 05 à ~05 h) — passage au réel, style EY, vitrine
+
+Source : journal de l'orchestrateur (section NUIT 2) et `docs/lots/` T1, T2, UI, EN, T4, T6. Horodatages approximatifs.
+
+## Décisions de l'utilisateur
+- Fusion sur `main` autorisée (avance rapide de `integration`, 2d41ab6), puis fusions directes après tests.
+- Modèles laissés à l'orchestrateur : **qwen3:4b** (Apache 2.0) et **bge-m3** (MIT). Téléchargements autorisés : Ollama et modèles, image pgvector, LibreOffice, Chromium ; Docker lancé par les sessions.
+- Interface inspirée d'EY **sans logo ni nom** (jaune `#FFE600`, anthracite `#2E2E38`, Inter) ; livrables FR et EN ; README vitrine pour des recruteurs.
+- Sept questions posées une à une : les réponses sont les **hypothèses H1 à H7**.
+
+## Sessions (Sonnet 5.5, sessions fraîches depuis `main`)
+| Nom | Lot | Périmètre |
+|---|---|---|
+| t1-postgres | T1 | Docker, pgvector :5433, alembic, tests postgres, compose |
+| t2-ollama | T2 | Ollama, qwen3:4b + bge-m3, fournisseur réel, évaluation B avant/après réglage |
+| ui-ey | UI | refonte du front, i18n FR/EN, Playwright, captures |
+| gen-en | EN | gabarits, prompts, vérificateur et exports en anglais |
+| t4-corpus | T4 | corpus public CC BY, jeu d'entraînement réel, jeu or |
+| t6-bi | T6 | thème et PBIP Power BI, LibreOffice, hypothèses |
+
+## Résultats
+- **gen-en** → 22a20fe : 427 tests. **T1** : tout fonctionne sur Postgres réel ; le build du front échoue (lockfile, corrigé ensuite par UI) ; 4 tests de scripts échouent (shim WSL de `bash`). **T2** : latence p50 24,2 → 18,2 s, faux refus 60 → 10 %, VRAM 3,1 Go, rappel@10 1,000. **UI** : Playwright vert (API sur :8011, un `java` occupait :8001). **T4** : 103 documents, 3 105 exemples, 34 questions ; BAD et AFD écartés (licences non vérifiables), Kaggle non utilisé (compte exigé). **T6** : thème, PBIP non ouvert dans Desktop, hypothèses, détection de `soffice`.
+- Fusion des cinq lots → 60702b3 puis correction de lint. Contrôles : backend **432 passés, 5 sautés**, Postgres 4 passés, entraînement 33, interface lint/22 tests/build.
+
+## Incidents
+- ~01 h 30 : aucune fenêtre UAC visible ; deux `winget` tournaient. L'orchestrateur ne peut pas la déclencher lui-même.
+- Windows Defender (accès contrôlé aux dossiers) a bloqué `soffice.bin` qui écrivait dans Documents. **Aucun réglage de sécurité modifié** ; consigne : profil (`-env:UserInstallation`) et dossier de travail temporaires. L'utilisateur peut autoriser `soffice.bin` lui-même.
+- Le test `-m soffice` reste sauté tant que `soffice` n'est pas dans le PATH (`shutil.which` en dur) : lot Q.
+
+## Lots suivants (~04 h 05, hebdo 87 %)
+**Q** (prompts anti-faux-refus d'après T2, correctif PDF) et **V** (README vitrine, STATUS, rapports). Arrêt prévu vers 94–96 % de l'hebdomadaire.
+
+## Consommation
+| Heure | 5 h | Hebdo | Événement |
+|---|---|---|---|
+| ~01 h 30 | 51 % | 82 % | six sessions en cours |
+| ~04 h 05 | 78 % | 87 % | six lots finis (~44 pts 5 h, ~8 pts hebdo) ; Q et V lancés |

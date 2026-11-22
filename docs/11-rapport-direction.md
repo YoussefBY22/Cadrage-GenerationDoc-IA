@@ -57,3 +57,33 @@ Total de la nuit : **88 pts de la fenêtre de 5 h** (59 + 29 sur deux fenêtres)
 
 > **Encadré — Sans orchestrateur, comment l'étudiant aurait procédé** *(estimation, non mesurée)*
 > Seul, un étudiant ferait ce travail **séquentiellement**, à raison de ~6 h utiles par jour : (1) lire le sujet et cadrer, 2–3 j ; (2) choisir l'architecture et écrire les contrats, 3–4 j ; (3) socle, stockage, import et recherche, 8–10 j ; (4) génération, vérificateur, priorisation, 8–10 j ; (5) validation, comptes, exports, 6–8 j ; (6) interface et éditeur, 8–10 j ; (7) entrepôt et Power BI, 4–5 j ; (8) évaluation, entraînement, livraison, 6–8 j ; (9) tests et documentation tout au long, +20 %. Total estimé : **environ 8 à 10 semaines à temps plein (≈ 250–350 h)**, contre ~3 h d'horloge pour cette nuit, plus la relecture humaine, qui reste nécessaire. Le goulot n'est pas la frappe mais les décisions : l'orchestration les a prises en amont (plan, propriété des fichiers) pour paralléliser. Le temps de compréhension et de validation par l'étudiant n'est pas supprimé : il est déplacé vers la relecture.
+
+---
+
+# Nuit 2 — passage au réel (22/11/2026, ~01 h à 05 h)
+
+*Sources : journal de l'orchestrateur, `docs/lots/` T1, T2, UI, EN, T4, T6.*
+
+## Ce qui a changé
+Six sessions en parallèle, sur des fichiers distincts, ont fait tourner pour la première fois **un vrai modèle, une vraie base, Docker, un navigateur, LibreOffice et Power BI**.
+- **Modèle local réel** : qwen3:4b et bge-m3 (Ollama) sur un PC à 4 Go de VRAM. Par section : **18,2 s** (p50), 23,1 s (p95), 3,1 Go de VRAM ; rappel@10 **1,000** (31 sections, 1 institution). Un réglage (`num_gpu=99`) a réduit la latence de 25 % et les faux refus de 60 à 10 % (une passe : bruit de ±1–2 sections).
+- **PostgreSQL + pgvector** et entrepôt : exécutés sans bug ; le rôle de lecture `bi_reader` n'accède qu'à `dw`.
+- **Corpus réel** : **103 documents CC BY**, **3 105 exemples** d'entraînement vérifiés, **jeu or de 34 questions**, licences et SHA-256 tracés.
+- **Interface** refaite (jaune et anthracite, sans marque), **FR/EN**, test navigateur de bout en bout ; **livrables en anglais** ; Power BI (thème, projet PBIP, CSV) ; export PDF par LibreOffice.
+- **Hypothèses H1 à H7** (sur site, GPU 24 Go / PC 4 Go, formats, trames, données publiques, consultant + manager, seuils de réussite) écrites au cahier des charges, à valider avec l'entreprise.
+
+## Contrôles
+Backend **432 passés, 5 sautés** ; PostgreSQL réel 4 passés ; entraînement 33 ; interface lint, 22 tests, build. Le build Docker du front avait échoué (lockfile) et 4 tests de scripts échouent sous Windows (shim WSL) : corrigés ou notés par les lots.
+
+## Consommation
+~44 pts de la fenêtre de 5 h et ~8 pts de l'hebdomadaire pour les six lots (de 78 % à 87 % de l'hebdo à 04 h 05).
+
+## Limites restantes
+- **L'entraînement LoRA n'a pas eu lieu** (T5) : le modèle C n'existe pas.
+- Le TPV réel (1,000) ne discrimine pas ; les vrais signaux sont les refus. Évaluation réduite à 31 sections : la B complète prend ≈ 1 h.
+- Corpus réel peu francophone (17 %) ; réponses d'entraînement extractives ; jeu or petit (intervalle large).
+- Le projet Power BI n'a pas été ouvert dans Desktop ; les valeurs du tableau de bord sont inventées.
+- Défender a bloqué `soffice.bin` dans Documents : aucun réglage de sécurité modifié ; profil et dossier temporaires dans le lot Q.
+
+## Suite
+T5 (LoRA réel, C contre B), B complète, ouverture du PBIP, source francophone, validation des hypothèses avec l'entreprise.

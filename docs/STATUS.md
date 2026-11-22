@@ -1,6 +1,6 @@
-# STATUS — Phases A à G1 construites hors ligne (22/11/2026)
+# STATUS — Phases A à G1 hors ligne (nuit 1), puis passage au réel (nuit 2, 22/11/2026)
 
-Branche d'intégration : `integration` (19 lots B0 → G1 fusionnés) ; ce document : lot R2. Comptes rendus détaillés : `docs/lots/<ID>.md` (index et « Pour comprendre » : `docs/lots/README.md`).
+Branche `main` : 19 lots B0 → G1 (nuit 1, faux modèle) puis T1, T2, UI, EN, T4, T6 (nuit 2, réel). Lot Q (prompts anti-faux-refus et correctif PDF) en cours ; ce document : lot V. Les sections 1 à 3 décrivent l'état de la nuit 1 ; la section 1 bis résume la nuit 2. Comptes rendus détaillés : `docs/lots/<ID>.md` (index et « Pour comprendre » : `docs/lots/README.md`).
 
 ## 1. Fait
 Tout le produit existe et passe ses tests **avec un faux modèle** (aucun vrai modèle, aucune base PostgreSQL, aucun Docker n'a tourné).
@@ -16,6 +16,21 @@ Tout le produit existe et passe ses tests **avec un faux modèle** (aucun vrai m
 | Données / BI | E1, E2 | entrepôt en étoile (10 dim., 5 faits, 7 vues, 14 KPI), ETL idempotent, démo (graine 42), CSV, `bi/` (Power BI, Metabase) |
 | Évaluation / entraînement | F1, F2 | banc A/B/C/D + bootstrap (mode simulation), jeu d'entraînement et scripts QLoRA sûrs (simulation) |
 | Livraison | G1 | compose durci (seul `proxy` sur `edge`), Dockerfiles, paquet hors ligne, sauvegarde/restauration, `docs/10-exploitation.md` |
+
+## 1 bis. Nuit 2 — passage au réel (22/11/2026)
+| Lot | Résultat |
+|---|---|
+| **T1** PostgreSQL | Docker démarré, `pgvector/pgvector:pg16` sur :5433, migrations, HNSW, entrepôt, 7 vues et rôle `bi_reader` **sans bug** ; `pytest -m postgres` : 4 passés ; l'API du compose n'a pas d'accès Internet (vérifié). |
+| **T2** Ollama | **qwen3:4b** (Apache 2.0) et **bge-m3** (MIT) sur GTX 1650 4 Go. Évaluation B réduite (1 institution, 31 sections) : latence p50 **18,2 s**, p95 23,1 s, 40 jetons/s, VRAM 3,1 Go ; faux refus 60 → 10 % après `num_gpu=99` (une passe, bruit de ±1–2 sections) ; rappel@10 **1,000**. Le TPV (1,000) ne discrimine pas. |
+| **UI** | Refonte « Cadrage » (jaune `#FFE600`, anthracite, Inter, FR/EN), sans logo ni marque ; Playwright e2e vert ; captures dans `docs/img/`. |
+| **EN** | Gabarits, prompts, nombres anglais du vérificateur et exports en français et en anglais. |
+| **T4** | **103 documents CC BY** (Banque mondiale, Commission européenne), 82 EN / 21 FR ; **3 105 exemples** d'entraînement vérifiés ; jeu or réel de **34 questions** ; Kaggle non utilisé (compte exigé). |
+| **T6** | Thème Power BI EY, projet PBIP (5 pages, **non ouvert dans Desktop**), CSV de démo, LibreOffice installé, test `-m soffice` vert, hypothèses H1 à H7 au §13 du cahier des charges. |
+| **Q** (en cours) | Prompts anti-faux-refus d'après T2, correctif PDF (profil et répertoire temporaires). |
+
+Contrôles de l'orchestrateur après fusion : backend **432 passés, 5 sautés** ; PostgreSQL réel 4 passés ; entraînement 33 ; interface : lint, 22 tests, build. Le test `soffice` reste sauté sans `soffice` dans le PATH (lot Q).
+
+**Toujours simulé ou à faire** : entraînement LoRA (T5), modèle C ; chiffres du banc sur corpus fictif ; valeurs du tableau de bord ; PBIP à ouvrir dans Power BI Desktop ; B complète (≈ 1 h) ; peu de français dans le corpus (17 %).
 
 ## 2. Testé (exécuté pour R2, branche `integration`)
 ```
@@ -54,16 +69,21 @@ Progression des tests : phase A 22 → B0 46 → B4 55 → B1 63 → B3 69 → B
   - Backend : `alerts` par document ; `GET /templates/{type}` ; déclarer 3 paquets TipTap ; valider l'`include` de `vitest.config.ts` modifié par D3b.
 - Dépendances de lecture : pypdf, python-docx, python-pptx, reportlab, argon2 : licences « à vérifier » (`docs/LICENCES-LOGICIELS.md`).
 
-## 4. Décisions à prendre par moi
-1. **Modèles** (T2) : quels modèles de génération et d'embeddings installer (budget 4 Go VRAM) ? Valider les licences de `08` §8.
-2. **Hypothèse « temps gagné »** : 30 min par section est-elle réaliste ? (E1)
-3. **Comptes de production** : veux-tu un script d'administration (premier compte) ou une route protégée ? (D1, G1)
-4. **Corpus public** : OK pour télécharger quelques documents de bailleurs sous licence ouverte (T4) ou rester 100 % synthétique ?
-5. **Langue** : français seul (gabarit `en/` vide) ou anglais dès maintenant ?
-6. **Intégration des demandes** du §3 : un lot de consolidation (Repository, config, package-data) avant T1 ?
+## 4. Décisions (nuit 2 : prises) et à prendre
+**Prises** : modèles **qwen3:4b** et **bge-m3** (T2) ; corpus public sous licence ouverte accepté, Kaggle laissé de côté (T4) ; français **et** anglais (EN) ; hypothèses H1 à H7 retenues, à valider avec l'entreprise (`docs/01` §13) ; interface inspirée d'EY sans logo ni nom ; fusions directes sur `main` après les tests.
 
-## 5. Prochaine étape — lots « avec l'utilisateur » (réseau ou Docker)
-Ordre conseillé : T1 → T2 → T3/T6 → T4 → T5. Commandes à adapter au PC (PowerShell, depuis la racine du dépôt) ; `<…>` à remplir.
+**À prendre** :
+1. **Hypothèse « temps gagné »** : 30 min par section est-elle réaliste ? (E1, H7)
+2. **Comptes de production** : script d'administration (`scripts/create_user.py`) ou route protégée ? (D1, G1)
+3. **T5** : budget d'entraînement (Colab ou PC la nuit) et règle de décision C contre B (`08` §6).
+4. **Français** : ouvrir une source francophone ouverte (AFD, BAD, journal officiel) pour dépasser 17 % du corpus (T4).
+5. **Accès contrôlé aux dossiers** (Windows Defender) : autoriser `soffice.bin` si l'export PDF doit écrire hors des dossiers temporaires.
+6. **Intégration des demandes** du §3 (Repository, config, package-data) : lot de consolidation.
+
+## 5. Prochaine étape
+**Faits (nuit 2) : T1, T2, T4, T6 ; T3 couvert par le test Playwright du lot UI.** Reste **T5** (entraînement LoRA réel, éval C contre B), puis la B complète et l'ouverture du PBIP dans Power BI Desktop. Le tableau ci-dessous garde les commandes d'origine ; les lignes T1, T2, T3, T4 et T6 sont réalisées (voir `docs/lots/`).
+
+Ordre conseillé d'origine : T1 → T2 → T3/T6 → T4 → T5. Commandes à adapter au PC (PowerShell, depuis la racine du dépôt) ; `<…>` à remplir.
 
 | Lot | Objectif | Commandes |
 |---|---|---|

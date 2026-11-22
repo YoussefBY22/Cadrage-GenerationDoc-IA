@@ -1,124 +1,102 @@
-# PFE — Assistant IA local de cadrage
+# Cadrage — assistant IA local pour feuilles de route, termes de référence et cahiers des charges
 
-**Sujet** : *Stages & PFE Book 2026-2027*, p. 92, **Réf. #TST 11** — conception d'un outil IA de génération de feuilles de route, de termes de référence et de cahiers des charges.
+> **In short (EN).** Cadrage drafts roadmaps, terms of reference and specifications from a client's diagnostic documents. Every sentence cites its source, and a checker rejects any citation or figure that does not exist in the evidence. Everything runs on the client's own server with an open-weight model: no cloud, no API. A consultant reviews and edits, a manager approves (two different people), then the deliverable is exported to Word, PowerPoint or PDF. Works in French and English; measured on a real local model (Qwen3 4B) and a 103-document open-licence corpus.
 
-## En quelques lignes
+**À partir d'un diagnostic confidentiel, Cadrage prépare un premier jet cité et vérifié, que le consultant relit, corrige et fait valider.**
 
-Les consultants rédigent souvent les mêmes documents à partir de diagnostics : **feuilles de route**, **termes de référence**, **cahiers des charges**. On construit un assistant qui prépare un **premier jet** à partir des documents du client, **cite chaque source**, **vérifie lui-même** que les sources et les chiffres existent, puis laisse le consultant **relire, corriger et valider** dans un éditeur avant d'exporter en Word, PowerPoint ou PDF.
+Projet étudiant — non affilié à EY. Sujet : *Stages & PFE Book 2026-2027*, p. 92, Réf. #TST 11.
 
-Comme les documents sont confidentiels, **tout tourne sur le serveur du client**, avec un modèle de langage **ouvert**, sans API ni cloud. Le modèle apprend **comment rédiger** (fine-tuning léger sur des documents **publics**) et trouve **les faits** dans les documents du client au moment de répondre (**RAG**). Un **entrepôt de données** et un **tableau de bord** (Power BI) mesurent l'usage et la qualité.
-
-## Ce qu'on fait, concrètement
-
-1. **Cloud (le développement)** : une session Claude Code cloud écrit **tout le code**, sans GPU, avec un **faux modèle** qui permet de tout tester. Elle suit `docs/02-mega-prompt-cloud.md`.
-2. **Chez toi (plus tard)** : tu installes un vrai modèle local, on le branche, puis on mesure.
-3. **Entraînement** : sur un GPU gratuit (données publiques seulement) ou la nuit sur ton PC. Les scripts mesurent la durée **avant** de démarrer et reprennent après une panne.
-4. **Chez l'entreprise (au PFE)** : même produit, modèle plus grand, entraînement réel sur leur serveur.
-
-## Ce que tu envoies au cloud
-
-Rien d'autre que ce dépôt privé `PRV-PR8-PFE-IA-Cadrage` : le cahier des charges, le méga prompt et ce guide. Aucun document personnel ou client. Tu ouvres la session sur ce dépôt et tu colles le méga prompt.
-
-## Ce que tu télécharges (sans urgence, ton PC peut se reposer)
-
-À faire quand le code sera prêt ; je te redonnerai les commandes exactes.
-
-| Élément | Rôle | Ordre de grandeur |
-|---|---|---|
-| **Ollama** | Fait tourner un modèle en local | quelques centaines de Mo |
-| **Un petit modèle** (par exemple Qwen3 ≈ 1,7 B ou Ministral 3 ≈ 3 B) | Rédiger | 1 à 3 Go |
-| **Un modèle d'embeddings multilingue** | Chercher par le sens | ≈ 1 à 2 Go |
-| **LibreOffice** | Convertir en PDF | ≈ 0,5 Go |
-| **Docker Desktop** | Déjà installé chez toi | — |
-| **Power BI Desktop** | Tableau de bord | déjà installé chez toi |
-
-Tu as environ 35 Go libres sur ton disque : garde de la marge.
-
-## Démarrage rapide (Windows, PowerShell)
-
-Prérequis : Python 3.12, Node 22. Aucun modèle ni Docker nécessaire : le faux modèle suffit pour tout tester.
-
-```powershell
-cd backend
-py -3.12 -m venv .venv
-.venv\Scripts\python -m pip install -e . pytest ruff reportlab
-.venv\Scripts\ruff check .
-.venv\Scripts\pytest -q
-```
-Résultat attendu : `All checks passed!` puis 388 passed, 2 skipped (PostgreSQL et LibreOffice absents). Tests d'entraînement : `.venv\Scripts\python -m pytest ..\training\tests -q`.
-
-Lancer l'API (SQLite local, faux modèle, mode `dev` sans connexion) :
-```powershell
-cd backend
-$env:AUTH_MODE="dev"
-.venv\Scripts\python -m uvicorn app.main:app --port 8000
-```
-Santé : http://localhost:8000/health. Les routes sont sous `/api/v1`.
-
-Lancer l'interface (autre terminal) :
-```powershell
-cd frontend
-npm install
-$env:NEXT_TELEMETRY_DISABLED="1"
-npm run dev
-```
-Ouvrir http://localhost:3000 (`NEXT_PUBLIC_API_URL` vaut `http://localhost:8000` par défaut). Tests du front : `npm run lint ; npm test ; npm run build`.
-
-Corpus synthétique, banc d'évaluation simulé et données de démonstration :
-```powershell
-cd backend
-.venv\Scripts\python -m eval.corpus.generate --seed 7 --out eval/corpus/out
-.venv\Scripts\python -m eval.harness.run --config eval/configs/sim.yaml
-.venv\Scripts\python -m app.dw.demo --seed 42
-```
-
-## Arborescence
-
-```
-backend/app/        api, domain (contrats), storage, ingest, security, retrieval, generation,
-                    verification, roadmap, workflow, auth, export, dw (entrepôt), services, llm
-backend/eval/       corpus/ (corpus or), harness/ (banc A/B/C/D), configs/
-backend/tests/      un dossier par module ; migrations/ (Alembic)
-frontend/           Next.js 15 (dossiers, éditeur ancré, feuille de route)
-training/           jeu d'entraînement et scripts LoRA (simulation sans GPU)
-bi/                 Power BI / Metabase : mesures DAX, pages, pas à pas
-deploy/             nginx, sauvegarde/restauration, paquet hors ligne, compose BI
-db/                 init PostgreSQL, rôle bi_reader (dw/)
-data/               corpus synthétique et LICENCES.md
-docs/               documents 01 à 10, STATUS.md, lots/ (comptes rendus)
-```
-
-## Documents
-
-| Doc | Contenu |
+| | |
 |---|---|
-| `docs/01-cahier-des-charges.md` | besoin, exigences |
-| `docs/02-mega-prompt-cloud.md` | consignes du développement cloud |
-| `docs/03-apprentissage-et-glossaire.md` | glossaire et plan d'apprentissage |
-| `docs/04-phase-A-comprendre.md` | comprendre la phase A (squelette) |
-| `docs/05-revue-perimetre.md` | revue du périmètre |
-| `docs/06-architecture.md` | architecture, contrats, API |
-| `docs/07-entrepot-bi.md` | entrepôt en étoile, indicateurs, Power BI |
-| `docs/08-modele-rag-evaluation.md` | modèles, RAG, vérification, évaluation, entraînement |
-| `docs/09-plan-execution.md` | lots, propriété des fichiers, briefs |
-| `docs/10-exploitation.md` | installation hors ligne, sauvegarde, sécurité |
-| `docs/STATUS.md` | état d'avancement, chiffres, prochaines étapes |
-| `docs/lots/` | comptes rendus de chaque lot et index « Pour comprendre » |
+| ![Tableau de bord](docs/img/tableau-de-bord.png) | ![Éditeur ancré](docs/img/editeur.png) |
+| ![Constats](docs/img/constats.png) | ![Feuille de route](docs/img/feuille-de-route.png) |
 
-## Comment on travaille ensemble
+## Ce que fait l'outil
 
-- **Session cloud** : construit, teste, écrit `docs/STATUS.md`.
-- **Toi** : tu lis `STATUS.md` et les « Pour comprendre », tu tranches les décisions, tu lances les essais sur ton PC.
-- **Cette conversation GitHub** : on la garde pour la gestion des dépôts et du profil. Pour le PFE, on ouvre **une nouvelle conversation**, avec ce dépôt comme point de départ.
+- **Lit** les documents d'un dossier client (PDF, DOCX, PPTX, texte), en français et en anglais, et neutralise les consignes cachées dans les documents.
+- **Rédige** constats, feuille de route priorisée, termes de référence et cahier des charges, **section par section**, uniquement à partir des passages retrouvés : sans preuve, il refuse de répondre.
+- **Vérifie** chaque phrase : la source citée existe-t-elle, le chiffre figure-t-il dans le passage ? Dans l'éditeur, chaque phrase est colorée selon sa preuve, avec la source à côté.
+- **Fait valider** à deux personnes (le consultant rédige, le manager approuve), garde l'historique des versions et exporte en Word, PowerPoint ou PDF. Un entrepôt de données alimente un tableau de bord Power BI (usage, qualité, temps gagné).
 
-## Ce que tu dois comprendre
+## Architecture
 
-Lis `docs/03-apprentissage-et-glossaire.md` : glossaire en français simple (jeton, température, RAG, fine-tuning…), plan sur 8 semaines synchronisé avec le projet, et les compétences par ordre d'urgence.
+```mermaid
+flowchart LR
+  D[Documents du client] --> I[Lecture et découpage]
+  I --> R[Recherche mixte<br/>mots-clés + sens]
+  R --> G[Génération<br/>preuve d'abord]
+  G --> V[Vérificateur<br/>citations et chiffres]
+  V --> E[Éditeur et validation<br/>à deux personnes]
+  E --> X[Export Word / PPTX / PDF]
+  E --> W[(Entrepôt)] --> B[Power BI]
+  M[Modèle ouvert local<br/>Ollama] -.-> G
+  P[(PostgreSQL + pgvector)] -.-> R
+```
 
-## Ordre de lecture
+## Chiffres
 
-1. Ce fichier
-2. `docs/03-apprentissage-et-glossaire.md` (le glossaire d'abord)
-3. `docs/01-cahier-des-charges.md`
-4. `docs/02-mega-prompt-cloud.md` (c'est ce qu'on envoie)
-5. `docs/STATUS.md` (où en est le projet), puis `docs/04` à `docs/10` selon les besoins
+Mesurés sur un PC portable (GTX 1650, 4 Go de VRAM), modèle de génération **Qwen3 4B** (Apache 2.0) et embeddings **bge-m3** (MIT), tous deux exécutés localement.
+
+| Mesure | Résultat | Nature |
+|---|---|---|
+| Corpus public | **103 documents** sous licence CC BY (Banque mondiale, Commission européenne), 82 EN / 21 FR, licences et SHA-256 tracés | réel |
+| Jeu d'entraînement | **3 105 exemples** vérifiés (2 457 / 288 / 360), séparés par document | réel (entraînement non encore lancé) |
+| Jeu or | **34 questions** annotées à la main (29 faits, 5 « sans preuve ») sur des documents jamais utilisés pour l'entraînement | réel |
+| Latence par section | **18,2 s** (p50), 23,1 s (p95) ; débit 40 jetons/s | réel, 31 sections |
+| Mémoire vidéo | **3,1 Go** de pic sur 4 Go | réel |
+| Rappel@10 de la recherche (bge-m3 + BM25) | **1,000** | réel, 1 institution, 31 sections : petit échantillon |
+| Faux refus / refus manqués | 10 % / 10 % après réglage (60 % / 30 % avant) | réel, une passe : ±1–2 sections de bruit |
+| PostgreSQL + pgvector, export PDF LibreOffice, parcours navigateur Playwright | exécutés et verts | réel |
+| Tests | 432 backend, 33 entraînement, 22 interface | automatisés |
+| Rappel@10, 23/23 erreurs détectées, TPV 0,85 du banc d'évaluation | | **simulé** (corpus fictif, faux modèle) : valide la mécanique, pas la qualité |
+| Entraînement LoRA (modèle « C ») | | **à faire** (T5) |
+| Valeurs du tableau de bord Power BI | | **inventées** (démonstration) |
+
+Le TPV (taux de phrases vérifiées) mesure l'ancrage dans les sources, pas la vérité : il ne remplace pas la relecture humaine. Détails et limites : [`docs/lots/T2.md`](docs/lots/T2.md), [`docs/lots/T4.md`](docs/lots/T4.md).
+
+## Démo en 3 commandes (Windows, PowerShell)
+
+Prérequis : Python 3.12 et Node 22. Aucun modèle ni Docker : un modèle de démonstration cite de vraies phrases des documents.
+
+```powershell
+cd backend ; py -3.12 -m venv .venv ; .venv\Scripts\python -m pip install -e . reportlab
+```
+```powershell
+$env:AUTH_MODE="dev" ; $env:LLM_PROVIDER="demo" ; .venv\Scripts\python -m uvicorn app.main:app --port 8000
+```
+```powershell
+cd ..\frontend ; npm install ; npm run dev
+```
+Ouvrir http://localhost:3000. Avec un vrai modèle : installer Ollama, `ollama pull qwen3:4b` et `ollama pull bge-m3`, puis `LLM_PROVIDER=ollama` (voir `.env.example`). Tests : `cd backend ; .venv\Scripts\pytest -q`.
+
+## Pile technique
+
+Python 3.12 · FastAPI · SQLAlchemy · Alembic · PostgreSQL + pgvector (SQLite en test) · Ollama (Qwen3 4B, bge-m3) · Next.js 15 · TipTap · Playwright · python-docx / python-pptx / LibreOffice · entrepôt en étoile + Power BI · Docker Compose (réseau interne, hors ligne) · QLoRA (scripts prêts).
+
+## Principes
+
+- **100 % local** : aucun document ni aucune requête ne quitte le serveur du client ; pas d'API hébergée, l'API est coupée d'Internet dans le déploiement Docker.
+- **Preuve d'abord** : pas de passage retrouvé, pas de phrase. Toute citation ou tout chiffre introuvable est rejeté.
+- **Validation à deux** : le consultant rédige, le manager approuve, deux personnes distinctes ; chaque transition est tracée.
+- **Aucune donnée client** dans le dépôt ni dans l'entrepôt : corpus public ou synthétique seulement.
+
+## Aller plus loin
+
+| Document | Contenu |
+|---|---|
+| [`docs/01-cahier-des-charges.md`](docs/01-cahier-des-charges.md) | besoin, exigences, hypothèses à valider |
+| [`docs/06-architecture.md`](docs/06-architecture.md) | architecture, contrats, API |
+| [`docs/07-entrepot-bi.md`](docs/07-entrepot-bi.md) · [`bi/README.md`](bi/README.md) | entrepôt, indicateurs, Power BI |
+| [`docs/08-modele-rag-evaluation.md`](docs/08-modele-rag-evaluation.md) | modèles, recherche, vérification, évaluation, entraînement |
+| [`docs/10-exploitation.md`](docs/10-exploitation.md) | installation hors ligne, sauvegarde, sécurité |
+| [`docs/STATUS.md`](docs/STATUS.md) | état d'avancement et prochaines étapes |
+| [`docs/11-rapport-direction.md`](docs/11-rapport-direction.md) · [`docs/12-journal-orchestration.md`](docs/12-journal-orchestration.md) | rapport et journal de construction |
+| [`docs/lots/`](docs/lots/) | comptes rendus de chaque lot |
+| [`docs/03-apprentissage-et-glossaire.md`](docs/03-apprentissage-et-glossaire.md) | glossaire en français simple |
+
+```
+backend/   API, génération, vérification, export, entrepôt, évaluation
+frontend/  interface Next.js        training/  jeu d'entraînement, scripts LoRA
+bi/        Power BI (PBIP, thème)   deploy/    Docker, hors ligne, sauvegarde
+data/      corpus public et licences   docs/    documentation
+```
