@@ -160,6 +160,27 @@ def test_constats_puis_feuille_de_route(repo, tmp_path):
                               [{"id": a["id"], "depends_on": ["x"]}])
 
 
+def test_constats_gardes_malgre_statut_incoherent(repo, tmp_path):
+    """qwen3:4b renvoie parfois status=insufficient_evidence AVEC des constats sourcés (constaté en réel)."""
+    def incoherent(prompt, schema):
+        out = honest(prompt, schema)
+        if isinstance(out, dict) and "findings" in out:
+            out = {**out, "status": "insufficient_evidence"}
+        return out
+
+    p = FakeProvider(handler=incoherent)
+    did, _search, st = _setup(repo, p, tmp_path)
+    out = findings.extract(repo, p, did, USER, settings=st)
+    assert out["findings"] and not out["rejected"]
+
+
+def test_refus_sans_constat_ignore(repo, tmp_path):
+    p = FakeProvider(handler=lambda prompt, schema: {"status": "insufficient_evidence", "findings": []})
+    did, _search, st = _setup(repo, p, tmp_path)
+    out = findings.extract(repo, p, did, USER, settings=st)
+    assert out["findings"] == [] and out["rejected"] == []
+
+
 def test_constat_tricheur_rejete(repo, tmp_path):
     def liar(prompt, schema):
         return {"status": "ok", "findings": [

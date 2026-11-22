@@ -65,7 +65,9 @@ def extract(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
                                 attempts=attempts, latency_ms=latency,
                                 output=llm.model_dump_json() if llm else "")
             repo.record_retrieval(run_id, passages)
-            if llm is None or llm.status != "ok":
+            # Les petits modèles (qwen3:4b) renvoient parfois « insufficient_evidence » tout en listant
+            # des constats sourcés : on les garde, le vérificateur ci-dessous tranche phrase par phrase.
+            if llm is None or (llm.status != "ok" and not llm.findings):
                 continue
             by_label = {p.label: p.chunk for p in passages}
             by_id = {ch.id: ch for ch in batch}
