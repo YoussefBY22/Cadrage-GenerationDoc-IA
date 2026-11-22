@@ -2,15 +2,16 @@ import type {
   ChunkDetail,
   DocumentInfo,
   DocumentRole,
+  Coverage,
   Dossier,
   ExistingProject,
   Finding,
   FindingPatch,
   LoginResponse,
   Passage,
+  Role,
   Priority,
   ProjectState,
-  PriorityStatus,
   RoadmapGenerated,
   UploadResult,
 } from "./api-types";
@@ -122,10 +123,12 @@ export const api = {
   setDocumentRole: (id: string, role: DocumentRole) =>
     request<DocumentInfo>(`/documents/${id}`, json("PATCH", { role })),
   listPriorities: (dossierId: string) => request<Priority[]>(`/dossiers/${dossierId}/priorities`),
-  createPriority: (dossierId: string, body: { title: string; description?: string; status?: PriorityStatus }) =>
+  createPriority: (dossierId: string, body: { title: string; description?: string }) =>
     request<Priority>(`/dossiers/${dossierId}/priorities`, json("POST", body)),
-  patchPriority: (id: string, body: Partial<Pick<Priority, "title" | "description" | "rank" | "status">>) =>
+  patchPriority: (id: string, body: Partial<Pick<Priority, "title" | "description" | "rank">> & { status?: "proposed" }) =>
     request<Priority>(`/priorities/${id}`, json("PATCH", body)),
+  validatePriority: (id: string) => request<Priority>(`/priorities/${id}:validate`, { method: "POST" }),
+  rejectPriority: (id: string) => request<Priority>(`/priorities/${id}:reject`, { method: "POST" }),
   deletePriority: (id: string) => request<void>(`/priorities/${id}`, { method: "DELETE" }),
   listProjects: (dossierId: string) => request<ExistingProject[]>(`/dossiers/${dossierId}/projects`),
   createProject: (
@@ -142,7 +145,8 @@ export const api = {
     request<Passage[]>(`/dossiers/${dossierId}/search`, json("POST", { texts, k })),
   listFindings: (dossierId: string) => request<Finding[]>(`/dossiers/${dossierId}/findings`),
   extractFindings: (dossierId: string) =>
-    request<unknown>(`/dossiers/${dossierId}/findings:extract`, { method: "POST" }),
+    request<{ coverage?: Coverage }>(`/dossiers/${dossierId}/findings:extract`, { method: "POST" }),
+  me: () => request<{ id: string; role: Role }>("/auth/me"),
   patchFinding: (id: string, patch: FindingPatch) =>
     request<Finding>(`/findings/${id}`, json("PATCH", patch)),
   generateRoadmap: (dossierId: string) =>

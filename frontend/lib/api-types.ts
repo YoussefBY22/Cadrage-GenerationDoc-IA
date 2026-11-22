@@ -34,7 +34,19 @@ export interface Priority {
   status: PriorityStatus;
   source_ids: string[];
   author_id: string | null;
+  author_name?: string | null;
+  validated_by?: string | null;
+  validated_by_name?: string | null;
+  validated_at?: string | null;
   created_at: string | null;
+}
+
+export interface Coverage {
+  documents: number;
+  chunks_read: number;
+  chunks_failed: number;
+  chunks_total: number;
+  excluded: { document_id: string; filename: string; role: string; reason: string }[];
 }
 
 export interface ExistingProject {
@@ -46,6 +58,7 @@ export interface ExistingProject {
   depends_on: string[];
   source_ids: string[];
   author_id: string | null;
+  author_name?: string | null;
   created_at: string | null;
 }
 

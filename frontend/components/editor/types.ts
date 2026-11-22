@@ -47,6 +47,8 @@ export interface Initiative {
   indicator?: string;
   priority_ids?: string[];
   depends_on_projects?: string[];
+  proposal_status?: "proposed" | "accepted";
+  proposal_flags?: string[];
 }
 
 export interface RejectedLink {
@@ -77,6 +79,8 @@ export interface Chain {
   objective: string;
   expected_result: string;
   indicator: string;
+  proposal_status: "proposed" | "accepted";
+  proposal_flags: string[];
   findings: ChainLink[];
   priorities: ChainLink[];
   dependencies: ChainLink[];
@@ -101,6 +105,7 @@ export interface ScoredInitiative {
   score: number;
   rank: number;
   wave: number;
+  unscored?: string[];
 }
 
 export interface RoadmapResult {

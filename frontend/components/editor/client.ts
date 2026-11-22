@@ -73,6 +73,7 @@ export const deliverables = {
       indicator?: string;
       priority_ids?: string[];
       depends_on_projects?: string[];
+      accept_proposal?: boolean;
     }[],
   ) => call<unknown>(`/deliverables/${id}/roadmap`, body("PATCH", { initiatives })),
   async exportFile(id: string, format: ExportFormat): Promise<{ blob: Blob; filename: string }> {

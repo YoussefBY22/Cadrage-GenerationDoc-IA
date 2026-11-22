@@ -7,6 +7,7 @@ import { Alert, Empty } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { ExistingProject, ProjectState } from "@/lib/api-types";
 import { t } from "@/lib/i18n";
+import { useDossier } from "@/lib/useDossier";
 import { useGuard } from "@/lib/useGuard";
 
 const STATES: ProjectState[] = ["existing", "in_progress", "planned", "done"];
@@ -19,6 +20,7 @@ export default function ProjectsView({ dossierId }: { dossierId: string }) {
   const [title, setTitle] = useState("");
   const [state, setState] = useState<ProjectState>("existing");
   const [duration, setDuration] = useState("");
+  const dossier = useDossier(dossierId);
 
   const load = useCallback(() => {
     api
@@ -59,7 +61,9 @@ export default function ProjectsView({ dossierId }: { dossierId: string }) {
       <div className="page-head">
         <div>
           <div className="crumb">
-            <Link href={`/dossiers/${dossierId}`}>{t.nav.dossiers}</Link>
+            <Link href="/dossiers">{t.nav.dossiers}</Link>
+            <ChevronRight size={14} />
+            <Link href={`/dossiers/${dossierId}`}>{dossier?.name ?? "…"}</Link>
             <ChevronRight size={14} />
           </div>
           <h1>{t.coeur.projects}</h1>

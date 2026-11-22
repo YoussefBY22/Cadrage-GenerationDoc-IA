@@ -29,7 +29,8 @@ describe("priorités institutionnelles", () => {
   it("ajoute une priorité et change son statut", async () => {
     const list = vi.spyOn(api, "listPriorities").mockResolvedValue([prio]);
     const create = vi.spyOn(api, "createPriority").mockResolvedValue(prio);
-    const patch = vi.spyOn(api, "patchPriority").mockResolvedValue({ ...prio, status: "validated" });
+    vi.spyOn(api, "me").mockResolvedValue({ id: "u", role: "reviewer" });
+    const validate = vi.spyOn(api, "validatePriority").mockResolvedValue({ ...prio, status: "validated" });
     render(<PrioritiesView dossierId="d" />);
     expect(await screen.findByText("Fiabiliser la paie")).toBeInTheDocument();
     const form = within(screen.getByTestId("priority-form"));
@@ -38,9 +39,23 @@ describe("priorités institutionnelles", () => {
     await waitFor(() =>
       expect(create).toHaveBeenCalledWith("d", { title: "Réduire les coûts", description: "" }),
     );
-    fireEvent.change(screen.getByLabelText("Fiabiliser la paie Statut"), { target: { value: "validated" } });
-    await waitFor(() => expect(patch).toHaveBeenCalledWith("prt_1", { status: "validated" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Valider/ }));
+    await waitFor(() => expect(validate).toHaveBeenCalledWith("prt_1"));
     await waitFor(() => expect(list.mock.calls.length).toBeGreaterThan(1)); // rechargé après chaque action
+  });
+});
+
+describe("priorités : validation réservée", () => {
+  beforeEach(() => vi.restoreAllMocks());
+
+  it("un consultant ne voit pas de bouton de validation et lit un nom, pas un identifiant", async () => {
+    vi.spyOn(api, "listPriorities").mockResolvedValue([{ ...prio, author_name: "Camille Laurent" }]);
+    vi.spyOn(api, "me").mockResolvedValue({ id: "u", role: "consultant" });
+    render(<PrioritiesView dossierId="d" />);
+    expect(await screen.findByText("Camille Laurent")).toBeInTheDocument();
+    expect(screen.queryByText("usr_dev")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Valider/ })).toBeNull();
+    expect(screen.getByText("Validation par un relecteur")).toBeInTheDocument();
   });
 });
 
@@ -129,6 +144,8 @@ const coherence: Coherence = {
       objective: "Fiabiliser la paie",
       expected_result: "Zéro erreur",
       indicator: "Taux d'erreur",
+      proposal_status: "proposed",
+      proposal_flags: ["trois"],
       findings: [{ id: "f1", title: "Quatre tableurs manuels", source_ids: ["c1"], kind: "high", extra: {} }],
       priorities: [{ id: "prt_1", title: "Fiabiliser la paie", source_ids: [], kind: "1", extra: {} }],
       dependencies: [],
@@ -170,9 +187,13 @@ describe("feuille de route : cohérence", () => {
     const box = within(await screen.findByTestId("coherence"));
     expect(box.getByTestId("issue-FINDING_NO_INITIATIVE")).toHaveTextContent("Absence de contrôle");
     expect(box.getByTestId("issue-NO_DURATION")).toHaveTextContent("Sans durée : ordre seulement");
+    expect(box.getByTestId("issue-NO_DURATION")).toHaveTextContent("1"); // regroupé par type, avec un compte
     expect(box.getByTestId("rejected-links")).toHaveTextContent("PR9");
     expect(box.getByRole("note")).toHaveTextContent("2 passage(s) non envoyé(s)");
     const chain = within(screen.getByTestId("chain-I1"));
+    expect(screen.getByTestId("flags-I1")).toHaveTextContent("trois"); // proposition IA, nombre non sourcé
+    expect(chain.getByText("Accepter")).toBeInTheDocument();
+    expect(screen.queryByText(/ini_/)).toBeNull(); // jamais d'identifiant brut
     expect(chain.getByText("Quatre tableurs manuels")).toBeInTheDocument();
     expect(chain.getByText("Zéro erreur")).toBeInTheDocument();
     fireEvent.click(chain.getByRole("button", { name: "[1]" }));

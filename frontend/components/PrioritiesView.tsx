@@ -1,15 +1,15 @@
 "use client";
 
-import { ChevronRight, Plus, Scale, Trash2 } from "lucide-react";
+import { Check, ChevronRight, Plus, Scale, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Alert, Empty } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { Priority, PriorityStatus } from "@/lib/api-types";
+import type { Priority } from "@/lib/api-types";
 import { t } from "@/lib/i18n";
+import { useDossier } from "@/lib/useDossier";
 import { useGuard } from "@/lib/useGuard";
 
-const STATUSES: PriorityStatus[] = ["proposed", "validated", "rejected"];
 const date = (iso: string | null) => (iso ? iso.slice(0, 10) : "–");
 
 /** Priorités institutionnelles : saisie humaine, rang, statut. Seules les validées servent à générer. */
@@ -19,6 +19,15 @@ export default function PrioritiesView({ dossierId }: { dossierId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [canValidate, setCanValidate] = useState(false);
+  const dossier = useDossier(dossierId);
+
+  useEffect(() => {
+    api
+      .me()
+      .then((u) => setCanValidate(u.role === "reviewer" || u.role === "admin"))
+      .catch(() => {});
+  }, []);
 
   const load = useCallback(() => {
     api
@@ -53,7 +62,9 @@ export default function PrioritiesView({ dossierId }: { dossierId: string }) {
       <div className="page-head">
         <div>
           <div className="crumb">
-            <Link href={`/dossiers/${dossierId}`}>{t.nav.dossiers}</Link>
+            <Link href="/dossiers">{t.nav.dossiers}</Link>
+            <ChevronRight size={14} />
+            <Link href={`/dossiers/${dossierId}`}>{dossier?.name ?? "…"}</Link>
             <ChevronRight size={14} />
           </div>
           <h1>{t.coeur.priorities}</h1>
@@ -115,22 +126,27 @@ export default function PrioritiesView({ dossierId }: { dossierId: string }) {
                       {p.description && <div className="muted">{p.description}</div>}
                     </td>
                     <td>
-                      <select
-                        className={`mini-select st-${p.status}`}
-                        value={p.status}
-                        aria-label={`${p.title} ${t.coeur.statusField}`}
-                        onChange={(e) =>
-                          void act(() => api.patchPriority(p.id, { status: e.target.value as PriorityStatus }))
-                        }
-                      >
-                        {STATUSES.map((s) => (
-                          <option key={s} value={s}>
-                            {t.coeur.priorityStatus[s]}
-                          </option>
-                        ))}
-                      </select>
+                      <span className={`badge ${p.status === "validated" ? "approved" : p.status === "rejected" ? "rejected" : "draft"}`}>
+                        {t.coeur.priorityStatus[p.status]}
+                      </span>
+                      {p.validated_by_name && (
+                        <div className="muted">{t.coeur.validatedBy(p.validated_by_name, (p.validated_at ?? "").slice(0, 10))}</div>
+                      )}
+                      {canValidate && p.status !== "validated" && (
+                        <button className="btn btn-sm" onClick={() => void act(() => api.validatePriority(p.id))}>
+                          <Check size={13} />
+                          {t.coeur.validate}
+                        </button>
+                      )}
+                      {canValidate && p.status === "proposed" && (
+                        <button className="btn btn-ghost btn-sm" onClick={() => void act(() => api.rejectPriority(p.id))}>
+                          <X size={13} />
+                          {t.coeur.reject}
+                        </button>
+                      )}
+                      {!canValidate && p.status === "proposed" && <div className="muted">{t.coeur.reviewerOnly}</div>}
                     </td>
-                    <td className="muted">{p.author_id ?? "–"}</td>
+                    <td className="muted">{p.author_name ?? "–"}</td>
                     <td className="muted">{date(p.created_at)}</td>
                     <td className="num">
                       <button

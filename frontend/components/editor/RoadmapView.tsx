@@ -3,6 +3,7 @@
 import { AlertTriangle, ChevronRight, CircleCheck, Flag, Info, Route, Save } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { useDossier } from "@/lib/useDossier";
 import SourcePanel from "@/components/SourcePanel";
 import { Alert, Empty } from "@/components/ui";
 import { ApiError, api } from "@/lib/api";
@@ -15,7 +16,8 @@ import type { Chain, Coherence, CoherenceIssue, Deliverable, RoadmapResult } fro
 interface Edit {
   scores: Record<string, number>;
   duration?: number;
-  depends?: string;
+  depends?: string[];
+  accept?: boolean;
   priorities?: string[];
   projects?: string[];
 }
@@ -31,6 +33,7 @@ export default function RoadmapView({ id }: { id: string }) {
   const [priorities, setPriorities] = useState<Priority[]>([]);
   const [projects, setProjects] = useState<ExistingProject[]>([]);
   const [source, setSource] = useState<string | null>(null);
+  const dossier = useDossier(d?.dossier_id);
 
   const load = useCallback(async () => {
     try {
@@ -71,9 +74,8 @@ export default function RoadmapView({ id }: { id: string }) {
           ? { scores: Object.entries(e.scores).map(([key, value]) => ({ key, value })) }
           : {}),
         ...(e.duration !== undefined ? { duration_weeks: e.duration } : {}),
-        ...(e.depends !== undefined
-          ? { depends_on: e.depends.split(",").map((x) => x.trim()).filter(Boolean) }
-          : {}),
+        ...(e.depends !== undefined ? { depends_on: e.depends } : {}),
+        ...(e.accept !== undefined ? { accept_proposal: e.accept } : {}),
         ...(e.priorities !== undefined ? { priority_ids: e.priorities } : {}),
         ...(e.projects !== undefined ? { depends_on_projects: e.projects } : {}),
       }));
@@ -126,8 +128,12 @@ export default function RoadmapView({ id }: { id: string }) {
     }
   };
   const badge = { blocking: "rejected", warning: "warn", info: "draft" } as const;
-  const noDuration = coh?.issues.filter((i) => i.code === "NO_DURATION") ?? [];
-  const shownIssues = coh?.issues.filter((i) => i.code !== "NO_DURATION") ?? [];
+  const groups = Object.entries(
+    (coh?.issues ?? []).reduce<Record<string, CoherenceIssue[]>>((acc, i) => {
+      (acc[i.code] ??= []).push(i);
+      return acc;
+    }, {}),
+  );
   const chainOf = (iid: string): Chain | undefined => coh?.chains.find((c) => c.initiative_id === iid);
   const toggle = (list: string[], v: string, on: boolean) => (on ? [...list, v] : list.filter((x) => x !== v));
 
@@ -137,7 +143,9 @@ export default function RoadmapView({ id }: { id: string }) {
       <div className="page-head">
         <div>
           <div className="crumb">
-            <Link href={`/dossiers/${d.dossier_id}`}>{t.nav.dossiers}</Link>
+            <Link href="/dossiers">{t.nav.dossiers}</Link>
+            <ChevronRight size={14} />
+            <Link href={`/dossiers/${d.dossier_id}`}>{dossier?.name ?? "…"}</Link>
             <ChevronRight size={14} />
           </div>
           <h1>{m.roadmap}</h1>
@@ -162,7 +170,7 @@ export default function RoadmapView({ id }: { id: string }) {
       <div className="card" style={{ marginBottom: 20 }} data-testid="coherence">
         <div className="card-head">
           <h2 style={{ margin: 0 }}>{cc.title}</h2>
-          {coh && shownIssues.length === 0 && (
+          {coh && groups.length === 0 && (
             <span className="badge approved">
               <CircleCheck size={13} />
               {cc.ok}
@@ -170,26 +178,27 @@ export default function RoadmapView({ id }: { id: string }) {
           )}
         </div>
         <ul className="coh-list">
-          {shownIssues.map((i, n) => (
-            <li key={n} className="coh-item" data-testid={`issue-${i.code}`}>
-              <span className={`badge ${badge[i.severity]} plain`}>
-                {i.severity === "info" ? <Info size={13} /> : <AlertTriangle size={13} />}
-                {cc.codes[i.code] ?? i.code}
-              </span>
-              <span>{detail(i)}</span>
+          {groups.map(([code, list]) => (
+            <li key={code} data-testid={`issue-${code}`}>
+              <details className="coh-group">
+                <summary>
+                  <span className={`badge ${badge[list[0].severity]} plain`}>
+                    {list[0].severity === "info" ? <Info size={13} /> : <AlertTriangle size={13} />}
+                    {cc.codes[code] ?? code}
+                  </span>
+                  <b className="count">{list.length}</b>
+                </summary>
+                <ul className="coh-list" style={{ marginTop: 6 }}>
+                  {list.map((i, n) => (
+                    <li key={n} className="coh-item">
+                      {detail(i)}
+                    </li>
+                  ))}
+                </ul>
+                {code === "NO_DURATION" && <small className="muted">{cc.orderOnly}</small>}
+              </details>
             </li>
           ))}
-          {noDuration.length > 0 && (
-            <li className="coh-item" data-testid="issue-NO_DURATION">
-              <span className="badge draft plain">
-                <Info size={13} />
-                {cc.codes.NO_DURATION}
-              </span>
-              <span>
-                {noDuration.map((i) => nm(i.refs.initiative_id)).join(", ")} · {cc.orderOnly}
-              </span>
-            </li>
-          )}
         </ul>
         {(roadmap.rejected_links?.length ?? 0) > 0 && (
           <div style={{ marginTop: 12 }} data-testid="rejected-links">
@@ -243,14 +252,13 @@ export default function RoadmapView({ id }: { id: string }) {
               <th>{c.wave}</th>
               <th>{c.title}</th>
               <th>{c.score}</th>
-              <th>{c.explain}</th>
               <th>{c.duration}</th>
               <th>{c.depends}</th>
               <th>{cc.links}</th>
             </tr>
           </thead>
           <tbody>
-            {sorted.map(({ initiative: ini, score, rank, wave }) => (
+            {sorted.map(({ initiative: ini, score, rank, wave, unscored }) => (
               <tr key={ini.id} data-testid={`row-${ini.id}`}>
                 <td>
                   <span className="rank">{rank}</span>
@@ -258,40 +266,52 @@ export default function RoadmapView({ id }: { id: string }) {
                 <td>
                   <span className="wave">{wave}</span>
                 </td>
-                <td style={{ fontWeight: 600, minWidth: 180 }}>{ini.title}</td>
-                <td>
-                  <span className="score">{score.toFixed(2)}</span>
-                  <span className="score-bar">
-                    <i style={{ width: `${Math.round((score / maxScore) * 100)}%` }} />
-                  </span>
+                <td style={{ fontWeight: 600, minWidth: 200 }}>
+                  {ini.title}
+                  <details className="picker" style={{ fontWeight: 400 }}>
+                    <summary>{c.explain}</summary>
+                    <div className="crit">
+                      {roadmap.criteria.map((cr) => {
+                        const sc = ini.scores.find((s) => s.key === cr.key);
+                        return (
+                          <label key={cr.key} title={sc?.rationale ?? ""} style={{ display: "contents" }}>
+                            <span>
+                              {cr.label} · {Math.round(cr.weight * 100)} %
+                            </span>
+                            <input
+                              type="number"
+                              min={1}
+                              max={5}
+                              disabled={!editable}
+                              aria-label={`${ini.title} ${cr.label}`}
+                              value={edits[ini.id]?.scores[cr.key] ?? sc?.value ?? ""}
+                              placeholder="–"
+                              onChange={(e) =>
+                                patchEdit(ini.id, (x) => ({
+                                  ...x,
+                                  scores: { ...x.scores, [cr.key]: Number(e.target.value) },
+                                }))
+                              }
+                            />
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </details>
                 </td>
                 <td>
-                  <div className="crit">
-                    {roadmap.criteria.map((cr) => {
-                      const sc = ini.scores.find((s) => s.key === cr.key);
-                      return (
-                        <label key={cr.key} title={sc?.rationale ?? ""} style={{ display: "contents" }}>
-                          <span>
-                            {cr.label} · {Math.round(cr.weight * 100)} %
-                          </span>
-                          <input
-                            type="number"
-                            min={1}
-                            max={5}
-                            disabled={!editable}
-                            aria-label={`${ini.title} ${cr.label}`}
-                            value={edits[ini.id]?.scores[cr.key] ?? sc?.value ?? 1}
-                            onChange={(e) =>
-                              patchEdit(ini.id, (x) => ({
-                                ...x,
-                                scores: { ...x.scores, [cr.key]: Number(e.target.value) },
-                              }))
-                            }
-                          />
-                        </label>
-                      );
-                    })}
-                  </div>
+                  {unscored && unscored.length > 0 ? (
+                    <span className="badge draft plain" title={unscored.join(", ")}>
+                      {t.coeur.unscored}
+                    </span>
+                  ) : (
+                    <>
+                      <span className="score">{score.toFixed(2)}</span>
+                      <span className="score-bar">
+                        <i style={{ width: `${Math.round((score / maxScore) * 100)}%` }} />
+                      </span>
+                    </>
+                  )}
                 </td>
                 <td>
                   <input
@@ -305,18 +325,39 @@ export default function RoadmapView({ id }: { id: string }) {
                   />
                 </td>
                 <td>
-                  <input
-                    disabled={!editable}
-                    aria-label={`${ini.title} ${c.depends}`}
-                    value={edits[ini.id]?.depends ?? ini.depends_on.join(", ")}
-                    onChange={(e) => patchEdit(ini.id, (x) => ({ ...x, depends: e.target.value }))}
-                  />
+                  <details className="picker">
+                    <summary>
+                      {(edits[ini.id]?.depends ?? ini.depends_on).length
+                        ? (edits[ini.id]?.depends ?? ini.depends_on).map(title).join(", ")
+                        : "–"}
+                    </summary>
+                    {sorted
+                      .filter((o) => o.initiative.id !== ini.id)
+                      .map((o) => (
+                        <label key={o.initiative.id}>
+                          <input
+                            type="checkbox"
+                            disabled={!editable}
+                            checked={(edits[ini.id]?.depends ?? ini.depends_on).includes(o.initiative.id)}
+                            onChange={(e) =>
+                              patchEdit(ini.id, (x) => ({
+                                ...x,
+                                depends: toggle(x.depends ?? ini.depends_on, o.initiative.id, e.target.checked),
+                              }))
+                            }
+                          />
+                          {o.initiative.title}
+                        </label>
+                      ))}
+                  </details>
                 </td>
                 <td>
                   <details className="picker">
                     <summary>
-                      {(edits[ini.id]?.priorities ?? ini.priority_ids ?? []).length} {cc.priorities.toLowerCase()} ·{" "}
-                      {(edits[ini.id]?.projects ?? ini.depends_on_projects ?? []).length} {t.coeur.projects.toLowerCase()}
+                      {cc.links} (
+                      {(edits[ini.id]?.priorities ?? ini.priority_ids ?? []).length +
+                        (edits[ini.id]?.projects ?? ini.depends_on_projects ?? []).length}
+                      )
                     </summary>
                     {validPriorities.length > 0 && <small className="muted">{cc.priorities}</small>}
                     {validPriorities.map((p) => (
@@ -386,6 +427,33 @@ export default function RoadmapView({ id }: { id: string }) {
                       {f.title}
                     </span>
                   ))}
+                </span>
+              </div>
+              <div className="chain-row">
+                <span>{t.coeur.proposal}</span>
+                <span className="row" style={{ gap: 8 }}>
+                  <span className={`badge ${ch.proposal_status === "accepted" ? "approved" : "warn"}`}>
+                    {ch.proposal_status === "accepted" ? t.coeur.accepted : t.coeur.proposal}
+                  </span>
+                  {ch.proposal_flags.length > 0 && ch.proposal_status !== "accepted" && (
+                    <span className="badge warn plain" data-testid={`flags-${ini.id}`}>
+                      <AlertTriangle size={13} />
+                      {t.coeur.unsourced(ch.proposal_flags.join(", "))}
+                    </span>
+                  )}
+                  {editable && (
+                    <button
+                      className="btn btn-sm"
+                      onClick={() =>
+                        void deliverables
+                          .patchRoadmap(id, [{ id: ini.id, accept_proposal: ch.proposal_status !== "accepted" }])
+                          .then(load)
+                          .catch((e) => setError(errText(e)))
+                      }
+                    >
+                      {ch.proposal_status === "accepted" ? t.common.cancel : t.coeur.accept}
+                    </button>
+                  )}
                 </span>
               </div>
               <div className="chain-row">
