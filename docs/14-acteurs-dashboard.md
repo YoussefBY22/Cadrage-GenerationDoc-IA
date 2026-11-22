@@ -15,7 +15,7 @@ l'assistant, le **responsable** valide. Deux lecteurs secondaires : le **profil 
 | **Responsable** | Que valider d'abord ? Qu'est-ce qui attend trop ? Qui est chargé ? | Validation | livrables à valider · délai · renvois en 1re relecture · phrases bloquantes à vérifier | ordre de relecture, répartition, renvoi avec motif | les dossiers dont il n'est pas le responsable ; un classement des personnes |
 | Les deux, et la **direction du cabinet** | Où en est-on ? Que faire en premier ? Quelle charge arrive ? | Synthèse | livrables à valider · à traiter · citations sans source après approbation · délai | priorités, envoi au client, renfort de relecture | le texte des livrables et des documents (absent de l'entrepôt) |
 | **Profil technique** | Le modèle tient-il ? Faut-il en changer ? Des documents sont-ils piégés ? | Administration | phrases vérifiées · sans source avant relecture · alertes · documents signalés | régler la recherche, garder B, examiner un document | le texte des documents (absent de l'entrepôt) |
-| **Direction d'un client** | Où en sont mes livrables ? | **aucune** : un fichier | ceux du rapport, filtrés sur son entreprise | valider un planning | le tableau de bord multi-client, les autres clients, les noms de personnes, le risque estimé sur l'historique des autres |
+| **Direction d'un client** | Où en sont mes livrables ? | **aucune** | aucun pour l'instant | — | ce rapport, même filtré : il est interne au cabinet |
 
 La page **Rapport** est masquée et s'ouvre par le bouton « Rapport imprimable » : constat, recommandations, critères
 H7, indicateurs, prédiction, limites, date. Elle suit les quatre filtres.
@@ -27,14 +27,9 @@ H7, indicateurs, prédiction, limites, date. Elle suit les quatre filtres.
 - Les rôles RLS du modèle (`Consultant`, `Responsable`, `Administration`) ne s'appliquent dans le Service qu'aux
   **Lecteurs** de l'espace de travail, pas aux administrateurs, membres et contributeurs.
 - La RLS filtre des **lignes**, elle ne cache pas une page.
-- Pour la direction d'un client, **ne jamais partager le rapport**. Produire un fichier :
-
-  ```powershell
-  python -m app.dw.report --audience client --client "Nom du client" --out client.pdf
-  ```
-
-  La commande refuse ce public sans client, et ce document ne contient ni personne, ni autre client, ni risque.
-  Exemple : [`rapport-client-demo.pdf`](../bi/exemples/rapport-client-demo.pdf).
+- Pour la direction d'un client, **ne jamais partager le rapport ni son PDF**, même filtrés : ils contiennent des
+  recommandations et des indicateurs internes. Un tableau de bord client demande une publication validée et un jeu
+  de données par client. Ni l'un ni l'autre n'existe encore.
 
 ## 2. Ce que disent les pages
 

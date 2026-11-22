@@ -19,7 +19,7 @@ Qui voit quoi, et pourquoi : [docs/14](../docs/14-acteurs-dashboard.md).
 
 Indicateurs : [`KPI.md`](KPI.md). Contenu des pages : [`pages.md`](pages.md). Mise en ligne, préparée et non
 faite : [`PUBLICATION.md`](PUBLICATION.md). Fichiers produits :
-[rapport interne](exemples/rapport-pilotage-demo.pdf), [rapport client](exemples/rapport-client-demo.pdf).
+[rapport interne](exemples/rapport-pilotage-demo.pdf). Rien ici ne se transmet à un client.
 
 ## Confidentialité (contrainte C1)
 

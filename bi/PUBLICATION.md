@@ -87,10 +87,11 @@ Testé en local sur la démo (connexion au modèle avec chaque rôle) : 46 livra
 ```powershell
 cd backend
 python -m app.dw.report --out ../rapport.pdf
-python -m app.dw.report --audience client --client "Nom du client" --out ../client.pdf
+python -m app.dw.report --client "Nom du client" --out ../revue-client.pdf
 python -m app.dw.report --consultant "Nom affiché" --since 2026-10-01 --until 2026-11-20 --out ../revue.docx
 ```
 
+Le filtre `--client` sert aux revues internes : **aucun de ces fichiers ne se transmet au client**.
 Le PDF passe par LibreOffice. Sans lui, choisir une sortie `.docx`.
 
 ## 7. Le vrai tableau de bord, dans le Service

@@ -1,14 +1,14 @@
 """Rapport de pilotage DOCX ou PDF, avec les règles du tableau de bord (docs/14).
 
     python -m app.dw.report --out rapport.pdf
-    python -m app.dw.report --out client.docx --audience client --client "Nom du client"
+    python -m app.dw.report --out revue.docx --client "Nom du client"
 
 Filtres : --client, --type, --consultant, --since, --until. La période porte sur les flux
 (soumissions, approbations, générations) ; la file, les recommandations et la prédiction décrivent
 toujours la situation à la date des données, comme dans Power BI.
 
-`--audience client` exige un client : le document ne contient alors ni personne, ni autre client,
-ni modèle entraîné sur l'historique des autres clients.
+Document **interne au cabinet**, même filtré sur un client : il n'existe pas de rapport à remettre au
+client tant qu'aucune publication validée ne l'alimente.
 """
 
 import argparse
@@ -31,7 +31,7 @@ from .views_sql import _prefix
 
 ALL = "Tous"
 NOT_MEASURED = "Non mesuré"
-INTERNAL, CLIENT = "interne", "client"
+INTERNAL_NOTICE = "Interne au cabinet · ne pas transmettre au client"
 SIMULATION = "Simulation sur données inventées : aucun de ces chiffres ne décrit une mission réelle."
 
 
@@ -42,15 +42,8 @@ class Scope:
     consultant: str | None = None
     since: date | None = None
     until: date | None = None
-    audience: str = INTERNAL
 
     def __post_init__(self):
-        if self.audience not in (INTERNAL, CLIENT):
-            raise ValueError(f"lecteur inconnu : {self.audience}")
-        if self.audience == CLIENT and not self.client:
-            raise ValueError("un rapport destiné à un client doit être filtré sur ce client")
-        if self.audience == CLIENT and self.consultant:
-            raise ValueError("un rapport destiné à un client ne porte pas sur une personne")
         if self.type_code and self.type_code not in TYPES:
             raise ValueError(f"type de livrable inconnu : {self.type_code}")
         if self.since and self.until and self.since > self.until:
@@ -286,15 +279,15 @@ def render_docx(r: dict, path: Path) -> None:
                     shade.set(qn("w:fill"), "2E2E38")
                     cell._tc.get_or_add_tcPr().append(shade)
 
-    internal = scope.audience == INTERNAL
     edge(para("Cadrage · rapport de pilotage", 19, True), "left", "36")
     period = ("tout l'historique" if not (scope.since or scope.until)
               else f"du {_fr_date(scope.since.isoformat()) if scope.since else 'début'} "
                    f"au {_fr_date(scope.until.isoformat()) if scope.until else 'dernier jour'}")
-    who = f"consultant : {scope.consultant or ALL} · " if internal else ""
+    who = f"consultant : {scope.consultant or ALL} · "
     kind = TYPES[scope.type_code][1] if scope.type_code else ALL
     para(f"Situation au {_fr_date(r['as_of'])} · client : {scope.client or ALL} · type : {kind} · "
          f"{who}période : {period}", 9, color=grey)
+    para(INTERNAL_NOTICE, 9.5, True, before=4)
     if r["simulated"]:
         para(SIMULATION, 9.5, True, RGBColor(0xB4, 0x23, 0x2F), before=4)
 
@@ -334,7 +327,7 @@ def render_docx(r: dict, path: Path) -> None:
     heading("Charge de relecture à 2 semaines")
     for line in forecast_lines(r):
         para(line)
-    if internal and r["queue"]:
+    if r["queue"]:
         heading("File à valider")
         table(["Mission", "Consultant", "Attente", "Bloquantes", "Risque de renvoi"], [
             (d["mission_name"], r["people"].get(d["author_key"], "—"),
@@ -382,8 +375,7 @@ def write_report(engine: Engine, scope: Scope, out: str | Path) -> Path:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Produit le rapport de pilotage (DOCX ou PDF)")
     parser.add_argument("--out", default="rapport-pilotage.pdf", help="fichier .pdf ou .docx")
-    parser.add_argument("--audience", choices=(INTERNAL, CLIENT), default=INTERNAL)
-    parser.add_argument("--client", help="nom exact du client (obligatoire si --audience client)")
+    parser.add_argument("--client", help="nom exact du client (filtre)")
     parser.add_argument("--type", dest="type_code", choices=sorted(TYPES))
     parser.add_argument("--consultant", help="nom affiché exact")
     parser.add_argument("--since", type=date.fromisoformat, help="aaaa-mm-jj")
@@ -393,7 +385,7 @@ def main() -> None:
     from ..storage.engine import make_engine
 
     try:
-        scope = Scope(args.client, args.type_code, args.consultant, args.since, args.until, args.audience)
+        scope = Scope(args.client, args.type_code, args.consultant, args.since, args.until)
         print(write_report(make_engine(get_settings().storage_url), scope, args.out))
     except (ValueError, ExportUnavailable) as exc:
         parser.error(str(exc))

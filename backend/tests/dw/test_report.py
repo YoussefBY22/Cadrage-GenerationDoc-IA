@@ -1,4 +1,4 @@
-"""Rapport de pilotage : mêmes règles que le tableau de bord, et cloisonnement du lecteur client."""
+"""Rapport de pilotage : mêmes règles que le tableau de bord, et jamais destiné au client."""
 
 import pytest
 from docx import Document
@@ -40,19 +40,17 @@ def test_filters_reach_kpis_and_recommendations(engine):
     assert one["forecast"]["author_key"] is not None and everyone["forecast"]["author_key"] is None
 
 
-def test_client_report_shows_no_person_and_no_other_client(engine, tmp_path):
-    scope = report.Scope(client="Société Démo 2", audience=report.CLIENT)
-    body = text_of(report.write_report(engine, scope, tmp_path / "c.docx"))
-    assert "Société Démo 2" in body
-    for leak in ("Société Démo 1", "Société Démo 3", "[DÉMO] Consultant", "[DÉMO] Responsable", "Brier"):
-        assert leak not in body
+def test_filtered_report_stays_internal(engine, tmp_path):
+    body = text_of(report.write_report(engine, report.Scope(client="Société Démo 2"), tmp_path / "c.docx"))
+    assert "Société Démo 2" in body and report.INTERNAL_NOTICE in body
+    assert "Société Démo 1" not in body and "Société Démo 3" not in body
 
 
-def test_client_report_must_be_scoped():
-    with pytest.raises(ValueError):
-        report.Scope(audience=report.CLIENT)
-    with pytest.raises(ValueError):
-        report.Scope(client="X", consultant="Y", audience=report.CLIENT)
+def test_there_is_no_client_audience(monkeypatch, capsys):
+    monkeypatch.setattr("sys.argv", ["report", "--audience", "client", "--client", "X"])
+    with pytest.raises(SystemExit):
+        report.main()
+    assert "unrecognized arguments: --audience" in capsys.readouterr().err
 
 
 def test_no_rate_and_no_verdict_without_measure(engine):
