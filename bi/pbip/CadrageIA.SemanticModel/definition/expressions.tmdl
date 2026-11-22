@@ -17,7 +17,7 @@ expression Vue =
 		            [Delimiter=";", Encoding=65001, QuoteStyle=QuoteStyle.None]), [PromoteAllScalars=true])
 		    else
 		        PostgreSQL.Database(PgServer, PgDatabase){[Schema="dw", Item=nom]}[Data],
-		    Booleens = List.Intersect({Table.ColumnNames(Brut), ["is_demo", "unchanged", "was_refused", "is_valid", "success"]}),
+		    Booleens = List.Intersect({Table.ColumnNames(Brut), {"is_demo", "unchanged", "was_refused", "is_valid", "success"}}),
 		    Numerique = Table.TransformColumns(Brut, List.Transform(Booleens, (c) => {c, (v) =>
 		        if v is logical then (if v then 1 else 0) else v}))
 		in
