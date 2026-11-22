@@ -10,6 +10,7 @@ par `format` = schéma JSON (décodage contraint).
 """
 
 import json
+from collections.abc import Callable
 from urllib.parse import urlparse
 
 import httpx
@@ -26,7 +27,8 @@ class OllamaProvider(LLMProvider):
                  client: httpx.Client | None = None, *, think: bool = False,
                  options: dict | None = None, keep_alive: str | None = "30m",
                  query_prefix: str = "", passage_prefix: str = "",
-                 embed_batch: int = 32, temperature: float | None = None) -> None:
+                 embed_batch: int = 32, temperature: float | None = None,
+                 model_resolver: Callable[[], str | None] | None = None) -> None:
         host = urlparse(base_url).hostname or ""
         if host not in allowed_hosts:
             raise LLMError(
@@ -36,9 +38,10 @@ class OllamaProvider(LLMProvider):
         if not generation_model or not embedding_model:
             raise LLMError("OLLAMA_GENERATION_MODEL et OLLAMA_EMBEDDING_MODEL doivent être définis.")
         self.base_url = base_url.rstrip("/")
-        self.generation_model = generation_model
+        self.base_generation_model = generation_model
+        # Modèle actif choisi dans le registre : relu à chaque appel, donc pris en compte sans redémarrage.
+        self.model_resolver = model_resolver
         self.embedding_model = embedding_model
-        self.name = f"ollama:{generation_model}"
         # connexion courte (serveur local absent = échec rapide), lecture longue (génération)
         self._client = client or httpx.Client(
             timeout=httpx.Timeout(timeout, connect=min(10.0, timeout)), trust_env=False)
@@ -53,6 +56,22 @@ class OllamaProvider(LLMProvider):
         self.last_usage: dict = {}
         self.context_tokens = int(self.extra_options.get("num_ctx") or DEFAULT_NUM_CTX)
         self.extra_options["num_ctx"] = self.context_tokens  # explicite : le défaut d'Ollama varie selon la VRAM
+
+    @property
+    def generation_model(self) -> str:
+        if self.model_resolver is not None:
+            try:
+                chosen = self.model_resolver()
+            except Exception:  # noqa: BLE001 — un registre illisible ne doit pas arrêter la génération
+                chosen = None
+            if chosen:
+                return chosen
+        return self.base_generation_model
+
+    @property
+    def name(self) -> str:
+        """Nom exact du modèle en service, tracé dans chaque exécution (NFR-07)."""
+        return f"ollama:{self.generation_model}"
 
     def _post(self, path: str, payload: dict) -> dict:
         try:
