@@ -31,6 +31,7 @@ class Initiative(BaseModel):
     scores: list[CriterionScore]
     depends_on: list[str] = []
     duration_weeks: int | None = None  # saisi par le consultant
+    domain: str | None = None  # domaine COBIT 2019 / pratique ITIL 4 (étiquette facultative)
 
 
 class ScoredInitiative(BaseModel):

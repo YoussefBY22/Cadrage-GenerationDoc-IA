@@ -208,3 +208,15 @@ Je n'ai pas vérifié les liens : cherche les titres.
 **Point de reprise (checkpoint), early stopping, distillation** *(F2)* : sauvegarde intermédiaire d'un entraînement ; arrêt quand la qualité ne progresse plus ; distillation = faire écrire les exemples par un modèle plus fort (« professeur » local).
 
 **Proxy inverse, paquet hors ligne (bundle)** *(G1)* : le proxy (nginx) reçoit les requêtes et les relaie aux services internes sans jamais appeler dehors ; le bundle est un dossier autonome (images, dépendances, empreintes) installable sans Internet.
+
+**Référentiel, norme, cadre** *(REF)* : un document public qui dit « comment bien faire » (ISO 29148 pour écrire des exigences, COBIT pour gouverner l'IT, NIST AI RMF pour gérer les risques de l'IA). Il **cadre la structure** d'un livrable ; il n'est jamais une preuve : les faits viennent des sources du client.
+
+**Exigence vérifiable (REQ-n)** *(REF, ISO/IEC/IEEE 29148)* : un énoncé « le système doit… », unique, sans ambiguïté, qu'on peut contrôler (inspection, analyse, démonstration ou essai) ; on la numérote pour la retrouver en recette. Analogie : une règle de jeu qu'un arbitre peut trancher.
+
+**COBIT 2019 / ITIL 4 / TOGAF** *(REF)* : COBIT = 40 objectifs de gouvernance IT en 5 domaines (EDM, APO, BAI, DSS, MEA) ; ITIL 4 = 34 pratiques de gestion des services ; TOGAF = méthode d'architecture d'entreprise. Une initiative peut porter l'étiquette d'un domaine COBIT ou d'une pratique ITIL, seulement si un passage le justifie.
+
+**ISO 31000 / ISO/IEC 23894** *(REF)* : méthode de gestion du risque (identifier, analyser vraisemblance et conséquence, évaluer, traiter) ; 23894 l'applique à l'IA.
+
+**AI Act, ISO/IEC 42001, NIST AI RMF** *(REF)* : règlement européen sur l'IA (classe les usages par niveau de risque), norme certifiable de management de l'IA, cadre volontaire américain (GOVERN, MAP, MEASURE, MANAGE). La matrice de `13-referentiels.md` y relie le code.
+
+**OWASP Top 10 for LLM** *(REF)* : liste des dix risques majeurs des applications à base de modèles de langage (injection de prompt, fuite d'information, sortie non contrôlée…).

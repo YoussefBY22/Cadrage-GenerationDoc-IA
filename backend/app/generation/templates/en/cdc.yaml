@@ -3,6 +3,8 @@ version: '1.0'
 type: cdc
 language: en
 title: Functional Specifications
+referentiels:
+- ISO/IEC/IEEE 29148:2018 (requirements engineering)
 sections:
 - key: perimetre
   title: Scope
@@ -14,9 +16,12 @@ sections:
   min_sources: 2
   max_sentences: 8
   uses_findings: true
+  referentiels:
+  - ISO/IEC/IEEE 29148 (system scope)
 - key: fonctionnelles
   title: Functional requirements
-  instructions: List the functional requirements, each linked to a source or a finding.
+  instructions: List the functional requirements as short statements ("The system shall…"), numbered REQ-1, REQ-2…,
+    one requirement per sentence, unambiguous, each verifiable and tied to a source or a finding.
   queries:
   - functional requirements
   - expected features
@@ -24,9 +29,12 @@ sections:
   min_sources: 2
   max_sentences: 12
   uses_findings: true
+  referentiels:
+  - ISO/IEC/IEEE 29148 (identified REQ-n, unique, verifiable requirements)
 - key: non_fonctionnelles
   title: Non-functional requirements
-  instructions: List performance, security, availability and other sourced non-functional requirements.
+  instructions: List performance, security, availability and other sourced non-functional requirements, numbered
+    NFR-1, NFR-2…, each measurable (threshold or criterion given by the sources).
   queries:
   - non-functional requirements
   - security and performance
@@ -34,6 +42,8 @@ sections:
   min_sources: 2
   max_sentences: 10
   uses_findings: false
+  referentiels:
+  - ISO/IEC/IEEE 29148 (performance and quality requirements)
 - key: contraintes
   title: Constraints
   instructions: Describe the technical, regulatory, budgetary and schedule constraints cited in the sources.
@@ -44,9 +54,12 @@ sections:
   min_sources: 2
   max_sentences: 8
   uses_findings: false
+  referentiels:
+  - ISO/IEC/IEEE 29148 (design and compliance constraints)
 - key: recette
   title: Acceptance conditions
-  instructions: Describe the acceptance procedures and criteria stated in the sources.
+  instructions: Describe the acceptance criteria and the verification method (inspection, analysis, demonstration,
+    test) given in the sources, referring to the REQ/NFR requirements concerned.
   queries:
   - acceptance and validation
   - acceptance criteria
@@ -54,3 +67,5 @@ sections:
   min_sources: 1
   max_sentences: 8
   uses_findings: false
+  referentiels:
+  - 'ISO/IEC/IEEE 29148 (verification method: inspection, analysis, demonstration, test)'

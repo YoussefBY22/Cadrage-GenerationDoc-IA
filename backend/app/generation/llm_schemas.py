@@ -48,6 +48,7 @@ class LLMInitiative(BaseModel):
     findings: list[str]
     scores: list[LLMScore]
     depends_on_titles: list[str] = []
+    domain: str | None = None  # domaine COBIT / pratique ITIL, facultatif
 
 
 class LLMInitiatives(BaseModel):

@@ -24,6 +24,8 @@ class SectionSpec(BaseModel):
     min_sources: int = Field(default=1, ge=1)
     max_sentences: int = Field(default=12, ge=1)
     uses_findings: bool = False
+    # Références courtes (jamais de texte protégé) : elles cadrent la structure, jamais une preuve.
+    referentiels: list[str] = Field(default_factory=list)
 
 
 class Template(BaseModel):
@@ -32,6 +34,7 @@ class Template(BaseModel):
     type: DeliverableType
     language: Lang
     title: str
+    referentiels: list[str] = Field(default_factory=list)
     sections: list[SectionSpec] = Field(min_length=1)
 
     @model_validator(mode="after")

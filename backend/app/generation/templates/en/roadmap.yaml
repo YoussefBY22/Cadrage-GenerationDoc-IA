@@ -3,10 +3,15 @@ version: '1.0'
 type: roadmap
 language: en
 title: Roadmap
+referentiels:
+- ISO 31000:2018 (risks)
+- COBIT 2019 et ITIL 4 (optional initiative tagging)
+- ISO 21502 / PM² (project management)
 sections:
 - key: synthese
   title: Executive summary
-  instructions: Summarise in a few sentences the situation and the ambition of the roadmap, based on the validated findings.
+  instructions: Summarise in a few sentences the situation and the ambition of the roadmap, based on the validated
+    findings.
   queries:
   - diagnostic summary
   - ambition and objectives
@@ -14,6 +19,8 @@ sections:
   min_sources: 2
   max_sentences: 6
   uses_findings: true
+  referentiels:
+  - ISO 21502 (project objectives framing)
 - key: axes
   title: Strategic pillars
   instructions: Present the strategic pillars that group the initiatives, each linked to findings.
@@ -24,6 +31,9 @@ sections:
   min_sources: 2
   max_sentences: 10
   uses_findings: true
+  referentiels:
+  - COBIT 2019 (governance and management domains)
+  - TOGAF (strategy-architecture alignment)
 - key: initiatives
   title: Initiatives
   instructions: 'Describe each selected initiative: purpose, findings addressed, order of implementation and dependencies.'
@@ -34,9 +44,13 @@ sections:
   min_sources: 2
   max_sentences: 12
   uses_findings: true
+  referentiels:
+  - COBIT 2019 (objectifs EDM/APO/BAI/DSS/MEA)
+  - ITIL 4 (management practices)
 - key: calendrier
   title: Implementation timeline
-  instructions: Propose a sequencing in waves based on priorities and dependencies, without inventing dates absent from the sources.
+  instructions: Propose a sequencing in waves based on priorities and dependencies, without inventing dates absent
+    from the sources.
   queries:
   - timeline and deadlines
   - phasing
@@ -44,9 +58,13 @@ sections:
   min_sources: 2
   max_sentences: 8
   uses_findings: true
+  referentiels:
+  - ISO 21502 / PM² (phasing, milestones)
 - key: risques
   title: Risks
-  instructions: List the implementation risks mentioned or inferred from the passages, with their source.
+  instructions: 'List the implementation risks mentioned or inferred from the passages, with their source; for each:
+    likelihood and consequence if the passages state them, and treatment (avoid, reduce, transfer, accept) only
+    if sourced.'
   queries:
   - risks
   - constraints and obstacles
@@ -54,3 +72,6 @@ sections:
   min_sources: 2
   max_sentences: 8
   uses_findings: true
+  referentiels:
+  - ISO 31000:2018 (identify, analyse likelihood and consequence, evaluate, treat)
+  - ISO/IEC 23894 (AI-specific risks)

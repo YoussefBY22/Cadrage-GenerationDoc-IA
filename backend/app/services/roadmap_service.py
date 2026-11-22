@@ -12,6 +12,7 @@ from app.generation.prompting import build_initiatives_prompt
 from app.generation.template_loader import load_template
 from app.llm.base import LLMProvider
 from app.roadmap import graph, scoring
+from app.roadmap.referentiels import normalize_domain
 
 from .generation import GenerationError, call_model, get_deliverable, new_nonce, record_run
 
@@ -72,7 +73,8 @@ def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
                     key=sc.key, value=sc.value, rationale=sc.rationale,
                     source_ids=[plabel[_lbl(x)] for x in sc.sources if _lbl(x) in plabel])
         drafts.append((Initiative(id=new_id("ini"), title=li.title, description=li.description,
-                                  finding_ids=fids, scores=list(scores.values())),
+                                  finding_ids=fids, scores=list(scores.values()),
+                                  domain=normalize_domain(li.domain)),
                        li.depends_on_titles))
     by_title = {_title_key(i.title): i.id for i, _ in drafts}
     initiatives = []
