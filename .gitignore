@@ -11,5 +11,5 @@ __pycache__/
 data/public/raw/
 training/data/
 
-# Base SQLite locale créée au lancement
-backend/data/*.db
+# Base SQLite et documents importés au lancement (jamais dans le dépôt)
+backend/data/
