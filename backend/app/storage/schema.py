@@ -83,6 +83,7 @@ documents = Table(
     Column("stored_path", Text, nullable=False),
     _dt("created_at", nullable=False, default=utcnow),
     Column("created_by", ID),
+    Column("role", String(16), nullable=False, default="other", server_default="other"),
     UniqueConstraint("dossier_id", "sha256", name="uq_documents_dossier_sha"),
 )
 
@@ -235,4 +236,34 @@ audit_log = Table(
     Column("object_type", String(64), nullable=False),
     Column("object_id", String(64), nullable=False),
     Column("details", JsonType(), nullable=False),
+)
+
+priorities = Table(
+    "priorities", metadata,
+    Column("id", ID, primary_key=True),
+    Column("dossier_id", ID, ForeignKey("dossiers.id"), nullable=False),
+    Column("title", Text, nullable=False),
+    Column("description", Text, nullable=False, default=""),
+    Column("rank", Integer, nullable=False),
+    Column("status", String(16), nullable=False, default="proposed"),
+    Column("source_ids", JsonType(), nullable=False),
+    Column("author_id", ID),
+    _dt("created_at", nullable=False, default=utcnow),
+    _dt("updated_at", nullable=False, default=utcnow),
+    Index("ix_priorities_dossier", "dossier_id"),
+)
+
+existing_projects = Table(
+    "existing_projects", metadata,
+    Column("id", ID, primary_key=True),
+    Column("dossier_id", ID, ForeignKey("dossiers.id"), nullable=False),
+    Column("title", Text, nullable=False),
+    Column("state", String(16), nullable=False, default="existing"),
+    Column("duration_weeks", Integer),
+    Column("depends_on", JsonType(), nullable=False),
+    Column("source_ids", JsonType(), nullable=False),
+    Column("author_id", ID),
+    _dt("created_at", nullable=False, default=utcnow),
+    _dt("updated_at", nullable=False, default=utcnow),
+    Index("ix_existing_projects_dossier", "dossier_id"),
 )

@@ -29,8 +29,13 @@ class Initiative(BaseModel):
     description: str
     finding_ids: list[str]
     scores: list[CriterionScore]
-    depends_on: list[str] = []
+    depends_on: list[str] = []  # autres initiatives
     duration_weeks: int | None = None  # saisi par le consultant
+    objective: str = ""
+    expected_result: str = ""
+    indicator: str = ""
+    priority_ids: list[str] = []  # priorités institutionnelles liées
+    depends_on_projects: list[str] = []  # projets existants dont elle dépend
 
 
 class ScoredInitiative(BaseModel):
@@ -42,6 +47,16 @@ class ScoredInitiative(BaseModel):
     wave: int
 
 
+class RejectedLink(BaseModel):
+    """Lien proposé par le modèle vers un identifiant qui n'a pas été fourni : écarté et signalé."""
+
+    model_config = ConfigDict(frozen=True)
+
+    initiative: str  # titre proposé par le modèle
+    kind: str  # finding | priority | project | initiative
+    value: str
+
+
 class RoadmapResult(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -50,3 +65,5 @@ class RoadmapResult(BaseModel):
     topo_order: list[str]
     cycles: list[list[str]]
     critical_path: list[str]
+    rejected_links: list[RejectedLink] = []
+    passages_not_sent: int = 0  # passages cités par les constats mais non envoyés (contexte plein)

@@ -21,6 +21,34 @@ export interface Dossier {
   created_at: string | null;
 }
 
+export type DocumentRole = "diagnostic" | "strategy" | "portfolio" | "template" | "other";
+export type PriorityStatus = "proposed" | "validated" | "rejected";
+export type ProjectState = "existing" | "in_progress" | "planned" | "done";
+
+export interface Priority {
+  id: string;
+  dossier_id: string;
+  title: string;
+  description: string;
+  rank: number;
+  status: PriorityStatus;
+  source_ids: string[];
+  author_id: string | null;
+  created_at: string | null;
+}
+
+export interface ExistingProject {
+  id: string;
+  dossier_id: string;
+  title: string;
+  state: ProjectState;
+  duration_weeks: number | null;
+  depends_on: string[];
+  source_ids: string[];
+  author_id: string | null;
+  created_at: string | null;
+}
+
 export interface DocumentInfo {
   id: string;
   dossier_id: string;
@@ -31,6 +59,7 @@ export interface DocumentInfo {
   language: string | null;
   pages: number | null;
   created_at: string | null;
+  role: DocumentRole;
 }
 
 export interface UploadResult {

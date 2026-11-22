@@ -48,6 +48,11 @@ class LLMInitiative(BaseModel):
     findings: list[str]
     scores: list[LLMScore]
     depends_on_titles: list[str] = []
+    objective: str = ""
+    expected_result: str = ""
+    indicator: str = ""
+    priorities: list[str] = []  # étiquettes PR1..PRn fournies, jamais d'autre identifiant
+    depends_on_projects: list[str] = []  # étiquettes PJ1..PJn fournies
 
 
 class LLMInitiatives(BaseModel):

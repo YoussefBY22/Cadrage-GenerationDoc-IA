@@ -41,11 +41,18 @@ def _verify_finding(text: str, source_ids: list[str], chunks: dict, dossier_id: 
                           support_threshold=settings.support_threshold)
 
 
+# Documents d'où l'on tire des constats, dans l'ordre de lecture : diagnostics d'abord (docs/15 §5).
+# Une trame n'est jamais une source de faits ; stratégie et portefeuille alimentent les priorités
+# et les projets (saisis par un humain), pas les constats.
+READ_ORDER = ("diagnostic", "other")
+
+
 def _documents(repo, dossier_id: str) -> list[str]:
     with repo.engine.connect() as c:
-        return [r[0] for r in c.execute(select(s.documents.c.id).where(
+        rows = c.execute(select(s.documents.c.id, s.documents.c.role).where(
             s.documents.c.dossier_id == dossier_id).order_by(s.documents.c.created_at,
-                                                             s.documents.c.id))]
+                                                             s.documents.c.id)).all()
+    return [doc for role in READ_ORDER for doc, r in rows if r == role]
 
 
 def extract(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
@@ -59,14 +66,18 @@ def extract(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
     reports: dict[str, dict] = {}
     rejected: list[dict] = []
     runs = 0
-    for doc_id in _documents(repo, dossier_id):
+    docs = _documents(repo, dossier_id)
+    read_chunks = total_chunks = 0
+    for doc_id in docs:
         chunks = list(repo.iter_chunks(dossier_id, [doc_id]))
+        total_chunks += len(chunks)
         nonce = new_nonce()
         fixed = system_prompt(lang) + build_findings_prompt([], nonce=nonce, lang=lang)
         budget = passage_budget(getattr(provider, "context_tokens", None), fixed, FINDINGS_REPLY_TOKENS)
         sized = [Passage(label=f"P{BATCH}", chunk=ch, score=0.0, ranks={}) for ch in chunks]
         for group in batch_passages(sized, nonce, budget, BATCH):  # chaque passage est lu une fois
             batch = [p.chunk for p in group]
+            read_chunks += len(batch)
             passages = [Passage(label=f"P{n}", chunk=ch, score=0.0, ranks={})
                         for n, ch in enumerate(batch, 1)]
             prompt = build_findings_prompt(passages, nonce=nonce, budget=budget, lang=lang)
@@ -113,9 +124,12 @@ def extract(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
                 reports[f.id] = sub.model_dump(mode="json")
     repo.save_findings(dossier_id, kept)
     repo.audit(user.id, "findings.extract", "dossier", dossier_id,
-               {"saved": len(kept), "rejected": len(rejected), "runs": runs, "model": provider.name})
+               {"saved": len(kept), "rejected": len(rejected), "runs": runs, "model": provider.name,
+                "documents_read": len(docs), "chunks_read": read_chunks})
     return {"findings": [{**f.model_dump(mode="json"), "report": reports[f.id]} for f in kept],
-            "rejected": rejected, "runs": runs}
+            "rejected": rejected, "runs": runs,
+            "coverage": {"documents": len(docs), "chunks_read": read_chunks,
+                         "chunks_total": total_chunks}}
 
 
 def get_finding(repo, finding_id: str) -> Finding | None:

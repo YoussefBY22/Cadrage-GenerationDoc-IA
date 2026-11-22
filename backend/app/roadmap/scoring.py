@@ -42,9 +42,14 @@ def _contributions(
 
 
 def score_with_warnings(
-    initiatives: list[Initiative], criteria: list[Criterion], waves: int = 3
+    initiatives: list[Initiative], criteria: list[Criterion], waves: int = 3,
+    tiebreak: dict[str, tuple] | None = None,
 ) -> tuple[list[ScoredInitiative], list[str]]:
-    """Comme `score`, mais renvoie aussi les avertissements (critères manquants)."""
+    """Comme `score`, mais renvoie aussi les avertissements (critères manquants).
+
+    `tiebreak` : clé explicite (coherence.tiebreak_keys) qui départage les scores égaux ;
+    sans elle, l'identifiant.
+    """
     if waves < 1:
         raise ValueError("waves doit être >= 1")
     warnings: list[str] = []
@@ -52,7 +57,8 @@ def score_with_warnings(
     for ini in initiatives:
         contribs = _contributions(ini, criteria, warnings)
         values[ini.id] = round(sum(w * n for _, w, _, n in contribs), 4)
-    order = sorted(initiatives, key=lambda i: (-values[i.id], i.id))
+    tb = tiebreak or {}
+    order = sorted(initiatives, key=lambda i: (-values[i.id], tb.get(i.id, ()), i.id))
     n = len(order)
     wave = {ini.id: math.ceil((r + 1) * waves / n) for r, ini in enumerate(order)}
     # Une initiative n'est jamais dans une vague antérieure à ses prérequis.

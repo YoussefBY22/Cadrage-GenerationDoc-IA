@@ -42,6 +42,58 @@ export interface Initiative {
   scores: CriterionScore[];
   depends_on: string[];
   duration_weeks: number | null;
+  objective?: string;
+  expected_result?: string;
+  indicator?: string;
+  priority_ids?: string[];
+  depends_on_projects?: string[];
+}
+
+export interface RejectedLink {
+  initiative: string;
+  kind: string;
+  value: string;
+}
+
+export type CoherenceSeverity = "blocking" | "warning" | "info";
+
+export interface CoherenceIssue {
+  code: string;
+  severity: CoherenceSeverity;
+  refs: Record<string, unknown>;
+}
+
+export interface ChainLink {
+  id: string;
+  title: string;
+  source_ids: string[];
+  kind: string;
+  extra: Record<string, unknown>;
+}
+
+export interface Chain {
+  initiative_id: string;
+  title: string;
+  objective: string;
+  expected_result: string;
+  indicator: string;
+  findings: ChainLink[];
+  priorities: ChainLink[];
+  dependencies: ChainLink[];
+  source_ids: string[];
+  rank: number;
+  wave: number;
+  inherited_rank: number | null;
+  position: number;
+  start_week: number | null;
+  end_week: number | null;
+  issues: string[];
+}
+
+export interface Coherence {
+  issues: CoherenceIssue[];
+  chains: Chain[];
+  sequence: { initiative_id: string; position: number; start_week: number | null; end_week: number | null }[];
 }
 
 export interface ScoredInitiative {
@@ -57,6 +109,8 @@ export interface RoadmapResult {
   topo_order: string[];
   cycles: string[][];
   critical_path: string[];
+  rejected_links?: RejectedLink[];
+  passages_not_sent?: number;
 }
 
 export interface DeliverableContent {

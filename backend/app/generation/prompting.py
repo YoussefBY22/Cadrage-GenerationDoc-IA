@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from app.domain.coeur import ExistingProject, Priority
 from app.domain.generation import Finding
 from app.domain.ids import Lang
 from app.domain.retrieval import Passage
@@ -72,7 +73,13 @@ _L = {
         "reply_findings": "Réponds par un JSON LLMFindings.",
         "task_ini": ("TÂCHE : proposer des initiatives qui traitent les constats (cite F1..Fn dans « findings »), "
                      "notées de 1 à 5 sur chaque critère : {crit}. Chaque note cite ses sources et une justification. "
-                     "depends_on_titles : titres d'autres initiatives dont celle-ci dépend."),
+                     "depends_on_titles : titres d'autres initiatives dont celle-ci dépend. "
+                     "Pour chaque initiative donne aussi objective, expected_result et indicator. "
+                     "priorities : UNIQUEMENT des étiquettes PR1..PRn fournies ci-dessous ; "
+                     "depends_on_projects : UNIQUEMENT des étiquettes PJ1..PJn fournies. "
+                     "Toute autre étiquette sera rejetée. N'invente aucune durée."),
+        "priorities_hdr": "PRIORITÉS INSTITUTIONNELLES VALIDÉES (rang 1 = plus haute ; cite PR1..PRn) :",
+        "projects_hdr": "PROJETS EXISTANTS (cite PJ1..PJn dans depends_on_projects) :",
         "validated_short": "CONSTATS VALIDÉS :",
         "reply_ini": "Réponds par un JSON LLMInitiatives.",
     },
@@ -100,7 +107,13 @@ _L = {
         "reply_findings": "Reply with a JSON LLMFindings.",
         "task_ini": ('TASK: propose initiatives that address the findings (cite F1..Fn in "findings"), '
                      "scored 1 to 5 on each criterion: {crit}. Each score cites its sources and a rationale. "
-                     "depends_on_titles: titles of other initiatives this one depends on."),
+                     "depends_on_titles: titles of other initiatives this one depends on. "
+                     "For each initiative also give objective, expected_result and indicator. "
+                     "priorities: ONLY labels PR1..PRn provided below; "
+                     "depends_on_projects: ONLY labels PJ1..PJn provided. "
+                     "Any other label will be rejected. Do not invent any duration."),
+        "priorities_hdr": "VALIDATED INSTITUTIONAL PRIORITIES (rank 1 = highest; cite PR1..PRn):",
+        "projects_hdr": "EXISTING PROJECTS (cite PJ1..PJn in depends_on_projects):",
         "validated_short": "VALIDATED FINDINGS:",
         "reply_ini": "Reply with a JSON LLMInitiatives.",
     },
@@ -233,6 +246,21 @@ def build_findings_prompt(
     )
 
 
+def _render_priorities(priorities: Sequence[Priority], nonce: str) -> str:
+    return "\n".join(
+        f"PR{i}: [rang {p.rank}] {neutralize(p.title, nonce)}"
+        + (f" — {neutralize(p.description, nonce)}" if p.description else "")
+        for i, p in enumerate(priorities, 1))
+
+
+def _render_projects(projects: Sequence[ExistingProject], nonce: str) -> str:
+    out = []
+    for i, p in enumerate(projects, 1):
+        dur = f", {p.duration_weeks} sem." if p.duration_weeks else ""
+        out.append(f"PJ{i}: {neutralize(p.title, nonce)} [{p.state}{dur}]")
+    return "\n".join(out)
+
+
 def build_initiatives_prompt(
     findings: Sequence[Finding],
     passages: Sequence[Passage],
@@ -241,15 +269,26 @@ def build_initiatives_prompt(
     nonce: str,
     budget: int = DEFAULT_PASSAGE_BUDGET,
     lang: Lang = "fr",
+    priorities: Sequence[Priority] = (),
+    projects: Sequence[ExistingProject] = (),
 ) -> str:
-    """Message utilisateur pour proposer des initiatives notées (JSON ``LLMInitiatives``)."""
+    """Message utilisateur pour proposer des initiatives notées (JSON ``LLMInitiatives``).
+
+    Priorités validées et projets font partie de la partie FIXE : ils sont comptés avant les passages.
+    """
     t = _t(lang)
     crit = ", ".join(f"{c.key} ({neutralize(c.label, nonce)})" for c in criteria)
+    extra = []
+    if priorities:
+        extra += [t["priorities_hdr"], _render_priorities(priorities, nonce)]
+    if projects:
+        extra += [t["projects_hdr"], _render_projects(projects, nonce)]
     return "\n".join(
         [
             t["task_ini"].format(crit=crit),
             t["validated_short"],
             _render_findings(findings, nonce),
+            *extra,
             t["passages"],
             render_passages(passages, nonce, budget),
             t["reply_ini"],

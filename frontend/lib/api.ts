@@ -1,11 +1,16 @@
 import type {
   ChunkDetail,
   DocumentInfo,
+  DocumentRole,
   Dossier,
+  ExistingProject,
   Finding,
   FindingPatch,
   LoginResponse,
   Passage,
+  Priority,
+  ProjectState,
+  PriorityStatus,
   RoadmapGenerated,
   UploadResult,
 } from "./api-types";
@@ -105,14 +110,33 @@ export const api = {
     request<Dossier>("/dossiers", json("POST", { name, client_name, language })),
   listDocuments: (dossierId: string) =>
     request<DocumentInfo[]>(`/dossiers/${dossierId}/documents`),
-  uploadDocument(dossierId: string, file: File): Promise<UploadResult> {
+  uploadDocument(dossierId: string, file: File, role: DocumentRole = "other"): Promise<UploadResult> {
     const form = new FormData();
     form.append("file", file);
+    form.append("role", role);
     return request<UploadResult>(`/dossiers/${dossierId}/documents`, {
       method: "POST",
       body: form,
     });
   },
+  setDocumentRole: (id: string, role: DocumentRole) =>
+    request<DocumentInfo>(`/documents/${id}`, json("PATCH", { role })),
+  listPriorities: (dossierId: string) => request<Priority[]>(`/dossiers/${dossierId}/priorities`),
+  createPriority: (dossierId: string, body: { title: string; description?: string; status?: PriorityStatus }) =>
+    request<Priority>(`/dossiers/${dossierId}/priorities`, json("POST", body)),
+  patchPriority: (id: string, body: Partial<Pick<Priority, "title" | "description" | "rank" | "status">>) =>
+    request<Priority>(`/priorities/${id}`, json("PATCH", body)),
+  deletePriority: (id: string) => request<void>(`/priorities/${id}`, { method: "DELETE" }),
+  listProjects: (dossierId: string) => request<ExistingProject[]>(`/dossiers/${dossierId}/projects`),
+  createProject: (
+    dossierId: string,
+    body: { title: string; state?: ProjectState; duration_weeks?: number | null; depends_on?: string[] },
+  ) => request<ExistingProject>(`/dossiers/${dossierId}/projects`, json("POST", body)),
+  patchProject: (
+    id: string,
+    body: { title?: string; state?: ProjectState; duration_weeks?: number | null; depends_on?: string[] },
+  ) => request<ExistingProject>(`/projects/${id}`, json("PATCH", body)),
+  deleteProject: (id: string) => request<void>(`/projects/${id}`, { method: "DELETE" }),
   getChunk: (id: string) => request<ChunkDetail>(`/chunks/${id}`),
   search: (dossierId: string, texts: string[], k = 10) =>
     request<Passage[]>(`/dossiers/${dossierId}/search`, json("POST", { texts, k })),
