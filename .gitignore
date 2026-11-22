@@ -6,3 +6,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 *.egg-info/
+
+# Corpus public téléchargé (lot T4) : régénérable par data/public/fetch.py
+data/public/raw/
+training/data/
