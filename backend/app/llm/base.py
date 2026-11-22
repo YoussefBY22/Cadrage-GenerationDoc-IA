@@ -36,6 +36,10 @@ class LLMProvider(ABC):
     def embed(self, texts: list[str]) -> list[list[float]]:
         """Un vecteur par texte (même dimension pour tous)."""
 
+    def embed_query(self, texts: list[str]) -> list[list[float]]:
+        """Vecteurs de requêtes (certains modèles d'embeddings veulent un préfixe distinct)."""
+        return self.embed(texts)
+
     @property
     @abstractmethod
     def embedding_dimension(self) -> int: ...

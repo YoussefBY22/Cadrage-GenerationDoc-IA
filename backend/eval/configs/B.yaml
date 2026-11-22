@@ -1,11 +1,15 @@
-# Config B (référence) : recherche mixte RRF k=10, sans adaptation, modèle de base (1,7 B).
+# Config B (référence) : recherche mixte RRF k=10, sans adaptation, modèle de base qwen3:4b
+# (réflexion désactivée), embeddings bge-m3 (1024 dim., sans préfixe). Voir docs/lots/T2.md.
 name: B
 provider: ollama
-model: B_REMPLIR_T2
+model: qwen3:4b
 adapter: null
 seeds: [1, 2, 3]
 corpus_seed: 7
 retrieval: {enabled: true, k: 10}
 settings:
-  ollama_generation_model: B_REMPLIR_T2
-  ollama_embedding_model: B_REMPLIR_T2
+  ollama_generation_model: qwen3:4b
+  ollama_embedding_model: bge-m3
+  ollama_think: false
+  llm_timeout_seconds: 300
+  ollama_num_gpu: 99

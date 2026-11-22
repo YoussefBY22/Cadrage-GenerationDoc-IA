@@ -8,4 +8,4 @@ corpus_seed: 7
 retrieval: {enabled: true, k: 10}
 settings:
   ollama_generation_model: D_REMPLIR_T2
-  ollama_embedding_model: B_REMPLIR_T2
+  ollama_embedding_model: bge-m3

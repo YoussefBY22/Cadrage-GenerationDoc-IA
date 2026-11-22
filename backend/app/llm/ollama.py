@@ -1,7 +1,12 @@
-"""Fournisseur réel : Ollama, sur la machine du client. NON testé dans le cloud (pas de modèle).
+"""Fournisseur réel : Ollama, sur la machine du client.
 
-Il est vérifié par un test de contrat contre un serveur simulé (tests/test_ollama_contract.py).
+Vérifié par un test de contrat contre un serveur simulé (tests/test_ollama_contract.py) et par un
+test de fumée contre un vrai Ollama (tests/llm/test_ollama_smoke.py, marqueur `ollama`).
 Garde-fou confidentialité : l'adresse du serveur doit être locale ou explicitement autorisée.
+
+Réglages propres à Qwen3 : la « réflexion » est désactivée (`think: false`), sinon le modèle
+consomme son budget de jetons à raisonner et la latence explose ; les sorties structurées passent
+par `format` = schéma JSON (décodage contraint).
 """
 
 import json
@@ -16,7 +21,10 @@ from .base import LLMError, LLMProvider, T
 class OllamaProvider(LLMProvider):
     def __init__(self, base_url: str, generation_model: str, embedding_model: str,
                  allowed_hosts: set[str], timeout: float = 120.0,
-                 client: httpx.Client | None = None) -> None:
+                 client: httpx.Client | None = None, *, think: bool = False,
+                 options: dict | None = None, keep_alive: str | None = "30m",
+                 query_prefix: str = "", passage_prefix: str = "",
+                 embed_batch: int = 32, temperature: float | None = None) -> None:
         host = urlparse(base_url).hostname or ""
         if host not in allowed_hosts:
             raise LLMError(
@@ -29,8 +37,18 @@ class OllamaProvider(LLMProvider):
         self.generation_model = generation_model
         self.embedding_model = embedding_model
         self.name = f"ollama:{generation_model}"
-        self._client = client or httpx.Client(timeout=timeout, trust_env=False)
+        # connexion courte (serveur local absent = échec rapide), lecture longue (génération)
+        self._client = client or httpx.Client(
+            timeout=httpx.Timeout(timeout, connect=min(10.0, timeout)), trust_env=False)
+        self.think = think
+        self.temperature = temperature  # impose la température (ignore celle de l'appelant)
+        self.extra_options = {k: v for k, v in (options or {}).items() if v is not None}
+        self.keep_alive = keep_alive
+        self.query_prefix = query_prefix
+        self.passage_prefix = passage_prefix
+        self.embed_batch = max(1, embed_batch)
         self._dim: int | None = None
+        self.last_usage: dict = {}
 
     def _post(self, path: str, payload: dict) -> dict:
         try:
@@ -46,16 +64,22 @@ class OllamaProvider(LLMProvider):
         return msgs + [{"role": "user", "content": prompt}]
 
     def _chat(self, prompt, system, temperature, seed, fmt=None, max_tokens=None) -> str:
-        options: dict = {"temperature": temperature}
+        options: dict = {**self.extra_options,
+                         "temperature": temperature if self.temperature is None else self.temperature}
         if seed is not None:
             options["seed"] = seed
         if max_tokens is not None:
             options["num_predict"] = max_tokens
         payload = {"model": self.generation_model, "messages": self._messages(prompt, system),
-                   "stream": False, "options": options}
+                   "stream": False, "think": self.think, "options": options}
+        if self.keep_alive:
+            payload["keep_alive"] = self.keep_alive
         if fmt is not None:
             payload["format"] = fmt
         data = self._post("/api/chat", payload)
+        self.last_usage = {"prompt_tokens": data.get("prompt_eval_count"),
+                           "output_tokens": data.get("eval_count"),
+                           "total_ms": (data.get("total_duration") or 0) // 1_000_000}
         try:
             return data["message"]["content"]
         except (KeyError, TypeError) as exc:
@@ -72,14 +96,28 @@ class OllamaProvider(LLMProvider):
         except (ValidationError, json.JSONDecodeError) as exc:
             raise LLMError(f"Sortie non conforme au schéma {schema.__name__}: {exc}") from exc
 
+    def _embed(self, texts: list[str], prefix: str) -> list[list[float]]:
+        out: list[list[float]] = []
+        for i in range(0, len(texts), self.embed_batch):
+            batch = [prefix + t for t in texts[i:i + self.embed_batch]]
+            payload = {"model": self.embedding_model, "input": batch, "truncate": True}
+            if self.keep_alive:
+                payload["keep_alive"] = self.keep_alive
+            vectors = self._post("/api/embed", payload).get("embeddings")
+            if not isinstance(vectors, list) or len(vectors) != len(batch):
+                raise LLMError("Réponse Ollama /api/embed inattendue")
+            out += vectors
+        if out:
+            self._dim = len(out[0])
+        return out
+
     def embed(self, texts: list[str]) -> list[list[float]]:
-        data = self._post("/api/embed", {"model": self.embedding_model, "input": texts})
-        vectors = data.get("embeddings")
-        if not isinstance(vectors, list) or len(vectors) != len(texts):
-            raise LLMError("Réponse Ollama /api/embed inattendue")
-        if vectors:
-            self._dim = len(vectors[0])
-        return vectors
+        """Passages à indexer (préfixe « passage » du modèle, vide pour bge-m3)."""
+        return self._embed(texts, self.passage_prefix)
+
+    def embed_query(self, texts: list[str]) -> list[list[float]]:
+        """Requêtes de recherche (préfixe « query » du modèle, vide pour bge-m3)."""
+        return self._embed(texts, self.query_prefix)
 
     @property
     def embedding_dimension(self) -> int:

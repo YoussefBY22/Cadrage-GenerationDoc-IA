@@ -32,6 +32,7 @@ markers = [
     "postgres: nécessite TEST_POSTGRES_URL (PostgreSQL + pgvector)",
     "soffice: nécessite LibreOffice (soffice) installé",
     "slow: test lent",
+    "ollama: nécessite un serveur Ollama local avec les modèles installés",
 ]
 
 [tool.ruff]

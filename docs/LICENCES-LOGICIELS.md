@@ -18,4 +18,12 @@ Ce tableau est écrit de mémoire sur les licences connues de ces projets : **à
 
 Note : `opentelemetry-api` est tiré par FastAPI/Starlette (simple API, **sans exportateur** : n'envoie rien). Le test statique interdit l'import de télémétrie dans notre code.
 
-Modèles de langage : aucun intégré à ce stade (le choix et la licence de chaque modèle seront notés ici avant usage).
+## Modèles et serveur de modèles (lot T2, vérifiés le 22/11/2026 par `ollama show`)
+
+| Composant | Version / empreinte | Taille sur disque | Licence (fiche Ollama) | Usage |
+|---|---|---|---|---|
+| Ollama | 0.40.16 (Windows) | ~1,9 Go (installeur) | MIT | serveur local de modèles, `localhost:11434` |
+| qwen3:4b | `359d7dd4bcda`, 4,0 Md de paramètres, quantification Q4_K_M, contexte natif 262 144 | 2,5 Go | Apache 2.0 | génération (sections, constats, feuille de route) |
+| bge-m3 | `790764642607`, 566,7 M de paramètres, F16, 1024 dimensions, contexte 8 192 | 1,2 Go | MIT | embeddings (recherche vectorielle) |
+
+Les deux licences autorisent l'usage commercial et professionnel. Aucune donnée n'est envoyée à l'extérieur : les modèles sont téléchargés une fois, puis exécutés localement (le garde-fou d'hôte de `OllamaProvider` n'accepte que les hôtes locaux).

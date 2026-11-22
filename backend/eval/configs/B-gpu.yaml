@@ -1,0 +1,14 @@
+# B réduite (T2) : 1 institution, 1 graine — la B complète (3 institutions x 3 graines) dépasse 40 min sur GTX 1650.
+name: B-gpu
+provider: ollama
+model: qwen3:4b
+adapter: null
+seeds: [1]
+corpus_seed: 7
+retrieval: {enabled: true, k: 10}
+subset: {institutions: 1}
+settings:
+  ollama_generation_model: qwen3:4b
+  ollama_embedding_model: bge-m3
+  llm_timeout_seconds: 300
+  ollama_num_gpu: 99
