@@ -1,100 +1,120 @@
-# Tableau de bord Power BI Desktop — pas à pas
+# Tableau de bord Power BI
 
-> **Valeurs inventées.** Les chiffres du jeu de démonstration (`python -m app.dw.demo`) sont **fictifs** :
-> ils servent à vérifier la chaîne et la maquette, pas à juger des modèles.
-> Rien n'a été testé dans Power BI cette nuit (T6, demain) : les points **[À VÉRIFIER]** sont à confirmer à l'écran.
+Le rapport répond à une question : **l'assistant Cadrage tient-il ses promesses ?** Une page d'accueil donne le verdict
+sur les trois critères de réussite du cahier des charges (hypothèse H7), puis quatre pages l'expliquent.
 
-## 0. Principe de confidentialité (C1)
+> **Valeurs inventées.** Les chiffres du jeu de démonstration (`python -m app.dw.demo --seed 42`) sont fictifs : ils
+> montrent le pilotage possible et ne jugent aucun modèle réel. Le rapport l'affiche sur chaque page.
 
-- Power BI **Desktop** tourne en local. **Ne pas publier** sur Power BI Service (cloud Microsoft) : contraire à C1.
-  Power BI Report Server (sur site) : licence **[À VÉRIFIER]**.
-- L'entrepôt `dw` ne contient ni phrases ni passages clients (07 §1) ; le rôle `bi_reader` n'a accès qu'à `dw`.
+![Accueil](../docs/img/powerbi-accueil.png)
 
-## Démarrage rapide : projet PBIP (T6)
-
-`bi/pbip/CadrageIA.pbip` est un **Power BI Project** textuel (modèle TMDL + rapport PBIR, 5 pages, thème `bi/theme/cadrage-ey.json`).
-Il est généré par `python bi/pbip/build_pbip.py` (source unique des mesures : ce script écrit aussi `measures.dax`).
-Power BI Desktop (installé : `C:\Program Files\Microsoft Power BI Desktop\bin\PBIDesktop.exe`) :
-
-```powershell
-& "C:\Program Files\Microsoft Power BI Desktop\bin\PBIDesktop.exe" "$PWD\bi\pbip\CadrageIA.pbip"
-```
-1. Activer l'aperçu « Power BI Project (.pbip) » et « format de rapport PBIR » : Fichier → Options → Fonctionnalités en préversion.
-2. Accueil → Transformer les données → Paramètres : `DossierCsv` (dossier `bi/export`, chemin absolu à adapter), `CultureCsv` (`fr-FR`, ou `en-US` après `--locale en`).
-3. **Option PostgreSQL** : paramètre `Source` = `PostgreSQL`, puis `PgServer`, `PgDatabase` ; identifiants `bi_reader` (voir §2).
-4. Actualiser. Thème : Affichage → Thèmes → Parcourir (`bi/theme/cadrage-ey.json`) si besoin.
-
-> **Non ouvert dans Power BI** (pas d'interface graphique cette nuit) : le PBIP est écrit à la main d'après le format publié,
-> sans validation par l'application. Si Desktop refuse d'ouvrir le projet, voir `docs/lots/T6.md` ; repli : CSV + `measures.dax` + §3 ci-dessous.
-
-## 1. Produire les données
-
-```powershell
-cd backend
-python -m app.dw.demo --seed 42                               # jeu de démonstration (is_demo) + ETL + vues
-python -m app.dw.export_csv --out ../bi/export/               # option A : 7 CSV (« ; » et virgule décimale)
-python -m app.dw.export_csv --out ../bi/export/ --locale en   # variante « , » et point décimal
-```
-Avec de vraies données : `python -m app.dw.etl`, puis l'export (ou la connexion PostgreSQL ci-dessous).
-
-## 2. Connexion
-
-**Option A — CSV (sans base, testable partout).** Accueil → Obtenir des données → *Texte/CSV* → choisir les 7 fichiers
-de `bi/export/` (`v_generation`, `v_quality_by_model`, `v_review_funnel`, `v_outcome`, `v_citations`, `v_security`,
-`v_llm_calls`). Origine du fichier : **UTF-8** ; délimiteur : point-virgule ; paramètres régionaux **français** pour la
-virgule décimale (ou régénérer avec `--locale en`). Si des colonnes numériques arrivent en texte, passer par
-*Transformer les données*. **[À VÉRIFIER]**
-
-**Option B — PostgreSQL (lecture seule).**
-1. Créer le rôle : `psql -f db/dw/roles.sql` (changer le mot de passe) ; `alembic upgrade head`, puis l'ETL.
-2. Power BI → Obtenir des données → *Base de données PostgreSQL* → serveur `localhost:5432`, base = `POSTGRES_DB`,
-   mode **Importer**, identifiants `bi_reader`. Le pilote **Npgsql** peut être demandé selon la version de Power BI
-   Desktop **[À VÉRIFIER]**. Choisir les 7 vues du schéma `dw` (`dw.v_generation`, …).
-3. `docker-compose.yml` ne publie pas le port 5432 : l'exposer en local seulement (`127.0.0.1:5432:5432`) le temps de
-   la séance, puis le retirer **[À VÉRIFIER]**.
-
-## 3. Modèle de relations
-
-Les vues sont déjà « aplaties » ; il faut trois tables de liaison. Dans *Transformer les données* :
-
-| Nouvelle table | Création | Utilité |
+| Page | Question de pilotage | Capture |
 |---|---|---|
-| `Missions` | dupliquer `v_generation`, garder `mission_key`, `mission_name`, `client_name`, supprimer les doublons | filtre client / mission commun |
-| `Modèles` | dupliquer `v_generation`, garder `model_key`, `provider`, `model_name`, `config_label`, supprimer les doublons | filtre configuration A/B/C/D |
-| `Dates` | DAX : `Dates = ADDCOLUMNS(CALENDAR(DATE(2026,1,1), DATE(2026,12,31)), "date_key", YEAR([Date])*10000+MONTH([Date])*100+DAY([Date]), "Semaine", WEEKNUM([Date],21))` | axe de temps commun |
+| Accueil | L'assistant tient-il ses promesses ? | [voir](../docs/img/powerbi-accueil.png) |
+| Qualité et preuves | Peut-on se fier à ce que l'assistant écrit ? | [voir](../docs/img/powerbi-qualite.png) |
+| Productivité et relecture | Fait-il gagner du temps au consultant ? | [voir](../docs/img/powerbi-productivite.png) |
+| Comparaison des modèles | Quelle configuration faut-il retenir ? | [voir](../docs/img/powerbi-modeles.png) |
+| Sécurité et usage | Est-il utilisé, et sans danger ? | [voir](../docs/img/powerbi-securite.png) |
 
-Relations (plusieurs-à-un, filtre de la table de liaison vers les vues) :
+Indicateurs (formule, intérêt, cible, limite) : [`KPI.md`](KPI.md). Contenu de chaque page : [`pages.md`](pages.md).
 
-| De (plusieurs) | Vers (un) |
+## Confidentialité (contrainte C1)
+
+- Power BI **Desktop** tourne en local. **Ne pas publier** sur Power BI Service, hébergé par Microsoft.
+- L'entrepôt `dw` ne contient ni phrases ni passages des clients ([07 §1](../docs/07-entrepot-bi.md)), et le rôle
+  `bi_reader` n'a accès qu'à ce schéma.
+
+## Ouvrir le rapport
+
+1. Produire les données :
+
+   ```powershell
+   cd backend
+   python -m app.dw.demo --seed 42
+   python -m app.dw.export_csv --out ../bi/export/
+   ```
+
+2. Régler le dossier des CSV (chemin absolu), ce qui régénère le projet :
+
+   ```powershell
+   python bi/pbip/build_pbip.py --csv "C:\chemin\vers\bi\export"
+   ```
+
+   Sans régénérer : dans Power BI, *Transformer les données → Modifier les paramètres → DossierCsv*.
+
+3. Ouvrir `bi/pbip/CadrageIA.pbip`. Le cache de données n'est pas versionné : cliquer **Refresh now**, puis
+   **Apply changes** si le bandeau « pending changes » s'affiche. Ce bandeau apparaît à la première ouverture d'un
+   projet sans cache et ne modifie pas les fichiers.
+
+Dans Power BI Desktop, les boutons de navigation se suivent avec **Ctrl + clic**.
+
+### Avec de vraies données
+
+- CSV : `python -m app.dw.etl`, puis le même export.
+- PostgreSQL, en lecture seule : `psql -f db/dw/roles.sql` (changer le mot de passe), puis dans les paramètres
+  `Source` = `PostgreSQL`, `PgServer`, `PgDatabase`. Importer avec `bi_reader`. **Ce chemin n'a pas été testé dans
+  Power BI Desktop** (pilote Npgsql, port 5432 à exposer en local seulement).
+- Export anglais (`--locale en`) : paramètre `CultureCsv` = `en-US`. Non testé dans Power BI Desktop.
+
+## Modifier le rapport
+
+Le projet PBIP est **généré**. Ne pas enregistrer depuis Power BI : la génération suivante écraserait la modification.
+
+| Pour changer | Fichier |
 |---|---|
-| `v_generation`, `v_outcome`, `v_review_funnel`, `v_security`, `v_llm_calls` — colonne `mission_key` | `Missions[mission_key]` |
-| `v_generation`, `v_llm_calls`, `v_quality_by_model` — colonne `model_key` | `Modèles[model_key]` |
-| `v_generation`, `v_outcome`, `v_llm_calls` — colonne `date_key` | `Dates[date_key]` |
-| `v_citations[generation_key]` | `v_generation[generation_key]` |
+| un indicateur, une formule, un seuil | [`pbip/indicateurs.py`](pbip/indicateurs.py) (génère aussi `KPI.md` et `measures.dax`) |
+| une table, un libellé, une relation | [`pbip/modele.py`](pbip/modele.py) |
+| une page, un visuel, la barre latérale | [`pbip/rapport.py`](pbip/rapport.py), briques dans [`pbip/pbir.py`](pbip/pbir.py) |
+| les couleurs et polices | [`theme/cadrage-ey.json`](theme/cadrage-ey.json) |
 
-`v_review_funnel[submitted_date_key]` : relation **inactive** vers `Dates` (activer par `USERELATIONSHIP` au besoin).
+Ensuite : fermer Power BI, lancer `python bi/pbip/build_pbip.py`, rouvrir et **regarder chaque page**.
 
-## 4. Mesures
+Pièges rencontrés :
 
-Coller chaque bloc de [`measures.dax`](measures.dax) (Accueil → Nouvelle mesure) dans une table `_Mesures` : TPV,
-Citations valides, Fidélité chiffres, Taux refus, Acceptation sans modif, Temps gagné (h), Latence p95 (s), Δ TPV vs B.
-Formules de référence : `docs/07-entrepot-bi.md` §5. `app/dw/kpi.py` donne les mêmes chiffres à 1e-9 près (test
-`tests/dw/test_views.py`) : comparer une carte Power BI à `kpi.py` est le test d'acceptation de demain.
+- **Thème ignoré en silence** : une seule propriété inconnue (ici `tertiaryBackground`) fait rejeter tout le thème,
+  et Power BI revient à ses couleurs bleues.
+- **`Formula.Firewall`** : une requête ne peut pas référencer une autre requête et lire une source. Chaque table lit
+  donc la vue elle-même, par la fonction `Vue`.
+- **« A cyclic reference was encountered during evaluation »**, par intermittence à la première actualisation : le
+  chargement parallèle est coupé dans `CadrageIA.SemanticModel/.pbi/editorSettings.json`, qui est versionné.
 
-## 5. Les 5 pages
+## Modèle de données
 
-Détail visuel par visuel dans [`pages.md`](pages.md) : 1 Vue d'ensemble · 2 Qualité et vérification ·
-3 Comparaison des modèles A/B/C/D · 4 Relecture · 5 Usage et sécurité.
-Sur **chaque page** : un segment **« Données de démonstration »** (`is_demo`) visible en haut ; en démo, un bandeau
-« Valeurs inventées — démonstration ».
+Étoile en français au-dessus des vues de [07 §4](../docs/07-entrepot-bi.md). Les colonnes techniques sont masquées.
 
-## 6. Charte
-Couleurs neutres (gris) + une couleur d'accent ; libellés en français ; aucune donnée client dans les info-bulles.
+| Table | Vue source | Filtrée par |
+|---|---|---|
+| Générations | `v_generation` | période, client, type, modèle |
+| Citations | `v_citations` | les mêmes, via Générations |
+| Sections approuvées | `v_outcome` | période (date d'approbation), client, type, modèle |
+| Relectures | `v_review_funnel` | période (date d'approbation), client, type |
+| Documents | `v_security` | période (première génération de la mission), client |
+| Appels au modèle | `v_llm_calls` | période, client, modèle |
 
-## 7. Points à vérifier demain (T6)
-- [ ] Pilote PostgreSQL / Npgsql, port local, rôle `bi_reader` (aucune table `public` visible).
-- [ ] Séparateurs et décimales à l'import CSV (FR et EN).
-- [ ] `PERCENTILEX.INC` sur `v_llm_calls[latency_ms]` ; `Latence p95` ≈ `kpi.latency_percentile`.
-- [ ] Relations ci-dessus, relation inactive de `v_review_funnel`, mise en forme conditionnelle de la page 2.
-- [ ] Les cartes TPV / Acceptation / Temps gagné égalent `kpi.py` (démo, graine 42).
-- [ ] Aucune publication sur Power BI Service.
+Dimensions : Calendrier, Missions (client), Types de livrable, Configurations. Les quatre segments de la barre
+latérale sont synchronisés sur les cinq pages. La vue `v_quality_by_model` n'est pas importée : c'est un agrégat que
+les mesures recalculent en respectant les filtres.
+
+`v_outcome.baseline_minutes` sert de dénominateur au temps gagné. Avec un export antérieur à cette colonne, le
+modèle applique la valeur de l'ETL (30 min par section).
+
+## Charte
+
+- Anthracite `#2E2E38`, gris `#747480` et `#C4C4CD`, fond `#F6F6FA`, Segoe UI.
+- Jaune `#FFE600` pour ce qu'il faut regarder : page active, total, meilleure valeur.
+- Rouge et vert réservés aux statuts, toujours doublés d'un signe ou d'un libellé.
+- Ni logo ni nom de cabinet : le produit s'appelle « Cadrage ».
+
+## Sources de conception
+
+1. Microsoft Learn, [Design the analytical report layout](https://learn.microsoft.com/en-us/training/modules/power-bi-effective-reports/2-design-layout) :
+   placement, équilibre, contraste, proximité, répétition. D'où la grille unique et la barre latérale répétée.
+2. Microsoft Learn, [Design visually appealing reports](https://learn.microsoft.com/en-us/training/modules/power-bi-effective-reports/3-design-reports) :
+   espace réservé au titre, à la marque et aux segments, séparé des visuels.
+3. Microsoft Learn, [Enhance Power BI report designs for the user experience](https://learn.microsoft.com/en-us/training/modules/power-bi-effective-user-experience) :
+   navigation pensée dès le départ et placée au même endroit partout.
+4. Microsoft, [PL-300, atelier de conception de rapports](https://microsoftlearning.github.io/PL-300-Microsoft-Power-BI-Data-Analyst/Instructions/Labs/08-design-power-bi-reports.html) :
+   segments synchronisés entre les pages.
+5. Microsoft Learn, [Power BI Desktop project report folder](https://learn.microsoft.com/en-us/power-bi/developer/projects/projects-report)
+   et [semantic model folder](https://learn.microsoft.com/en-us/power-bi/developer/projects/projects-dataset) :
+   format PBIR, ressources enregistrées du thème, fichiers `.pbi/` à versionner ou non.

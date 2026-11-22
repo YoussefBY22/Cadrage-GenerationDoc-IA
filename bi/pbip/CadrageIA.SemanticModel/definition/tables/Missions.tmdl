@@ -1,37 +1,34 @@
 table Missions
 
-	column mission_key
+	column 'Clé de mission'
 		dataType: int64
 		isHidden
 		sourceColumn: mission_key
 		summarizeBy: none
 
-	column mission_name
+	column Mission
 		dataType: string
 		sourceColumn: mission_name
 		summarizeBy: none
 
-	column client_name
+	column Client
 		dataType: string
 		sourceColumn: client_name
 		summarizeBy: none
 
-	column is_demo
+	column 'Est une démonstration'
 		dataType: int64
+		isHidden
 		sourceColumn: is_demo
-		summarizeBy: none
-
-	column Données
-		dataType: string
-		sourceColumn: Données
 		summarizeBy: none
 
 	partition Missions = m
 		mode: import
 		source =
 				let
-				    Base = Table.SelectColumns(v_generation, {"mission_key", "mission_name", "client_name", "is_demo"}),
-				    Clé = Table.Distinct(Base, {"mission_key"}),
-				    Libellé = Table.AddColumn(Clé, "Données", each if [is_demo] = 1 then "Démonstration" else "Réelles", type text)
+				    Actives = Table.TransformColumnTypes(Table.SelectColumns(Vue("v_generation"), {"mission_key", "mission_name", "client_name", "is_demo"}), {{"mission_key", Int64.Type}, {"mission_name", type text}, {"client_name", type text}, {"is_demo", Int64.Type}}, CultureCsv),
+				    Importees = Table.TransformColumnTypes(Table.SelectColumns(Vue("v_security"), {"mission_key", "mission_name", "is_demo"}), {{"mission_key", Int64.Type}, {"mission_name", type text}, {"is_demo", Int64.Type}}, CultureCsv),
+				    SansGeneration = Table.AddColumn(Table.SelectRows(Importees, each not List.Contains(Actives[mission_key], [mission_key])), "client_name", each "Non renseigné", type text),
+				    Resultat = Table.Distinct(Table.Combine({Actives, SansGeneration}), {"mission_key"})
 				in
-				    Libellé
+				    Resultat

@@ -1,53 +1,68 @@
 relationship r01
-	fromColumn: v_generation.mission_key
-	toColumn: Missions.mission_key
+	fromColumn: 'Générations'.'Clé de mission'
+	toColumn: Missions.'Clé de mission'
 
 relationship r02
-	fromColumn: v_outcome.mission_key
-	toColumn: Missions.mission_key
+	fromColumn: 'Sections approuvées'.'Clé de mission'
+	toColumn: Missions.'Clé de mission'
 
 relationship r03
-	fromColumn: v_review_funnel.mission_key
-	toColumn: Missions.mission_key
+	fromColumn: Relectures.'Clé de mission'
+	toColumn: Missions.'Clé de mission'
 
 relationship r04
-	fromColumn: v_security.mission_key
-	toColumn: Missions.mission_key
+	fromColumn: Documents.'Clé de mission'
+	toColumn: Missions.'Clé de mission'
 
 relationship r05
-	fromColumn: v_llm_calls.mission_key
-	toColumn: Missions.mission_key
+	fromColumn: 'Appels au modèle'.'Clé de mission'
+	toColumn: Missions.'Clé de mission'
 
 relationship r06
-	fromColumn: v_generation.model_key
-	toColumn: 'Modèles'.model_key
+	fromColumn: 'Générations'.'Clé de date'
+	toColumn: Calendrier.'Clé de date'
 
 relationship r07
-	fromColumn: v_llm_calls.model_key
-	toColumn: 'Modèles'.model_key
+	fromColumn: 'Sections approuvées'.'Clé de date'
+	toColumn: Calendrier.'Clé de date'
 
 relationship r08
-	fromColumn: v_quality_by_model.model_key
-	toColumn: 'Modèles'.model_key
+	fromColumn: Relectures.'Clé de date'
+	toColumn: Calendrier.'Clé de date'
 
 relationship r09
-	fromColumn: v_generation.date_key
-	toColumn: Dates.date_key
+	fromColumn: Documents.'Clé de date'
+	toColumn: Calendrier.'Clé de date'
 
 relationship r10
-	fromColumn: v_outcome.date_key
-	toColumn: Dates.date_key
+	fromColumn: 'Appels au modèle'.'Clé de date'
+	toColumn: Calendrier.'Clé de date'
 
 relationship r11
-	fromColumn: v_llm_calls.date_key
-	toColumn: Dates.date_key
+	fromColumn: 'Générations'.'Clé de configuration'
+	toColumn: Configurations.Configuration
 
 relationship r12
-	isActive: false
-	fromColumn: v_review_funnel.submitted_date_key
-	toColumn: Dates.date_key
+	fromColumn: 'Sections approuvées'.'Clé de configuration'
+	toColumn: Configurations.Configuration
 
 relationship r13
-	fromColumn: v_citations.generation_key
-	toColumn: v_generation.generation_key
+	fromColumn: 'Appels au modèle'.'Clé de configuration'
+	toColumn: Configurations.Configuration
+
+relationship r14
+	fromColumn: 'Générations'.'Code du type'
+	toColumn: 'Types de livrable'.'Code du type'
+
+relationship r15
+	fromColumn: 'Sections approuvées'.'Clé de type'
+	toColumn: 'Types de livrable'.'Clé de type'
+
+relationship r16
+	fromColumn: Relectures.'Clé de type'
+	toColumn: 'Types de livrable'.'Clé de type'
+
+relationship r17
+	fromColumn: Citations.'Clé de génération'
+	toColumn: 'Générations'.'Clé de génération'
 

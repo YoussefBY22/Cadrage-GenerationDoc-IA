@@ -1,20 +1,25 @@
 model Model
 	culture: fr-FR
+	sourceQueryCulture: fr-FR
 	defaultPowerBIDataSourceVersion: powerBI_V3
 	discourageImplicitMeasures
 
-ref table v_generation
-ref table v_quality_by_model
-ref table v_review_funnel
-ref table v_outcome
-ref table v_citations
-ref table v_security
-ref table v_llm_calls
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+ref table Indicateurs
 ref table Missions
-ref table 'Modèles'
-ref table Dates
-ref table Etapes
-ref table _Mesures
+ref table Configurations
+ref table 'Types de livrable'
+ref table Calendrier
+ref table Cascade
+ref table 'Étapes'
+ref table 'Critères'
+ref table 'Générations'
+ref table 'Sections approuvées'
+ref table Relectures
+ref table Citations
+ref table Documents
+ref table 'Appels au modèle'
 
 ref expression Source
 ref expression DossierCsv

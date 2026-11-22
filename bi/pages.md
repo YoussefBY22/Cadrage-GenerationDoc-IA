@@ -1,43 +1,51 @@
-# Maquette des 5 pages (07 §7)
+# Les pages du rapport
 
-Charte EY : jaune `#FFE600` (accent), anthracite `#2E2E38`, gris `#747480` `#C4C4CD` `#F6F6FA`, Segoe UI, sans logo ; libellés en français ; en haut de chaque page un
-segment **Données de démonstration** (`is_demo`) et, en démo, le texte « Valeurs inventées — démonstration ».
+Chaque page pose une question, et le titre de chaque visuel y répond par une phrase calculée selon les filtres.
+Générées par [`pbip/rapport.py`](pbip/rapport.py) ; définitions dans [`KPI.md`](KPI.md).
 
-## 1. Vue d'ensemble
-| Visuel | Champs |
+Commun à toutes les pages : barre latérale (navigation, page active en jaune, segments Période, Client, Type de
+livrable et Modèle synchronisés, bouton « Effacer les filtres ») et bandeau « Données de démonstration » affiché
+seulement si les données le sont.
+
+## Accueil : l'assistant tient-il ses promesses ?
+
+| Visuel | Ce qu'il apprend |
 |---|---|
-| Cartes (4) | `TPV` · `Acceptation sans modif` · `Temps gagné (h)` · livrables approuvés = `DISTINCTCOUNT(v_outcome[deliverable_id])` |
-| Courbe | axe `Dates[Semaine]`, valeur `TPV` |
-| Segments | `Missions[client_name]`, `v_generation[type_code]` |
+| Verdict | nombre de critères H7 atteints sur 3, et lesquels |
+| 5 cartes avec tendance mensuelle | temps gagné, acceptation sans retouche, citations inventées, phrases vérifiées, délai de validation |
+| 4 tuiles | le fait marquant de chaque page et un lien pour l'ouvrir |
 
-## 2. Qualité et vérification
-| Visuel | Champs |
+## Qualité et preuves : peut-on se fier à ce que l'assistant écrit ?
+
+| Visuel | Ce qu'il apprend |
 |---|---|
-| Barres empilées | axe `v_citations[issue_code]`, valeur nombre de lignes, légende `severity` |
-| Matrice | lignes `v_generation[section_title]`, valeur `TPV`, **mise en forme conditionnelle** (rouge < 0,6 · neutre · accent ≥ 0,8) |
-| Histogramme | axe `v_generation[type_code]`, valeur `Fidélité chiffres` |
+| 4 cartes | phrases vérifiées, citations inventées, chiffres retrouvés, refus faute de preuve |
+| Cascade | combien de phrases sont perdues au contrôle, entre « à vérifier » et « rejetées » |
+| Barres par motif et gravité | la première cause d'anomalie à corriger |
+| Matrice section × configuration | les sections fragiles, avec mise en forme conditionnelle |
 
-## 3. Comparaison des modèles (A/B/C/D)
-| Visuel | Champs |
+## Productivité et relecture : fait-il gagner du temps au consultant ?
+
+| Visuel | Ce qu'il apprend |
 |---|---|
-| Histogramme groupé | axe `Modèles[config_label]`, valeurs `TPV`, `Citations valides`, `Taux refus` |
-| Nuage de points | X `Latence p95 (s)`, Y `TPV`, taille = nombre de générations, détail `config_label` |
-| Table | `config_label`, `TPV`, `Δ TPV vs B`, `Latence p95 (s)` |
+| 5 cartes | temps gagné, gain par livrable, acceptation sans retouche, délai, renvois |
+| Entonnoir | demandées → rédigées → approuvées → sans retouche : l'étape où l'on perd |
+| Colonnes par ampleur de retouche | retouches légères ou réécritures |
+| Barres par section | les gabarits à améliorer en premier |
 
-## 4. Relecture
-| Visuel | Champs |
+## Comparaison des modèles : quelle configuration faut-il retenir ?
+
+| Visuel | Ce qu'il apprend |
 |---|---|
-| Entonnoir | brouillon → en relecture → approuvé, à partir de `v_review_funnel` (soumis : `submissions > 0` ; approuvés : `approved_date_key` renseignée) |
-| Carte | délai médian = `MEDIAN(v_review_funnel[delay_hours])` |
-| Carte | taux de refus en relecture = `DIVIDE(SUM(v_review_funnel[rejections]), SUM(v_review_funnel[submissions]))` |
-| Barres | 10 sections les plus réécrites : `AVERAGE(v_outcome[edit_ratio])` par `section_title` |
+| Petits multiples | la meilleure configuration sur quatre critères de qualité |
+| Bilan | écart à la référence B, citations inventées, refus, temps de réponse, taille d'échantillon |
+| Nuage | l'arbitrage entre qualité et vitesse |
 
-## 5. Usage et sécurité
-| Visuel | Champs |
+## Sécurité et usage : est-il utilisé, et sans danger ?
+
+| Visuel | Ce qu'il apprend |
 |---|---|
-| Colonnes | axe `v_generation[month]`, légende mission, valeur nombre de générations |
-| Barres | `v_security[mission_name]`, valeur `SUM(injection_alert_count)` |
-| Anneau | `v_security[mime]`, nombre de documents |
-
-> Le délai médian et le taux de refus en relecture sont des mesures **à créer sur place** (formules ci-dessus) ; elles ne
-> figurent pas dans `measures.dax`, qui reprend uniquement 07 §6. **[À VÉRIFIER]**
+| 4 cartes | alertes, documents signalés, missions actives, livrables approuvés |
+| Barres par mission | où enquêter |
+| Barres par format | quels types de fichiers surveiller |
+| Petits multiples par client | qui utilise l'outil, et si l'usage dure |

@@ -1,0 +1,151 @@
+table 'Générations'
+
+	column 'Clé de génération'
+		dataType: int64
+		isHidden
+		sourceColumn: generation_key
+		summarizeBy: none
+
+	column 'Clé de date'
+		dataType: int64
+		isHidden
+		sourceColumn: date_key
+		summarizeBy: none
+
+	column 'Clé de mission'
+		dataType: int64
+		isHidden
+		sourceColumn: mission_key
+		summarizeBy: none
+
+	column 'Mission d''origine'
+		dataType: string
+		isHidden
+		sourceColumn: mission_name
+		summarizeBy: none
+
+	column 'Client d''origine'
+		dataType: string
+		isHidden
+		sourceColumn: client_name
+		summarizeBy: none
+
+	column 'Nom du modèle'
+		dataType: string
+		isHidden
+		sourceColumn: model_name
+		summarizeBy: none
+
+	column 'Code de configuration'
+		dataType: string
+		isHidden
+		sourceColumn: config_label
+		summarizeBy: none
+
+	column 'Clé de configuration'
+		dataType: string
+		isHidden
+		sourceColumn: config
+		summarizeBy: none
+
+	column 'Code du type'
+		dataType: string
+		isHidden
+		sourceColumn: type_code
+		summarizeBy: none
+
+	column Nature
+		dataType: string
+		isHidden
+		sourceColumn: nature
+		summarizeBy: none
+
+	column 'Code de section'
+		dataType: string
+		isHidden
+		sourceColumn: section_code
+		summarizeBy: none
+
+	column Section
+		dataType: string
+		sourceColumn: section
+		summarizeBy: none
+
+	column 'Titre de section d''origine'
+		dataType: string
+		isHidden
+		sourceColumn: section_title
+		summarizeBy: none
+
+	column Statut
+		dataType: string
+		isHidden
+		sourceColumn: status
+		summarizeBy: none
+
+	column 'Phrases produites'
+		dataType: int64
+		isHidden
+		sourceColumn: sentences_total
+		summarizeBy: none
+
+	column 'Phrases validées'
+		dataType: int64
+		isHidden
+		sourceColumn: sentences_verified
+		summarizeBy: none
+
+	column 'Phrases en avertissement'
+		dataType: int64
+		isHidden
+		sourceColumn: sentences_warning
+		summarizeBy: none
+
+	column 'Phrases en échec'
+		dataType: int64
+		isHidden
+		sourceColumn: sentences_failed
+		summarizeBy: none
+
+	column 'Citations produites'
+		dataType: int64
+		isHidden
+		sourceColumn: citations_total
+		summarizeBy: none
+
+	column 'Citations valides en nombre'
+		dataType: int64
+		isHidden
+		sourceColumn: citations_valid
+		summarizeBy: none
+
+	column 'Chiffres cités'
+		dataType: int64
+		isHidden
+		sourceColumn: numbers_cited
+		summarizeBy: none
+
+	column 'Chiffres retrouvés'
+		dataType: int64
+		isHidden
+		sourceColumn: numbers_found
+		summarizeBy: none
+
+	column 'Est une démonstration'
+		dataType: int64
+		isHidden
+		sourceColumn: is_demo
+		summarizeBy: none
+
+	partition 'Générations' = m
+		mode: import
+		source =
+				let
+				    Brut = Vue("v_generation"),
+				    Choix = Table.SelectColumns(Brut, {"generation_key", "date_key", "mission_key", "mission_name", "client_name", "model_name", "config_label", "type_code", "section_code", "section_title", "status", "sentences_total", "sentences_verified", "sentences_warning", "sentences_failed", "citations_total", "citations_valid", "numbers_cited", "numbers_found", "is_demo"}, MissingField.UseNull),
+				    Typage = Table.TransformColumnTypes(Choix, {{"generation_key", Int64.Type}, {"date_key", Int64.Type}, {"mission_key", Int64.Type}, {"mission_name", type text}, {"client_name", type text}, {"model_name", type text}, {"config_label", type text}, {"type_code", type text}, {"section_code", type text}, {"section_title", type text}, {"status", type text}, {"sentences_total", Int64.Type}, {"sentences_verified", Int64.Type}, {"sentences_warning", Int64.Type}, {"sentences_failed", Int64.Type}, {"citations_total", Int64.Type}, {"citations_valid", Int64.Type}, {"numbers_cited", Int64.Type}, {"numbers_found", Int64.Type}, {"is_demo", Int64.Type}}, CultureCsv),
+				    AvecConfiguration = Table.AddColumn(Typage, "config", each if [config_label] = null or [config_label] = "" then "Non étiquetée" else [config_label], type text),
+				    AvecNature = Table.AddColumn(AvecConfiguration, "nature", each if [type_code] = "findings" then "Constats" else "Section", type text),
+				    AvecSection = Table.AddColumn(AvecNature, "section", each if [section_title] = "_all" then "Constats du dossier" else [section_title], type text)
+				in
+				    AvecSection

@@ -1,57 +1,48 @@
 {
-  "name": "Cadrage EY",
-  "dataColors": ["#FFE600", "#2E2E38", "#747480", "#C4C4CD", "#A89A00", "#4A4A57", "#9C9CA8", "#E6E6EC"],
+  "name": "Cadrage",
+  "dataColors": ["#2E2E38", "#747480", "#C4C4CD", "#FFE600", "#4A4A57", "#9C9CA8", "#B4232F", "#E6E6EC"],
   "background": "#FFFFFF",
+  "backgroundLight": "#F6F6FA",
+  "backgroundNeutral": "#C4C4CD",
   "foreground": "#2E2E38",
-  "tableAccent": "#FFE600",
-  "good": "#2E2E38",
+  "foregroundNeutralSecondary": "#747480",
+  "foregroundNeutralTertiary": "#C4C4CD",
+  "tableAccent": "#C4C4CD",
+  "good": "#1E6B4F",
   "neutral": "#C4C4CD",
   "bad": "#B4232F",
-  "maximum": "#FFE600",
+  "maximum": "#2E2E38",
   "center": "#C4C4CD",
   "minimum": "#F6F6FA",
-  "null": "#747480",
-  "firstLevelElements": "#2E2E38",
-  "secondLevelElements": "#747480",
-  "thirdLevelElements": "#C4C4CD",
-  "fourthLevelElements": "#F6F6FA",
-  "secondaryBackground": "#F6F6FA",
-  "tertiaryBackground": "#C4C4CD",
+  "null": "#C4C4CD",
   "textClasses": {
     "callout": {"fontSize": 28, "fontFace": "Segoe UI Semibold", "color": "#2E2E38"},
-    "title": {"fontSize": 12, "fontFace": "Segoe UI Semibold", "color": "#2E2E38"},
+    "title": {"fontSize": 13, "fontFace": "Segoe UI Semibold", "color": "#2E2E38"},
     "header": {"fontSize": 11, "fontFace": "Segoe UI Semibold", "color": "#2E2E38"},
-    "label": {"fontSize": 10, "fontFace": "Segoe UI", "color": "#747480"}
+    "label": {"fontSize": 10, "fontFace": "Segoe UI", "color": "#2E2E38"}
   },
   "visualStyles": {
     "*": {
       "*": {
-        "*": [{"fontFamily": "Segoe UI", "color": {"solid": {"color": "#747480"}}}],
         "background": [{"show": true, "color": {"solid": {"color": "#FFFFFF"}}, "transparency": 0}],
-        "border": [{"show": true, "color": {"solid": {"color": "#C4C4CD"}}, "radius": 2}],
-        "title": [{"show": true, "fontColor": {"solid": {"color": "#2E2E38"}}, "fontFamily": "Segoe UI Semibold", "fontSize": 12, "alignment": "left"}],
-        "legend": [{"fontFamily": "Segoe UI", "fontSize": 10, "labelColor": {"solid": {"color": "#747480"}}}],
-        "categoryAxis": [{"labelColor": {"solid": {"color": "#747480"}}, "gridlineShow": false}],
-        "valueAxis": [{"labelColor": {"solid": {"color": "#747480"}}, "gridlineColor": {"solid": {"color": "#E6E6EC"}}}]
+        "border": [{"show": false}],
+        "dropShadow": [{"show": false}],
+        "title": [{"show": true, "titleWrap": true, "fontColor": {"solid": {"color": "#2E2E38"}}, "fontFamily": "Segoe UI Semibold", "fontSize": 13, "alignment": "left"}],
+        "subTitle": [{"fontColor": {"solid": {"color": "#747480"}}, "fontFamily": "Segoe UI", "fontSize": 10}],
+        "visualHeader": [{"foreground": {"solid": {"color": "#747480"}}}],
+        "visualTooltip": [{"titleFontColor": {"solid": {"color": "#C4C4CD"}}, "valueFontColor": {"solid": {"color": "#FFFFFF"}}, "background": {"solid": {"color": "#2E2E38"}}}]
       }
     },
     "page": {
       "*": {
         "background": [{"color": {"solid": {"color": "#F6F6FA"}}, "transparency": 0}],
-        "outspace": [{"color": {"solid": {"color": "#F6F6FA"}}}]
-      }
-    },
-    "card": {
-      "*": {
-        "labels": [{"fontSize": 28, "fontFamily": "Segoe UI Semibold", "color": {"solid": {"color": "#2E2E38"}}}],
-        "categoryLabels": [{"fontSize": 11, "color": {"solid": {"color": "#747480"}}}],
-        "border": [{"show": true, "color": {"solid": {"color": "#FFE600"}}, "radius": 2}]
+        "outspace": [{"color": {"solid": {"color": "#F6F6FA"}}, "transparency": 0}]
       }
     },
     "slicer": {
       "*": {
-        "header": [{"fontColor": {"solid": {"color": "#2E2E38"}}}],
-        "items": [{"fontColor": {"solid": {"color": "#2E2E38"}}}]
+        "header": [{"fontFamily": "Segoe UI Semibold"}],
+        "items": [{"fontFamily": "Segoe UI"}]
       }
     }
   }
