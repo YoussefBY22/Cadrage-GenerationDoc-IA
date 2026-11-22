@@ -1,0 +1,89 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json",
+  "name": "p2_v05",
+  "position": {
+    "x": 24,
+    "y": 92,
+    "width": 620,
+    "height": 604,
+    "z": 5,
+    "tabOrder": 5
+  },
+  "visual": {
+    "visualType": "barChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "v_citations"
+                    }
+                  },
+                  "Property": "issue_code"
+                }
+              },
+              "queryRef": "v_citations.issue_code",
+              "nativeQueryRef": "issue_code"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Mesures"
+                    }
+                  },
+                  "Property": "Contrôles de citation"
+                }
+              },
+              "queryRef": "_Mesures.Contrôles de citation",
+              "nativeQueryRef": "Contrôles de citation"
+            }
+          ]
+        },
+        "Series": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "v_citations"
+                    }
+                  },
+                  "Property": "severity"
+                }
+              },
+              "queryRef": "v_citations.severity",
+              "nativeQueryRef": "severity"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true,
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Anomalies de citation par code'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

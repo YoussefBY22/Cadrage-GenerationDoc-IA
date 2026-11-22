@@ -1,0 +1,71 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json",
+  "name": "p2_v06",
+  "position": {
+    "x": 660,
+    "y": 92,
+    "width": 596,
+    "height": 330,
+    "z": 6,
+    "tabOrder": 6
+  },
+  "visual": {
+    "visualType": "pivotTable",
+    "query": {
+      "queryState": {
+        "Rows": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "v_generation"
+                    }
+                  },
+                  "Property": "section_title"
+                }
+              },
+              "queryRef": "v_generation.section_title",
+              "nativeQueryRef": "section_title"
+            }
+          ]
+        },
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Mesures"
+                    }
+                  },
+                  "Property": "TPV"
+                }
+              },
+              "queryRef": "_Mesures.TPV",
+              "nativeQueryRef": "TPV"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true,
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'TPV par section'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

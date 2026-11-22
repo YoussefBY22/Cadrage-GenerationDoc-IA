@@ -1,0 +1,43 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/2.0.0/schema.json",
+  "themeCollection": {
+    "baseTheme": {
+      "name": "CY24SU06",
+      "reportVersionAtImport": "5.55",
+      "type": "SharedResources"
+    },
+    "customTheme": {
+      "name": "cadrage-ey.json",
+      "reportVersionAtImport": "5.55",
+      "type": "RegisteredResources"
+    }
+  },
+  "resourcePackages": [
+    {
+      "name": "SharedResources",
+      "type": "SharedResources",
+      "items": [
+        {
+          "name": "CY24SU06",
+          "path": "BaseThemes/CY24SU06.json",
+          "type": "BaseTheme"
+        }
+      ]
+    },
+    {
+      "name": "RegisteredResources",
+      "type": "RegisteredResources",
+      "items": [
+        {
+          "name": "cadrage-ey.json",
+          "path": "cadrage-ey.json",
+          "type": "CustomTheme"
+        }
+      ]
+    }
+  ],
+  "settings": {
+    "useStylableVisualContainerHeader": true,
+    "defaultDrillFilterOtherVisuals": true
+  }
+}

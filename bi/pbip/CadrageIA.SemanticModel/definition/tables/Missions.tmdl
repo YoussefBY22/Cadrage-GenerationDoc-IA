@@ -1,0 +1,37 @@
+table Missions
+
+	column mission_key
+		dataType: int64
+		isHidden
+		sourceColumn: mission_key
+		summarizeBy: none
+
+	column mission_name
+		dataType: string
+		sourceColumn: mission_name
+		summarizeBy: none
+
+	column client_name
+		dataType: string
+		sourceColumn: client_name
+		summarizeBy: none
+
+	column is_demo
+		dataType: int64
+		sourceColumn: is_demo
+		summarizeBy: none
+
+	column Données
+		dataType: string
+		sourceColumn: Données
+		summarizeBy: none
+
+	partition Missions = m
+		mode: import
+		source =
+				let
+				    Base = Table.SelectColumns(v_generation, {"mission_key", "mission_name", "client_name", "is_demo"}),
+				    Clé = Table.Distinct(Base, {"mission_key"}),
+				    Libellé = Table.AddColumn(Clé, "Données", each if [is_demo] = 1 then "Démonstration" else "Réelles", type text)
+				in
+				    Libellé

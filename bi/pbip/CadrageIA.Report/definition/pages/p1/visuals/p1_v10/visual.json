@@ -1,0 +1,53 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json",
+  "name": "p1_v10",
+  "position": {
+    "x": 800,
+    "y": 204,
+    "width": 456,
+    "height": 240,
+    "z": 10,
+    "tabOrder": 10
+  },
+  "visual": {
+    "visualType": "slicer",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Missions"
+                    }
+                  },
+                  "Property": "client_name"
+                }
+              },
+              "queryRef": "Missions.client_name",
+              "nativeQueryRef": "client_name"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true,
+    "objects": {
+      "data": [
+        {
+          "properties": {
+            "mode": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Basic'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

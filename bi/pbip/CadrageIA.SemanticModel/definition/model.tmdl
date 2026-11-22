@@ -1,0 +1,24 @@
+model Model
+	culture: fr-FR
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	discourageImplicitMeasures
+
+ref table v_generation
+ref table v_quality_by_model
+ref table v_review_funnel
+ref table v_outcome
+ref table v_citations
+ref table v_security
+ref table v_llm_calls
+ref table Missions
+ref table 'Modèles'
+ref table Dates
+ref table Etapes
+ref table _Mesures
+
+ref expression Source
+ref expression DossierCsv
+ref expression CultureCsv
+ref expression PgServer
+ref expression PgDatabase
+ref expression Vue

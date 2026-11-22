@@ -10,6 +10,23 @@
   Power BI Report Server (sur site) : licence **[À VÉRIFIER]**.
 - L'entrepôt `dw` ne contient ni phrases ni passages clients (07 §1) ; le rôle `bi_reader` n'a accès qu'à `dw`.
 
+## Démarrage rapide : projet PBIP (T6)
+
+`bi/pbip/CadrageIA.pbip` est un **Power BI Project** textuel (modèle TMDL + rapport PBIR, 5 pages, thème `bi/theme/cadrage-ey.json`).
+Il est généré par `python bi/pbip/build_pbip.py` (source unique des mesures : ce script écrit aussi `measures.dax`).
+Power BI Desktop (installé : `C:\Program Files\Microsoft Power BI Desktop\bin\PBIDesktop.exe`) :
+
+```powershell
+& "C:\Program Files\Microsoft Power BI Desktop\bin\PBIDesktop.exe" "$PWD\bi\pbip\CadrageIA.pbip"
+```
+1. Activer l'aperçu « Power BI Project (.pbip) » et « format de rapport PBIR » : Fichier → Options → Fonctionnalités en préversion.
+2. Accueil → Transformer les données → Paramètres : `DossierCsv` (dossier `bi/export`, chemin absolu à adapter), `CultureCsv` (`fr-FR`, ou `en-US` après `--locale en`).
+3. **Option PostgreSQL** : paramètre `Source` = `PostgreSQL`, puis `PgServer`, `PgDatabase` ; identifiants `bi_reader` (voir §2).
+4. Actualiser. Thème : Affichage → Thèmes → Parcourir (`bi/theme/cadrage-ey.json`) si besoin.
+
+> **Non ouvert dans Power BI** (pas d'interface graphique cette nuit) : le PBIP est écrit à la main d'après le format publié,
+> sans validation par l'application. Si Desktop refuse d'ouvrir le projet, voir `docs/lots/T6.md` ; repli : CSV + `measures.dax` + §3 ci-dessous.
+
 ## 1. Produire les données
 
 ```powershell

@@ -1,0 +1,16 @@
+table Etapes
+
+	column Etape
+		dataType: string
+		sourceColumn: Etape
+		sortByColumn: Ordre
+		summarizeBy: none
+
+	column Ordre
+		dataType: int64
+		sourceColumn: Ordre
+		summarizeBy: none
+
+	partition Etapes = calculated
+		mode: import
+		source = DATATABLE("Etape", STRING, "Ordre", INTEGER, {{"Brouillon", 1}, {"En relecture", 2}, {"Approuvé", 3}})

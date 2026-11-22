@@ -1,0 +1,25 @@
+expression Source = "CSV" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: src
+
+expression DossierCsv = "C:\Users\youss\Desktop\PFE-IA-Cadrage\bi\export" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+
+expression CultureCsv = "fr-FR" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+
+expression PgServer = "localhost:5432" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+
+expression PgDatabase = "cadrage" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+
+expression Vue =
+		(nom as text) as table =>
+		let
+		    Brut = if Source = "CSV" then
+		        Table.PromoteHeaders(Csv.Document(File.Contents(DossierCsv & "\" & nom & ".csv"),
+		            [Delimiter=";", Encoding=65001, QuoteStyle=QuoteStyle.None]), [PromoteAllScalars=true])
+		    else
+		        PostgreSQL.Database(PgServer, PgDatabase){[Schema="dw", Item=nom]}[Data],
+		    Booleens = List.Intersect({Table.ColumnNames(Brut), ["is_demo", "unchanged", "was_refused", "is_valid", "success"]}),
+		    Numerique = Table.TransformColumns(Brut, List.Transform(Booleens, (c) => {c, (v) =>
+		        if v is logical then (if v then 1 else 0) else v}))
+		in
+		    Numerique
+		meta [IsParameterQuery=false]

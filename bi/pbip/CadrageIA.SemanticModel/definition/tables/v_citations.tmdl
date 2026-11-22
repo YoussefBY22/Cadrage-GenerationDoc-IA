@@ -1,0 +1,64 @@
+table v_citations
+
+	column citation_key
+		dataType: int64
+		isHidden
+		sourceColumn: citation_key
+		summarizeBy: none
+
+	column generation_key
+		dataType: int64
+		isHidden
+		sourceColumn: generation_key
+		summarizeBy: none
+
+	column issue_code
+		dataType: string
+		sourceColumn: issue_code
+		summarizeBy: none
+
+	column severity
+		dataType: string
+		sourceColumn: severity
+		summarizeBy: none
+
+	column document_key
+		dataType: int64
+		isHidden
+		sourceColumn: document_key
+		summarizeBy: none
+
+	column document_mime
+		dataType: string
+		sourceColumn: document_mime
+		summarizeBy: none
+
+	column sentence_index
+		dataType: int64
+		sourceColumn: sentence_index
+		summarizeBy: none
+
+	column is_valid
+		dataType: int64
+		sourceColumn: is_valid
+		summarizeBy: none
+
+	column support
+		dataType: double
+		sourceColumn: support
+		summarizeBy: none
+
+	column is_demo
+		dataType: int64
+		sourceColumn: is_demo
+		summarizeBy: none
+
+	partition v_citations = m
+		mode: import
+		source =
+				let
+				    Brut = Vue("v_citations"),
+				    Typé = Table.TransformColumnTypes(Brut, {{"citation_key", Int64.Type}, {"generation_key", Int64.Type}, {"issue_code", type text}, {"severity", type text}, {"document_key", Int64.Type}, {"document_mime", type text}, {"sentence_index", Int64.Type}, {"is_valid", Int64.Type}, {"support", type number}, {"is_demo", Int64.Type}}, CultureCsv)
+				in
+				    Typé
+

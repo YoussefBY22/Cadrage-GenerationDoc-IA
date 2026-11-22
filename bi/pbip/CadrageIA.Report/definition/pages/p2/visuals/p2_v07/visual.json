@@ -1,0 +1,71 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json",
+  "name": "p2_v07",
+  "position": {
+    "x": 660,
+    "y": 438,
+    "width": 596,
+    "height": 258,
+    "z": 7,
+    "tabOrder": 7
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "v_generation"
+                    }
+                  },
+                  "Property": "type_code"
+                }
+              },
+              "queryRef": "v_generation.type_code",
+              "nativeQueryRef": "type_code"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Mesures"
+                    }
+                  },
+                  "Property": "Fidélité chiffres"
+                }
+              },
+              "queryRef": "_Mesures.Fidélité chiffres",
+              "nativeQueryRef": "Fidélité chiffres"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true,
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Fidélité des chiffres par type'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
