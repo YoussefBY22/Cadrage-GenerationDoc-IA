@@ -652,7 +652,7 @@ table Indicateurs
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Banc effectif' = IF(COUNTROWS(Banc) = 1, COALESCE(FORMAT(MAX(Banc[Sections du banc]), "0"), "—"))
+	measure 'Banc effectif' = IF(COUNTROWS(Banc) = 1, IF(ISBLANK(MAX(Banc[Sections du banc])), "—", FORMAT(MAX(Banc[Sections du banc]), "0")))
 		displayFolder: 9. Présentation
 		isHidden
 

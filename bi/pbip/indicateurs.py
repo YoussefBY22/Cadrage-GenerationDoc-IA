@@ -408,7 +408,7 @@ def presentation() -> list[Mesure]:
         f'    IF(vNombre = 0, "Rester sur {pilotage.REFERENCE_CONFIG}",\n'
         '        "À retenir : " & CONCATENATEX(vRetenues, Banc[Configuration], ", ")))')
     m["Banc montage"] = "SELECTEDVALUE(Banc[Montage])"
-    m["Banc effectif"] = 'IF(COUNTROWS(Banc) = 1, COALESCE(FORMAT(MAX(Banc[Sections du banc]), "0"), "—"))'
+    m["Banc effectif"] = 'IF(COUNTROWS(Banc) = 1, IF(ISBLANK(MAX(Banc[Sections du banc])), "—", FORMAT(MAX(Banc[Sections du banc]), "0")))'
     m["Banc TPV"] = (
         "IF(COUNTROWS(Banc) = 1, IF(ISBLANK(MAX(Banc[TPV])), \"Non mesuré\", FORMAT(MAX(Banc[TPV]), \"0 %\")))")
     ecart = 'FORMAT(100 * MAX(Banc[{}]), "+0.0;-0.0;0.0", "fr-FR")'
