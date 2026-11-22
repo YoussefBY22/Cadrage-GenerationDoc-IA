@@ -77,7 +77,7 @@ def keys(report, status):
 
 def test_good_model_passes_all_checks(svc):
     r = svc.test("qwen-good:4b")
-    assert r["passed"] and not keys(r, "fail") and r["tokens_per_second"] == 40.0
+    assert r["passed"] and not keys(r, "fail") and r["tokens_per_second"] == 40.0   # eval_count / eval_duration, pas la durée totale (8 s)
     assert {c["key"] for c in r["checks"]} == {"capabilities", "context", "json", "french", "citation",
                                                "refusal", "speed"}
 
@@ -285,3 +285,54 @@ def test_cli_list_test_activate_rollback(settings, monkeypatch, capsys):
     assert cli(["activate", "alt:3b"]) == 0
     assert cli(["rollback"]) == 0 and "qwen-good:4b" in capsys.readouterr().out
     assert cli(["test", "bad-english:1b"]) == 1
+
+
+# --- traçabilité figée par opération, étiquette des vecteurs, débit --------------------------------------
+def test_logged_model_is_the_one_actually_sent_even_if_active_changes_mid_call(repo, settings):
+    from sqlalchemy import select
+
+    from app.services.generation import record_run
+    from app.storage import schema as s
+
+    fake_engine.FakeEngine.models["a:1"] = {"caps": ["completion"], "ctx": 8192, "quant": "Q4_0"}
+    fake_engine.FakeEngine.models["b:2"] = {"caps": ["completion"], "ctx": 8192, "quant": "Q4_0"}
+    chosen = ["a:1"]
+    provider = OllamaProvider(settings.ollama_base_url, "a:1", "bge-m3:latest", settings.allowed_hosts,
+                              model_resolver=lambda: chosen[0])
+    from app.generation.llm_schemas import LLMSection
+    provider.generate_structured("Clôture mensuelle", LLMSection)
+    chosen[0] = "b:2"                                   # activation PENDANT l'opération (après l'envoi)
+    assert provider.name == "ollama:b:2" and provider.served_model == "ollama:a:1"
+    did = repo.create_dossier("D", "C", "fr", "usr_dev")
+    rid = record_run(repo, provider, dossier_id=did, kind="section", prompt="p", status="ok",
+                     attempts=1, latency_ms=1)
+    with repo.engine.connect() as c:
+        row = c.execute(select(s.generation_runs).where(s.generation_runs.c.id == rid)).first()
+    assert row.provider == "ollama:a:1" and row.model == "ollama:a:1"
+
+
+def test_vectors_are_labelled_with_the_embedding_model(settings, svc):
+    provider = OllamaProvider(settings.ollama_base_url, "qwen-good:4b", "bge-m3:latest",
+                              settings.allowed_hosts, model_resolver=active_model_resolver(settings))
+    fake_engine.FakeEngine.models["alt:3b"] = {"caps": ["completion"], "ctx": 32768, "quant": "Q5_K_M"}
+    svc.test("alt:3b")
+    svc.activate("alt:3b")
+    assert provider.name == "ollama:alt:3b" and provider.embedding_name == "ollama:bge-m3:latest"
+
+
+def test_ingestion_stores_embedding_model_label(repo, settings, svc, monkeypatch, tmp_path):
+    from app.domain.workflow import CurrentUser
+    from app.services import ingestion
+
+    class P(OllamaProvider):
+        def embed(self, texts):
+            return [[0.0] * 64 for _ in texts]
+
+    provider = P(settings.ollama_base_url, "qwen-good:4b", "bge-m3:latest", settings.allowed_hosts)
+    seen = {}
+    monkeypatch.setattr(repo, "add_chunks", lambda chunks, vecs, model: seen.setdefault("m", model))
+    did = repo.create_dossier("D", "C", "fr", "usr_dev")
+    st = settings.model_copy(update={"upload_dir": str(tmp_path)})
+    ingestion.ingest(repo, provider, did, "a.txt", "Un texte assez long sur la clôture.".encode(),
+                     CurrentUser(id="usr_dev", role="admin"), settings=st)
+    assert seen["m"] == "ollama:bge-m3:latest"

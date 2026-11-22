@@ -84,7 +84,8 @@ class FakeEngine(BaseHTTPRequestHandler):
                 content = json.dumps(m.get("ground", GOOD["ground"]))
             return self._send({"message": {"role": "assistant", "content": content},
                                "eval_count": type(self).tps, "prompt_eval_count": 120,
-                               "total_duration": 1_000_000_000})
+                               "total_duration": 8_000_000_000,   # 8 s dont chargement du modèle
+                               "eval_duration": 1_000_000_000})
         self._send({}, 404)
 
 

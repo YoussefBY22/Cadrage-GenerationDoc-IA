@@ -61,7 +61,7 @@ def ingest(repo, provider: LLMProvider, dossier_id: str, filename: str, data: by
     vectors: list[list[float]] = []
     for i in range(0, len(texts), BATCH):
         vectors += provider.embed(texts[i:i + BATCH])
-    repo.add_chunks(chunks, vectors, provider.name)
+    repo.add_chunks(chunks, vectors, provider.embedding_name)
 
     alerts = 0
     for c in chunks:

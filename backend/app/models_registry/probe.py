@@ -68,8 +68,9 @@ def run_probe(provider: LLMProvider, card: dict, allocated: int) -> dict:
         grounded = provider.generate_structured(_prompt("Clôture mensuelle", _PASSAGE), LLMSection,
                                                 system=system_prompt("fr"), temperature=0.0)
         usage = getattr(provider, "last_usage", {}) or {}
-        out_tokens, total_ms = usage.get("output_tokens"), usage.get("total_ms")
-        seconds = (total_ms / 1000) if total_ms else (time.perf_counter() - started)
+        # débit de génération seul (sans chargement du modèle) : eval_count / eval_duration d'Ollama
+        out_tokens, eval_ms = usage.get("output_tokens"), usage.get("eval_ms")
+        seconds = (eval_ms / 1000) if eval_ms else (usage.get("total_ms") or 0) / 1000 or (time.perf_counter() - started)
         if out_tokens and seconds > 0:
             tokens_per_second = round(out_tokens / seconds, 1)
         checks.append(check("json", "JSON conforme au schéma", "pass"))

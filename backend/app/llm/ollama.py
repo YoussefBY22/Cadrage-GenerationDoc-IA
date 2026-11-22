@@ -10,6 +10,7 @@ par `format` = schéma JSON (décodage contraint).
 """
 
 import json
+import threading
 from collections.abc import Callable
 from urllib.parse import urlparse
 
@@ -53,7 +54,7 @@ class OllamaProvider(LLMProvider):
         self.passage_prefix = passage_prefix
         self.embed_batch = max(1, embed_batch)
         self._dim: int | None = None
-        self.last_usage: dict = {}
+        self._local = threading.local()   # dernier appel, PAR FIL : pas de mélange entre requêtes concurrentes
         self.context_tokens = int(self.extra_options.get("num_ctx") or DEFAULT_NUM_CTX)
         self.extra_options["num_ctx"] = self.context_tokens  # explicite : le défaut d'Ollama varie selon la VRAM
 
@@ -72,6 +73,20 @@ class OllamaProvider(LLMProvider):
     def name(self) -> str:
         """Nom exact du modèle en service, tracé dans chaque exécution (NFR-07)."""
         return f"ollama:{self.generation_model}"
+
+    @property
+    def last_usage(self) -> dict:
+        return getattr(self._local, "usage", {})
+
+    @property
+    def served_model(self) -> str:
+        """Modèle réellement envoyé au dernier appel de ce fil (un changement d'actif pendant l'appel n'y change rien)."""
+        model = getattr(self._local, "model", None)
+        return f"ollama:{model}" if model else self.name
+
+    @property
+    def embedding_name(self) -> str:
+        return f"ollama:{self.embedding_model}"
 
     def _post(self, path: str, payload: dict) -> dict:
         try:
@@ -93,7 +108,8 @@ class OllamaProvider(LLMProvider):
             options["seed"] = seed
         if max_tokens is not None:
             options["num_predict"] = max_tokens
-        payload = {"model": self.generation_model, "messages": self._messages(prompt, system),
+        model = self.generation_model   # lu UNE fois : c'est ce nom qui part et qui sera journalisé
+        payload = {"model": model, "messages": self._messages(prompt, system),
                    "stream": False, "think": self.think, "options": options,
                    # jamais de coupe silencieuse : par défaut Ollama jette le DÉBUT (règles, premiers passages)
                    "truncate": False, "shift": False}
@@ -102,9 +118,11 @@ class OllamaProvider(LLMProvider):
         if fmt is not None:
             payload["format"] = fmt
         data = self._post("/api/chat", payload)
-        self.last_usage = {"prompt_tokens": data.get("prompt_eval_count"),
-                           "output_tokens": data.get("eval_count"),
-                           "total_ms": (data.get("total_duration") or 0) // 1_000_000}
+        self._local.model = model
+        self._local.usage = {"prompt_tokens": data.get("prompt_eval_count"),
+                             "output_tokens": data.get("eval_count"),
+                             "total_ms": (data.get("total_duration") or 0) // 1_000_000,
+                             "eval_ms": (data.get("eval_duration") or 0) // 1_000_000}
         try:
             return data["message"]["content"]
         except (KeyError, TypeError) as exc:

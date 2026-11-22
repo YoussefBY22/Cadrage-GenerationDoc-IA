@@ -14,8 +14,8 @@ CONTEXT_OVERHEAD_TOKENS = 200   # consigne de section et fiche de contexte (esti
 AVG_PASSAGE_TOKENS = 350        # taille moyenne d'un passage, pour estimer un nombre de passages
 SATURATION = [
     "Le moteur refuse tout dépassement : aucune coupe silencieuse du début de la requête.",
-    "Les passages qui ne tiennent pas sont répartis en lots, ou signalés comme non envoyés.",
-    "Le modèle ne peut citer que les passages réellement envoyés.",
+    "Constats : les passages sont répartis en lots, aucun n'est abandonné.",
+    "Sections : les passages qui ne tiennent pas ne sont pas envoyés ; le modèle ne cite que ceux envoyés.",
 ]
 
 

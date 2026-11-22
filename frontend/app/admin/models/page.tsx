@@ -11,7 +11,8 @@ import { t } from "@/lib/i18n";
 import { useGuard } from "@/lib/useGuard";
 
 const fmt = (n: number | null | undefined) => (n == null ? t.models.l.unknown : n.toLocaleString("fr-FR"));
-const gb = (n: number | null) => (n == null ? "—" : `${(n / 1e9).toFixed(1)} Go`);
+const gb = (n: number | null) => (n == null ? "—" : `${(n / 1e9).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} ${t.models.l.gb}`);
+const tokens = (n: number | null | undefined) => (n == null ? t.models.l.unknown : `${fmt(n)} ${t.models.l.tokens}`);
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -30,7 +31,7 @@ function LimitCards({ limits }: { limits: Limits }) {
       <section className="card">
         <h3>{t.models.limits.model}</h3>
         <dl>
-          <Row label={l.maxContext}>{fmt(limits.model.max_context)} {l.tokens}</Row>
+          <Row label={l.maxContext}>{tokens(limits.model.max_context)}</Row>
           <Row label={l.images}>{vision ? l.imagesYes : vision === false ? l.imagesNo : l.unknown}</Row>
           <Row label={l.capabilities}>{limits.model.capabilities?.join(", ") ?? l.unknown}</Row>
         </dl>
@@ -39,10 +40,10 @@ function LimitCards({ limits }: { limits: Limits }) {
         <h3>{t.models.limits.engine}</h3>
         <dl>
           <Row label={l.allocated}>
-            <b>{fmt(limits.engine.allocated_context)}</b> {l.tokens}{" "}
+            <b>{tokens(limits.engine.allocated_context)}</b>{" "}
             <span className="muted">({limits.engine.allocated_source === "config" ? l.fromConfig : l.fromDefault})</span>
           </Row>
-          {limits.engine.loaded_context != null && <Row label={l.loaded}>{fmt(limits.engine.loaded_context)} {l.tokens}</Row>}
+          {limits.engine.loaded_context != null && <Row label={l.loaded}>{tokens(limits.engine.loaded_context)}</Row>}
           <Row label={l.vram}>{gb(limits.engine.vram_bytes)}</Row>
           {limits.engine.gpu_layers != null && <Row label={l.gpu}>{limits.engine.gpu_layers}</Row>}
         </dl>
@@ -50,7 +51,7 @@ function LimitCards({ limits }: { limits: Limits }) {
       <section className="card">
         <h3>{t.models.limits.app}</h3>
         <dl>
-          <Row label={l.reserved}>{fmt(limits.app.response_reserved)} {l.tokens}</Row>
+          <Row label={l.reserved}>{tokens(limits.app.response_reserved)}</Row>
           <Row label={l.upload}>{limits.app.max_upload_mb} Mo</Row>
           <Row label={l.formats}>{limits.app.formats.join(", ")}</Row>
           <Row label={l.saturation}>
@@ -222,10 +223,10 @@ export default function ModelsPage() {
                       <details>
                         <summary>{t.models.details}</summary>
                         <dl className="tech">
-                          <Row label={t.models.family}>{m.family ?? "—"} {m.parameter_size}</Row>
+                          <Row label={t.models.family}>{[m.family, m.parameter_size].filter(Boolean).join(" ") || "—"}</Row>
                           <Row label={t.models.digest}>{m.digest.slice(0, 19)}</Row>
                           <Row label={t.models.licence}>{m.license ?? "—"}</Row>
-                          {m.test?.tokens_per_second != null && <Row label={t.models.speed}>{m.test.tokens_per_second}</Row>}
+                          {m.test?.tokens_per_second != null && <Row label={t.models.speed}>{m.test.tokens_per_second.toLocaleString("fr-FR")}</Row>}
                         </dl>
                         {m.test && <Checks checks={m.test.checks} />}
                       </details>
