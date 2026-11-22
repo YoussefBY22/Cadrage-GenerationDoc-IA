@@ -45,9 +45,9 @@ Mesurés sur un PC portable (GTX 1650, 4 Go de VRAM), modèle de génération **
 | Latence par section | **18,2 s** (p50), 23,1 s (p95) ; débit 40 jetons/s | réel, 31 sections |
 | Mémoire vidéo | **3,1 Go** de pic sur 4 Go | réel |
 | Rappel@10 de la recherche (bge-m3 + BM25) | **1,000** | réel, 1 institution, 31 sections : petit échantillon |
-| Faux refus / refus manqués | 10 % / 10 % après réglage (60 % / 30 % avant) | réel, une passe : ±1–2 sections de bruit |
+| Faux refus / refus manqués | **0 % / 0 %** avec la porte de pertinence (seuil cosinus 0,45) ; 10 % / 10 % sans elle | réel, une passe, 10 sections par catégorie ; seuil calibré sur ce même échantillon synthétique : à recalibrer sur corpus réel |
 | PostgreSQL + pgvector, export PDF LibreOffice, parcours navigateur Playwright | exécutés et verts | réel |
-| Tests | 432 backend, 33 entraînement, 22 interface | automatisés |
+| Tests | 436 backend, 33 entraînement, 22 interface | automatisés |
 | Rappel@10, 23/23 erreurs détectées, TPV 0,85 du banc d'évaluation | | **simulé** (corpus fictif, faux modèle) : valide la mécanique, pas la qualité |
 | Entraînement LoRA (modèle « C ») | | **à faire** (T5) |
 | Valeurs du tableau de bord Power BI | | **inventées** (démonstration) |

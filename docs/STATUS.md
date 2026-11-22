@@ -1,6 +1,6 @@
 # STATUS — Phases A à G1 hors ligne (nuit 1), puis passage au réel (nuit 2, 22/11/2026)
 
-Branche `main` : 19 lots B0 → G1 (nuit 1, faux modèle) puis T1, T2, UI, EN, T4, T6 (nuit 2, réel). Lot Q (prompts anti-faux-refus et correctif PDF) en cours ; ce document : lot V. Les sections 1 à 3 décrivent l'état de la nuit 1 ; la section 1 bis résume la nuit 2. Comptes rendus détaillés : `docs/lots/<ID>.md` (index et « Pour comprendre » : `docs/lots/README.md`).
+Branche `main` : 19 lots B0 → G1 (nuit 1, faux modèle) puis T1, T2, UI, EN, T4, T6 (nuit 2, réel). Lots Q (PDF) et Q2 (porte de pertinence) terminés ; ce document : lot V, complété par l'orchestrateur. Les sections 1 à 3 décrivent l'état de la nuit 1 ; la section 1 bis résume la nuit 2. Comptes rendus détaillés : `docs/lots/<ID>.md` (index et « Pour comprendre » : `docs/lots/README.md`).
 
 ## 1. Fait
 Tout le produit existe et passe ses tests **avec un faux modèle** (aucun vrai modèle, aucune base PostgreSQL, aucun Docker n'a tourné).
@@ -26,7 +26,8 @@ Tout le produit existe et passe ses tests **avec un faux modèle** (aucun vrai m
 | **EN** | Gabarits, prompts, nombres anglais du vérificateur et exports en français et en anglais. |
 | **T4** | **103 documents CC BY** (Banque mondiale, Commission européenne), 82 EN / 21 FR ; **3 105 exemples** d'entraînement vérifiés ; jeu or réel de **34 questions** ; Kaggle non utilisé (compte exigé). |
 | **T6** | Thème Power BI EY, projet PBIP (5 pages, **non ouvert dans Desktop**), CSV de démo, LibreOffice installé, test `-m soffice` vert, hypothèses H1 à H7 au §13 du cahier des charges. |
-| **Q** (en cours) | Prompts anti-faux-refus d'après T2, correctif PDF (profil et répertoire temporaires). |
+| **Q** | Export PDF réparé (soffice détecté dans Program Files, profil et cwd temporaires contre l'accès contrôlé aux dossiers de Defender), `-m soffice` vert. Trois itérations de prompt : toutes **rejetées** (faux refus 0 % mais refus manqués 30 à 50 %). |
+| **Q2** | **Porte de pertinence** avant l'appel au modèle (`app/generation/relevance.py`, meilleur cosinus bge-m3 < 0,45 → refus sans appel) + prompts de l'itération 1 : refus 32 %, **faux refus 0 %, refus manqués 0 %** sur une passe réelle (31 sections). Réserve : seuil calibré sur ce même échantillon synthétique, marge de 0,019 ; à recalibrer sur le jeu or réel (T4) via `RELEVANCE_THRESHOLD`. 436 tests verts. |
 
 Contrôles de l'orchestrateur après fusion : backend **432 passés, 5 sautés** ; PostgreSQL réel 4 passés ; entraînement 33 ; interface : lint, 22 tests, build. Le test `soffice` reste sauté sans `soffice` dans le PATH (lot Q).
 
