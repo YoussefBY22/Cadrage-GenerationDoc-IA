@@ -1,0 +1,55 @@
+{
+ "documents": 103,
+ "documents_par_langue": {
+  "en": 82,
+  "fr": 21
+ },
+ "documents_par_role": {
+  "diagnostic": 52,
+  "livrable": 51
+ },
+ "documents_par_source": {
+  "okr": 71,
+  "cellar": 32
+ },
+ "pages_estimees": 8721,
+ "mots": 3923127,
+ "jetons_estimes": 5121709,
+ "exemples": {
+  "train": 2457,
+  "val": 288,
+  "test": 360
+ },
+ "exemples_par_langue": {
+  "en": 2573,
+  "fr": 532
+ },
+ "exemples_par_type": {
+  "section": 2187,
+  "refus": 467,
+  "piege": 300,
+  "constats": 151
+ },
+ "groupes_par_partie": {
+  "gold": 7,
+  "test": 5,
+  "val": 5,
+  "train": 41
+ },
+ "rejets_filtre": {},
+ "documents_gold": [
+  "eu-52020PC0280-en",
+  "eu-52020PC0337-en",
+  "eu-52020SC0120-en",
+  "eu-52020SC0142-en",
+  "wb-27148",
+  "wb-27559",
+  "wb-27563",
+  "wb-29702",
+  "wb-30225",
+  "wb-31132",
+  "wbfr-28327159",
+  "wbfr-31149680",
+  "wbfr-33920584"
+ ]
+}
