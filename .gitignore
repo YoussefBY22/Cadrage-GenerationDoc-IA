@@ -10,3 +10,6 @@ __pycache__/
 # Corpus public téléchargé (lot T4) : régénérable par data/public/fetch.py
 data/public/raw/
 training/data/
+
+# Base SQLite locale créée au lancement
+backend/data/*.db
