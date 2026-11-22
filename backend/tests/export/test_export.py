@@ -1,7 +1,6 @@
 """Tests du lot D2 : exports DOCX / PPTX / PDF, garde d'approbation, route."""
 
 import re
-import shutil
 
 import pytest
 from docx import Document
@@ -23,6 +22,7 @@ from app.export.common import (
     export_deliverable,
     load_export_data,
 )
+from app.export.pdf_export import soffice_binary
 
 P = "/api/v1"
 
@@ -167,7 +167,7 @@ def test_route_pdf_501_sans_soffice(world, client, tmp_path, monkeypatch):
 
 
 @pytest.mark.soffice
-@pytest.mark.skipif(shutil.which("soffice") is None, reason="LibreOffice absent")
+@pytest.mark.skipif(soffice_binary() is None, reason="LibreOffice absent")
 def test_pdf_soffice(world, tmp_path):
     _approve(world)
     path, _ = export_deliverable(world["repo"], world["did"], "pdf", world["uid"], tmp_path)
