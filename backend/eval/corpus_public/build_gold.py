@@ -19,8 +19,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 sys.path[:0] = [str(ROOT), str(ROOT / "backend")]
 
-from training.dataset import real  # noqa: E402
-from training.dataset.extract import load_manifest, read_document  # noqa: E402
+from training.dataset import real
+from training.dataset.extract import load_manifest, read_document
 
 OUT = Path(__file__).with_name("gold_public.json")
 
