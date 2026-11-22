@@ -1,7 +1,11 @@
 "use client";
 
+import { AlertTriangle, ChevronRight, Flag, Route, Save } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { Alert, Empty } from "@/components/ui";
 import { ApiError } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import { deliverables } from "./client";
 import { m } from "./i18n";
 import type { Deliverable, RoadmapResult } from "./types";
@@ -12,7 +16,7 @@ interface Edit {
   depends?: string;
 }
 
-const errText = (e: unknown) => (e instanceof ApiError ? e.message : "Une erreur est survenue");
+const errText = (e: unknown) => (e instanceof ApiError ? e.message : t.common.error);
 
 export default function RoadmapView({ id }: { id: string }) {
   const [d, setD] = useState<Deliverable | null>(null);
@@ -57,76 +61,131 @@ export default function RoadmapView({ id }: { id: string }) {
     }
   };
 
-  if (!d) return <p role={error ? "alert" : undefined}>{error ?? "Chargement…"}</p>;
-  if (!roadmap) return <p>{m.roadmap} : aucune donnée.</p>;
+  if (!d) return <p role={error ? "alert" : undefined}>{error ?? t.common.loading}</p>;
   const c = m.roadmapCols;
+  if (!roadmap)
+    return <Empty icon={Route} label={m.noRoadmap} />;
+
+  const sorted = [...roadmap.items].sort((a, b) => a.rank - b.rank);
+  const title = (iid: string) => roadmap.items.find((x) => x.initiative.id === iid)?.initiative.title ?? iid;
+  const waves = [...new Set(sorted.map((x) => x.wave))].sort((a, b) => a - b);
+  const maxScore = Math.max(...sorted.map((x) => x.score), 1);
 
   return (
     <section>
-      <h1>{m.roadmap}</h1>
+      <div className="page-head">
+        <div>
+          <div className="crumb">
+            <Link href={`/dossiers/${d.dossier_id}`}>{t.nav.dossiers}</Link>
+            <ChevronRight size={14} />
+          </div>
+          <h1>{m.roadmap}</h1>
+        </div>
+        {editable && (
+          <div className="actions">
+            <button className="btn btn-dark" disabled={Object.keys(edits).length === 0} onClick={save}>
+              <Save size={16} />
+              {m.saveRoadmap}
+            </button>
+          </div>
+        )}
+      </div>
       {roadmap.cycles.map((cycle, i) => (
-        <p key={i} role="alert" data-testid="cycle-alert">
+        <div key={i} className="toast err" role="alert" data-testid="cycle-alert">
+          <AlertTriangle size={16} />
           {m.cycleAlert(cycle.join(" → "))}
-        </p>
+        </div>
       ))}
-      {error && <p role="alert">{error}</p>}
-      <table>
-        <thead>
-          <tr>
-            <th>{c.rank}</th>
-            <th>{c.wave}</th>
-            <th>{c.title}</th>
-            <th>{c.score}</th>
-            <th>{c.explain}</th>
-            <th>{c.duration}</th>
-            <th>{c.depends}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {[...roadmap.items]
-            .sort((a, b) => a.rank - b.rank)
-            .map(({ initiative: ini, score, rank, wave }) => (
+      {error && <Alert>{error}</Alert>}
+
+      <div className="card" style={{ marginBottom: 20, display: "grid", gap: 12 }}>
+        {waves.map((w) => (
+          <div key={w} className="wave-lane">
+            <span className="wave">{c.wave} {w}</span>
+            {sorted
+              .filter((x) => x.wave === w)
+              .map((x) => (
+                <span key={x.initiative.id} className={`chip${roadmap.critical_path.includes(x.initiative.id) ? " crit-path" : ""}`}>
+                  {x.initiative.title}
+                </span>
+              ))}
+          </div>
+        ))}
+        {roadmap.critical_path.length > 0 && (
+          <div className="wave-lane muted" style={{ borderTop: "1px solid var(--line)", paddingTop: 10 }}>
+            <Flag size={14} />
+            <b style={{ color: "var(--ink)" }}>{m.criticalPath}</b>
+            {roadmap.critical_path.map(title).join(" → ")}
+          </div>
+        )}
+      </div>
+
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>{c.rank}</th>
+              <th>{c.wave}</th>
+              <th>{c.title}</th>
+              <th>{c.score}</th>
+              <th>{c.explain}</th>
+              <th>{c.duration}</th>
+              <th>{c.depends}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map(({ initiative: ini, score, rank, wave }) => (
               <tr key={ini.id} data-testid={`row-${ini.id}`}>
-                <td>{rank}</td>
-                <td>{wave}</td>
-                <td>{ini.title}</td>
-                <td>{score.toFixed(2)}</td>
                 <td>
-                  {roadmap.criteria.map((cr) => {
-                    const sc = ini.scores.find((s) => s.key === cr.key);
-                    return (
-                      <label key={cr.key} title={sc?.rationale ?? ""} style={{ display: "block" }}>
-                        {cr.label} ({Math.round(cr.weight * 100)} %){" "}
-                        <input
-                          type="number"
-                          min={1}
-                          max={5}
-                          disabled={!editable}
-                          aria-label={`${ini.title} ${cr.label}`}
-                          value={edits[ini.id]?.scores[cr.key] ?? sc?.value ?? 1}
-                          onChange={(e) =>
-                            patchEdit(ini.id, (x) => ({
-                              ...x,
-                              scores: { ...x.scores, [cr.key]: Number(e.target.value) },
-                            }))
-                          }
-                          style={{ width: "3.5rem" }}
-                        />
-                      </label>
-                    );
-                  })}
+                  <span className="rank">{rank}</span>
+                </td>
+                <td>
+                  <span className="wave">{wave}</span>
+                </td>
+                <td style={{ fontWeight: 600, minWidth: 180 }}>{ini.title}</td>
+                <td>
+                  <span className="score">{score.toFixed(2)}</span>
+                  <span className="score-bar">
+                    <i style={{ width: `${Math.round((score / maxScore) * 100)}%` }} />
+                  </span>
+                </td>
+                <td>
+                  <div className="crit">
+                    {roadmap.criteria.map((cr) => {
+                      const sc = ini.scores.find((s) => s.key === cr.key);
+                      return (
+                        <label key={cr.key} title={sc?.rationale ?? ""} style={{ display: "contents" }}>
+                          <span>
+                            {cr.label} · {Math.round(cr.weight * 100)} %
+                          </span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={5}
+                            disabled={!editable}
+                            aria-label={`${ini.title} ${cr.label}`}
+                            value={edits[ini.id]?.scores[cr.key] ?? sc?.value ?? 1}
+                            onChange={(e) =>
+                              patchEdit(ini.id, (x) => ({
+                                ...x,
+                                scores: { ...x.scores, [cr.key]: Number(e.target.value) },
+                              }))
+                            }
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
                 </td>
                 <td>
                   <input
                     type="number"
                     min={1}
+                    className="mini-input"
                     disabled={!editable}
                     aria-label={`${ini.title} ${c.duration}`}
                     value={edits[ini.id]?.duration ?? ini.duration_weeks ?? ""}
-                    onChange={(e) =>
-                      patchEdit(ini.id, (x) => ({ ...x, duration: Number(e.target.value) }))
-                    }
-                    style={{ width: "4.5rem" }}
+                    onChange={(e) => patchEdit(ini.id, (x) => ({ ...x, duration: Number(e.target.value) }))}
                   />
                 </td>
                 <td>
@@ -139,18 +198,9 @@ export default function RoadmapView({ id }: { id: string }) {
                 </td>
               </tr>
             ))}
-        </tbody>
-      </table>
-      {roadmap.critical_path.length > 0 && (
-        <p>
-          {m.criticalPath} : {roadmap.critical_path.join(" → ")}
-        </p>
-      )}
-      {editable && (
-        <button disabled={Object.keys(edits).length === 0} onClick={save}>
-          {m.saveRoadmap}
-        </button>
-      )}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }

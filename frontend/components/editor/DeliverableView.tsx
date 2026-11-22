@@ -1,8 +1,12 @@
 "use client";
 
+import { CheckCheck, ChevronRight, MessageSquare, Sparkles, Save } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import SourcePanel from "@/components/SourcePanel";
+import { Alert } from "@/components/ui";
 import { ApiError } from "@/lib/api";
+import { sectionTitle, t } from "@/lib/i18n";
 import { ExportBar, TransitionBar } from "./ActionBars";
 import { deliverables, type ExportFormat } from "./client";
 import { m } from "./i18n";
@@ -17,7 +21,9 @@ import {
 } from "./types";
 import VersionsPanel from "./VersionsPanel";
 
-const errText = (e: unknown) => (e instanceof ApiError ? e.message : "Une erreur est survenue");
+const TYPE_LABEL: Record<string, string> = { tor: "ToR", cdc: "CdC" };
+
+const errText = (e: unknown) => (e instanceof ApiError ? e.message : t.common.error);
 
 function download(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -76,7 +82,7 @@ export default function DeliverableView({ id }: { id: string }) {
     }
   };
 
-  if (!d) return <p role={error ? "alert" : undefined}>{error ?? "Chargement…"}</p>;
+  if (!d) return <p role={error ? "alert" : undefined}>{error ?? t.common.loading}</p>;
 
   const editable = d.state === "draft";
   const specs = TEMPLATE_SECTIONS[d.type] ?? [];
@@ -91,14 +97,33 @@ export default function DeliverableView({ id }: { id: string }) {
     });
 
   return (
-    <div className="split">
-      <section>
-        <h1>{d.type.toUpperCase()}</h1>
+    <>
+      <div className="page-head">
+        <div>
+          <div className="crumb">
+            <Link href={`/dossiers/${d.dossier_id}`}>{t.nav.dossiers}</Link>
+            <ChevronRight size={14} />
+            <span>v{d.version}</span>
+          </div>
+          <h1>{TYPE_LABEL[d.type] ?? d.type.toUpperCase()}</h1>
+        </div>
+        {editable && (
+          <div className="actions">
+            <button className="btn btn-dark" disabled={busy !== null || Object.keys(edits).length === 0} onClick={save}>
+              <Save size={16} />
+              {m.save}
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="toolbar">
         <TransitionBar
           state={d.state}
           role={role}
           onTransition={(to, reason) => run("transition", () => deliverables.transition(id, to, reason).then(() => {}))}
         />
+        <span className="sep" />
         <ExportBar
           state={d.state}
           onExport={(f: ExportFormat) =>
@@ -108,86 +133,112 @@ export default function DeliverableView({ id }: { id: string }) {
             })
           }
         />
-        {!editable && <p className="badge">{m.readonly}</p>}
-        {error && <p role="alert">{error}</p>}
-        {message && <p role="status">{message}</p>}
+      </div>
+      {error && <Alert>{error}</Alert>}
+      {message && (
+        <div className="toast ok" role="status">
+          <CheckCheck size={16} />
+          {message}
+        </div>
+      )}
 
-        {specs.map(({ key, title }) => {
-          const section = byKey.get(key);
-          const report = reportOf(key);
-          const failed = report?.report.checks.filter((c) => c.status === "failed") ?? [];
-          return (
-            <article key={key} className="card" data-testid={`section-${key}`}>
-              <h2>{title}</h2>
-              {section && (
-                <SectionEditor
-                  section={section}
-                  report={report}
-                  editable={editable}
-                  onChange={(s) => setEdits((e) => ({ ...e, [key]: s }))}
-                  onSourceClick={setSource}
-                />
-              )}
-              {editable && (
-                <button disabled={busy !== null} onClick={() => run("gen-" + key, async () => {
-                  await deliverables.generateSection(id, key);
-                })}>
-                  {busy === "gen-" + key ? m.generating : m.generate}
-                </button>
-              )}
-              {role !== "consultant" &&
-                failed.map((c) => (
-                  <button
-                    key={c.index}
-                    onClick={() => run("ack", () => deliverables.acknowledge(id, key, c.index).then(() => {}))}
-                  >
-                    {m.ack} #{c.index + 1}
-                  </button>
-                ))}
-              <h3>{m.comments}</h3>
-              <ul>
-                {comments
-                  .filter((c) => c.section_key === key)
-                  .map((c) => (
-                    <li key={c.id}>{c.text}</li>
-                  ))}
-              </ul>
-              <div className="row">
-                <input
-                  value={draftComment[key] ?? ""}
-                  placeholder={m.commentPlaceholder}
-                  aria-label={`${m.commentPlaceholder} ${title}`}
-                  onChange={(e) => setDraftComment((c) => ({ ...c, [key]: e.target.value }))}
-                />
-                <button
-                  disabled={!(draftComment[key] ?? "").trim()}
-                  onClick={() =>
-                    run("comment", async () => {
-                      await deliverables.addComment(id, key, draftComment[key]);
-                      setDraftComment((c) => ({ ...c, [key]: "" }));
-                    })
-                  }
-                >
-                  {m.addComment}
-                </button>
-              </div>
-            </article>
-          );
-        })}
-        {editable && (
-          <button disabled={busy !== null || Object.keys(edits).length === 0} onClick={save}>
-            {m.save}
-          </button>
-        )}
-        <VersionsPanel
-          id={id}
-          versions={versions}
-          editable={editable}
-          onRestore={(n) => run("restore", () => deliverables.restore(id, n).then(() => {}))}
-          onError={(e) => setError(errText(e))}
-        />
-      </section>
-      {source && <SourcePanel chunkId={source} onClose={() => setSource(null)} />}
-    </div>
+      <div className="split with-panel">
+        <section>
+          {specs.map(({ key }) => {
+            const section = byKey.get(key);
+            const report = reportOf(key);
+            const failed = report?.report.checks.filter((c) => c.status === "failed") ?? [];
+            const sectionComments = comments.filter((c) => c.section_key === key);
+            const title = sectionTitle(d.type, key);
+            return (
+              <article key={key} className="card section-card" data-testid={`section-${key}`}>
+                <header>
+                  <h2>{title}</h2>
+                  {editable && (
+                    <button
+                      className="btn btn-primary btn-sm"
+                      disabled={busy !== null}
+                      onClick={() =>
+                        run("gen-" + key, async () => {
+                          await deliverables.generateSection(id, key);
+                        })
+                      }
+                    >
+                      <Sparkles size={14} />
+                      {busy === "gen-" + key ? m.generating : m.generate}
+                    </button>
+                  )}
+                </header>
+                <div className="section-body">
+                  {section && (
+                    <SectionEditor
+                      section={section}
+                      report={report}
+                      editable={editable}
+                      onChange={(s) => setEdits((e) => ({ ...e, [key]: s }))}
+                      onSourceClick={setSource}
+                    />
+                  )}
+                </div>
+                {role !== "consultant" && failed.length > 0 && (
+                  <div className="section-foot">
+                    {failed.map((c) => (
+                      <button
+                        key={c.index}
+                        className="btn btn-sm"
+                        onClick={() => run("ack", () => deliverables.acknowledge(id, key, c.index).then(() => {}))}
+                      >
+                        {m.ack} #{c.index + 1}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <details className="comments" open={sectionComments.length > 0}>
+                  <summary className="row" style={{ cursor: "pointer", gap: 6 }}>
+                    <MessageSquare size={14} />
+                    <h3>{m.comments}</h3>
+                    {sectionComments.length > 0 && <span className="tag">{sectionComments.length}</span>}
+                  </summary>
+                  <ul>
+                    {sectionComments.map((c) => (
+                      <li key={c.id}>{c.text}</li>
+                    ))}
+                  </ul>
+                  <div className="row">
+                    <input
+                      className="grow"
+                      value={draftComment[key] ?? ""}
+                      placeholder={m.commentPlaceholder}
+                      aria-label={`${m.commentPlaceholder} ${title}`}
+                      onChange={(e) => setDraftComment((c) => ({ ...c, [key]: e.target.value }))}
+                    />
+                    <button
+                      className="btn btn-sm"
+                      disabled={!(draftComment[key] ?? "").trim()}
+                      onClick={() =>
+                        run("comment", async () => {
+                          await deliverables.addComment(id, key, draftComment[key]);
+                          setDraftComment((c) => ({ ...c, [key]: "" }));
+                        })
+                      }
+                    >
+                      {m.addComment}
+                    </button>
+                  </div>
+                </details>
+              </article>
+            );
+          })}
+          <VersionsPanel
+            id={id}
+            versions={versions}
+            editable={editable}
+            onRestore={(n) => run("restore", () => deliverables.restore(id, n).then(() => {}))}
+            onError={(e) => setError(errText(e))}
+          />
+        </section>
+        <SourcePanel chunkId={source} onClose={() => setSource(null)} />
+      </div>
+    </>
   );
 }

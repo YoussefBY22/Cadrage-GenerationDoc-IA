@@ -1,11 +1,14 @@
 "use client";
 
+import { Check, Download, Lock, Send, Undo2, X } from "lucide-react";
 import { useState } from "react";
 import { m } from "./i18n";
 import type { ExportFormat } from "./client";
 import type { DeliverableState, Role } from "./types";
 
 type Target = { to: DeliverableState; label: string; needsReason?: boolean; reviewerOnly?: boolean };
+
+const ICONS = { in_review: Send, approved: Check, rejected: X, draft: Undo2 } as const;
 
 /** Boutons de transition offerts selon l'état courant (06 §8) ; le serveur reste l'arbitre. */
 export function transitionsFor(state: DeliverableState): Target[] {
@@ -38,7 +41,7 @@ export function TransitionBar({
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const targets = transitionsFor(state).filter((t) => !t.reviewerOnly || role !== "consultant");
+  const targets = transitionsFor(state).filter((tg) => !tg.reviewerOnly || role !== "consultant");
 
   const confirm = () => {
     if (pending?.needsReason && !reason.trim()) {
@@ -53,17 +56,22 @@ export function TransitionBar({
 
   return (
     <div className="row">
-      <span className="badge" data-testid="state">
+      <span className={`badge ${state}`} data-testid="state">
         {m.state[state]}
       </span>
-      {targets.map((t) => (
-        <button
-          key={t.to + t.label}
-          onClick={() => (t.needsReason ? setPending(t) : onTransition(t.to))}
-        >
-          {t.label}
-        </button>
-      ))}
+      {targets.map((tg) => {
+        const Icon = ICONS[tg.to];
+        return (
+          <button
+            key={tg.to + tg.label}
+            className={`btn btn-sm${tg.to === "approved" ? " btn-primary" : ""}`}
+            onClick={() => (tg.needsReason ? setPending(tg) : onTransition(tg.to))}
+          >
+            <Icon size={14} />
+            {tg.label}
+          </button>
+        );
+      })}
       {pending && (
         <>
           <input
@@ -72,7 +80,9 @@ export function TransitionBar({
             placeholder={m.reason}
             aria-label={m.reason}
           />
-          <button onClick={confirm}>{m.confirm}</button>
+          <button className="btn btn-dark btn-sm" onClick={confirm}>
+            {m.confirm}
+          </button>
         </>
       )}
       {error && <span role="alert">{error}</span>}
@@ -92,11 +102,17 @@ export function ExportBar({
     <div className="row">
       <strong>{m.exports}</strong>
       {(["docx", "pptx", "pdf"] as const).map((f) => (
-        <button key={f} disabled={!enabled} onClick={() => onExport(f)}>
+        <button key={f} className="btn btn-sm" disabled={!enabled} onClick={() => onExport(f)}>
+          <Download size={14} />
           {f.toUpperCase()}
         </button>
       ))}
-      {!enabled && <small>{m.exportHint}</small>}
+      {!enabled && (
+        <small className="row" style={{ gap: 4 }}>
+          <Lock size={12} />
+          {m.exportHint}
+        </small>
+      )}
     </div>
   );
 }

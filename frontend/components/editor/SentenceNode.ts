@@ -1,15 +1,11 @@
 import { Node } from "@tiptap/react";
+import { m } from "./i18n";
 
 export interface SentenceOptions {
   /** Appelé au clic sur une référence [n] : reçoit l'identifiant du passage. */
   onSourceClick: (chunkId: string) => void;
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  verified: "Vérifiée",
-  warning: "À vérifier",
-  failed: "Échec de vérification",
-};
 
 /** Nœud « phrase » : texte brut + attributs (statut, sources). Les sources se lisent via [n]. */
 export const SentenceNode = Node.create<SentenceOptions>({
@@ -56,7 +52,7 @@ export const SentenceNode = Node.create<SentenceOptions>({
       const paint = () => {
         const status = (node.attrs.status as string | null) ?? "none";
         dom.setAttribute("data-status", status);
-        dom.title = STATUS_LABEL[status] ?? "";
+        dom.title = m.statusLabel[status] ?? "";
         refs.replaceChildren();
         (node.attrs.sources as string[]).forEach((id, i) => {
           const b = document.createElement("button");

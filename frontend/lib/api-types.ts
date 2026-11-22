@@ -85,3 +85,9 @@ export interface FindingPatch {
   text?: string;
   validated?: boolean;
 }
+
+export interface RoadmapGenerated {
+  deliverable_id: string;
+  /** Initiatives classées ; la première (rang 1) sert de contexte au ToR. */
+  roadmap: { items: { rank: number; initiative: { id: string } }[] };
+}

@@ -103,7 +103,7 @@ describe("transitions et exports", () => {
     render(<TransitionBar state="in_review" role="reviewer" onTransition={onT} />);
     fireEvent.click(screen.getByText("Refuser"));
     fireEvent.click(screen.getByText("Confirmer"));
-    expect(screen.getByRole("alert")).toHaveTextContent("motif");
+    expect(screen.getByRole("alert")).toHaveTextContent(/motif/i);
     expect(onT).not.toHaveBeenCalled();
     fireEvent.change(screen.getByLabelText(/Motif/), { target: { value: "chiffres faux" } });
     fireEvent.click(screen.getByText("Confirmer"));
