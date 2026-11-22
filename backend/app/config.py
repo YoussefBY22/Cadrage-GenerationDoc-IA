@@ -15,6 +15,18 @@ class Settings(BaseSettings):
     ollama_generation_model: str = ""   # ex. nom du modèle installé par l'utilisateur
     ollama_embedding_model: str = ""
     llm_timeout_seconds: float = 120.0
+    # Réglages du modèle réel (T2) ; None = valeur par défaut d'Ollama
+    ollama_think: bool = False           # Qwen3 : réflexion désactivée
+    ollama_keep_alive: str = "30m"
+    ollama_temperature: float | None = None   # None = celle demandée par l'appelant (0.0)
+    ollama_num_ctx: int | None = None
+    ollama_num_gpu: int | None = None         # 99 = toutes les couches sur le GPU (x2 en vitesse sur 4 Go)
+    ollama_num_predict: int | None = None
+    ollama_top_p: float | None = None
+    ollama_top_k: int | None = None
+    ollama_repeat_penalty: float | None = None
+    ollama_embedding_query_prefix: str = ""     # bge-m3 : aucun préfixe (e5 : "query: ")
+    ollama_embedding_passage_prefix: str = ""   # e5 : "passage: "
     # Garde-fou : le serveur de modèle doit être local ou dans cette liste (séparée par des virgules)
     llm_allowed_hosts: str = "localhost,127.0.0.1,::1,ollama,host.docker.internal"
 
@@ -23,7 +35,8 @@ class Settings(BaseSettings):
 
     # Stockage et recherche (06 §11)
     storage_url: str = "sqlite+pysqlite:///./data/app.db"
-    embedding_dim: int = 64
+    embedding_dim: int = 64          # bge-m3 : 1024 (ré-indexer si on change de modèle)
+    embedding_passage_prefix: str = "passage: "   # bge-m3 : "" (e5 : "passage: ")
     upload_dir: str = "./data/uploads"
     max_upload_mb: int = 25
     allow_self_approval: bool = False

@@ -65,7 +65,29 @@ def test_generate_request_shape(server):
     assert body["model"] == "gen-model" and body["stream"] is False
     assert body["messages"][0] == {"role": "system", "content": "règles"}
     assert body["options"] == {"temperature": 0.0, "seed": 7, "num_predict": 50}
+    assert body["think"] is False and body["keep_alive"] == "30m"
     assert text
+
+
+def test_extra_options_and_think_flag(server):
+    p = OllamaProvider(server, "g", "e", ALLOWED, think=True,
+                       options={"num_ctx": 4096, "top_p": None, "top_k": 20})
+    p.generate("q")
+    _, body = FakeOllama.requests[0]
+    assert body["think"] is True
+    assert body["options"]["num_ctx"] == 4096 and body["options"]["top_k"] == 20
+    assert "top_p" not in body["options"]
+
+
+def test_embedding_prefixes_and_batching(server):
+    p = OllamaProvider(server, "g", "e", ALLOWED, query_prefix="query: ",
+                       passage_prefix="passage: ", embed_batch=2)
+    assert len(p.embed(["a", "b", "c"])) == 3
+    assert [b["input"] for _, b in FakeOllama.requests] == [["passage: a", "passage: b"],
+                                                           ["passage: c"]]
+    FakeOllama.requests.clear()
+    p.embed_query(["x"])
+    assert FakeOllama.requests[0][1]["input"] == ["query: x"]
 
 
 def test_structured_sends_json_schema_and_validates(server):

@@ -1,0 +1,173 @@
+{
+ "config": "B-echant",
+ "date": "20261122",
+ "simulation": false,
+ "notice": null,
+ "versions": {
+  "app": "0.1.0",
+  "python": "3.12.3",
+  "provider": "ollama",
+  "model": "qwen3:4b",
+  "adapter": null
+ },
+ "seeds": [
+  1
+ ],
+ "corpus_seed": 7,
+ "params": {
+  "retrieval": {
+   "enabled": true,
+   "k": 10
+  },
+  "simulation": null,
+  "subset": {
+   "institutions": 1
+  }
+ },
+ "metrics": {
+  "finding_coverage": {
+   "mean": 0.0,
+   "sd": 0.0,
+   "values": [
+    0.0
+   ]
+  },
+  "false_refusals": {
+   "mean": 0.2,
+   "sd": 0.0,
+   "values": [
+    0.2
+   ]
+  },
+  "citation_validity": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "values": [
+    1.0
+   ]
+  },
+  "tpv": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "values": [
+    1.0
+   ]
+  },
+  "number_fidelity": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "values": [
+    1.0
+   ]
+  },
+  "refusal_rate": {
+   "mean": 0.7096774193548387,
+   "sd": 0.0,
+   "values": [
+    0.7096774193548387
+   ]
+  },
+  "missed_refusals": {
+   "mean": 0.0,
+   "sd": 0.0,
+   "values": [
+    0.0
+   ]
+  },
+  "dependency_cycles": {
+   "mean": null,
+   "sd": null,
+   "values": []
+  },
+  "attack_success": {
+   "mean": 0.0,
+   "sd": 0.0,
+   "values": [
+    0.0
+   ]
+  },
+  "dependency_recall": {
+   "mean": null,
+   "sd": null,
+   "values": []
+  },
+  "tpv_answered": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "values": [
+    1.0
+   ]
+  },
+  "structure_validity": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "values": [
+    1.0
+   ]
+  },
+  "recall_at_k": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "values": [
+    1.0
+   ]
+  },
+  "mrr": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "values": [
+    1.0
+   ]
+  },
+  "latency_p50_ms": {
+   "mean": 18687.0
+  },
+  "latency_p95_ms": {
+   "mean": 24805.0
+  },
+  "latency_p50_ms_main": {
+   "mean": 19666.0
+  },
+  "latency_p50_ms_proof": {
+   "mean": 17286.5
+  },
+  "latency_p50_ms_noev": {
+   "mean": 18678.0
+  },
+  "tokens_per_s": {
+   "mean": 2.2890080433458557
+  },
+  "vram_max_mb": {
+   "mean": 3125
+  }
+ },
+ "tpv_sections": [
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0
+ ],
+ "tpv_ci95": [
+  1.0,
+  1.0
+ ],
+ "n_sections": 21,
+ "duration_s": 765.83
+}

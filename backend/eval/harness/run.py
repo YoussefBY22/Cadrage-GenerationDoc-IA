@@ -12,7 +12,9 @@ import random
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
+import threading
 import time
 import uuid
 from datetime import UTC, datetime
@@ -62,6 +64,30 @@ def _provider(cfg: dict, seed: int, titles: set[str]):
     if cfg.get("provider", "fake") == "fake":
         return FakeProvider(handler=simulate.make_handler(_rates(cfg, titles), seed))
     return build_provider(Settings(llm_provider=cfg["provider"], **cfg.get("settings", {})))
+
+
+class _VramSampler:
+    """Relève la mémoire GPU utilisée toutes les 2 s pendant l'exécution (pic, en Mo)."""
+
+    def __init__(self) -> None:
+        self.peak: int | None = None
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+
+    def _run(self) -> None:
+        while not self._stop.is_set():
+            v = _vram_mb()
+            if v is not None:
+                self.peak = max(self.peak or 0, v)
+            self._stop.wait(2.0)
+
+    def __enter__(self):
+        self._thread.start()
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self._stop.set()
+        self._thread.join(timeout=15)
 
 
 def _vram_mb() -> int | None:
@@ -159,8 +185,25 @@ def _deterministic_ids(seed: int):
 
 
 def run_config(cfg: dict, out_dir: str | Path | None = None) -> dict:
-    with _deterministic_ids(cfg["corpus_seed"]):
-        return _run(cfg, out_dir)
+    with _deterministic_ids(cfg["corpus_seed"]), _VramSampler() as vram:
+        result = _run(cfg, out_dir)
+    if vram.peak is not None:  # pic mesuré pendant toute l'exécution (et non en fin de course)
+        result["metrics"]["vram_max_mb"] = {"mean": vram.peak}
+        if out_dir is not None:
+            out = Path(out_dir) / f"{result['date']}-{cfg['name']}.json"
+            out.write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
+    return result
+
+
+class _IngestSettings:
+    """Réglages d'ingestion : ceux de l'application + le préfixe de passage propre au modèle."""
+
+    def __init__(self, base: Settings, passage_prefix: str) -> None:
+        self._base = base
+        self.embedding_passage_prefix = passage_prefix
+
+    def __getattr__(self, name):
+        return getattr(self._base, name)
 
 
 def _run(cfg: dict, out_dir: str | Path | None) -> dict:
@@ -176,7 +219,13 @@ def _run(cfg: dict, out_dir: str | Path | None) -> dict:
         settings = Settings(storage_url=f"sqlite+pysqlite:///{(tmp / 'eval.db').as_posix()}",
                             auth_mode="dev", upload_dir=str(tmp / "up"))
         repo = build_repository(settings)
-        base = FakeProvider()  # sert uniquement à vectoriser pendant l'ingestion et la recherche
+        # Vectorisation (ingestion et recherche) : faux modèle en simulation, vrai modèle d'embeddings
+        # (ex. bge-m3) quand le fournisseur est réel — sinon rappel@10 ne mesurerait rien de réel.
+        real = cfg.get("provider", "fake") != "fake"
+        base = build_provider(Settings(llm_provider=cfg["provider"], **cfg.get("settings", {})))             if real else FakeProvider()
+        if real:
+            settings = _IngestSettings(settings, cfg.get("settings", {}).get(
+                "ollama_embedding_passage_prefix", ""))
         search = SearchService(repo, base)
         dossiers: dict[str, str] = {}
         for inst in insts:
@@ -215,6 +264,7 @@ def _run(cfg: dict, out_dir: str | Path | None) -> dict:
         per_seed: list[dict] = []
         tpv_pool: list[float] = []
         latencies: list[float] = []
+        by_kind_lat: list[tuple[str, float]] = []
         tokens = 0
         for seed in cfg["seeds"]:
             prov = _provider(cfg, seed, no_ev_titles)
@@ -223,9 +273,14 @@ def _run(cfg: dict, out_dir: str | Path | None) -> dict:
                 dossier = dossiers[d]
                 r = _generate(prov, search if use_ret else None, dossier, s, cache[(d, s.key)])
                 recs.append((kind, r))
+                if real:
+                    print(f"[seed {seed}] {len(recs)}/{len(sections_all)} {kind} {s.key} "
+                          f"{r['latency_ms']} ms tpv={r['tpv']:.2f} refus={r['refused']}",
+                          file=sys.stderr, flush=True)
             scored = [r for kind, r in recs if kind != "noev"]
             tpv_pool += [r["tpv"] for kind, r in recs if kind in ("main", "proof")]
             latencies += [r["latency_ms"] for _, r in recs if r["latency_ms"]]
+            by_kind_lat += [(kind, r["latency_ms"]) for kind, r in recs if r["latency_ms"]]
             tokens += sum(r["tokens_out"] for _, r in recs)
             expected = [kind == "noev" for kind, _ in recs if kind in ("proof", "noev")]
             refused = [r["refused"] for kind, r in recs if kind in ("proof", "noev")]
@@ -241,6 +296,9 @@ def _run(cfg: dict, out_dir: str | Path | None) -> dict:
                                                      sum(r["found"] for r in scored)),
                 "structure_validity": M.structure_validity([r["first_try"] for _, r in recs]),
                 "missed_refusals": missed, "false_refusals": false,
+                "tpv_answered": M.mean_sd([r["tpv"] for kind, r in recs
+                                           if kind in ("main", "proof") and not r["refused"]])[0],
+                "refusal_rate": sum(r["refused"] for _, r in recs) / max(len(recs), 1),
                 "attack_success": M.attack_rate(attacks),
             }
             if seed == cfg["seeds"][0] and use_ret:  # constats et feuille de route : 1re graine
@@ -259,6 +317,9 @@ def _run(cfg: dict, out_dir: str | Path | None) -> dict:
     secs = max(time.perf_counter() - t0, 1e-9)
     agg["latency_p50_ms"] = {"mean": M.percentile(latencies, 50)}
     agg["latency_p95_ms"] = {"mean": M.percentile(latencies, 95)}
+    for kind in ("main", "proof", "noev"):
+        agg[f"latency_p50_ms_{kind}"] = {"mean": M.percentile(
+            [v for k2, v in by_kind_lat if k2 == kind], 50)}
     agg["tokens_per_s"] = {"mean": tokens / secs}
     agg["vram_max_mb"] = {"mean": _vram_mb()}
     result = {
@@ -294,6 +355,11 @@ def main() -> None:
     print(f"{res['config']} : TPV {m['tpv']['mean']:.3f} IC95 "
           f"[{res['tpv_ci95'][0]:.3f}, {res['tpv_ci95'][1]:.3f}] sur {res['n_sections']} sections "
           f"en {res['duration_s']} s")
+    for key in ("refusal_rate", "missed_refusals", "false_refusals", "citation_validity",
+                "number_fidelity", "structure_validity", "recall_at_k", "mrr", "latency_p50_ms",
+                "latency_p95_ms", "tokens_per_s", "vram_max_mb"):
+        if key in m and m[key].get("mean") is not None:
+            print(f"  {key}: {m[key]['mean']:.3f}")
 
 
 if __name__ == "__main__":
