@@ -201,30 +201,15 @@ def forecast_lines(r: dict) -> list[str]:
     if f is None or f["status"] == "insufficient":
         return ["Historique insuffisant pour prévoir la charge de relecture de ce périmètre."]
     if f["status"] == "not_better":
-        return [("Aucune prévision publiée : sur l'historique, la méthode ne fait pas mieux que la "
-                "référence naïve (répéter les deux dernières semaines).")]
-    lines = [
-        (f"{num(f['point'])} soumissions attendues dans les 2 prochaines semaines (intervalle de "
-        f"{pct(pilotage.INTERVAL)} : {num(f['low'])} à {num(f['high'])}), en plus des "
-        f"{r['to_review']} déjà en attente."),
-        (f"Méthode : moyenne des {pilotage.WINDOW_WEEKS} dernières semaines × 2. Historique : "
-        f"{f['events']} soumissions sur {f['weeks']} semaines. Sur {f['origins']} prévisions "
-        f"rétrospectives, elle se trompe de {num(f['mae'], 1)} soumissions en moyenne, contre "
-        f"{num(f['mae_naive'], 1)} pour la référence naïve.")]
-    return [lines[0], "Fiabilité non mesurée : volumes inventés."] if r["simulated"] else lines
+        return ["Pas de prévision fiable sur ce périmètre."]
+    return [(f"{num(f['point'])} soumissions attendues ({num(f['low'])} à {num(f['high'])}), "
+            f"en plus des {r['to_review']} déjà en attente."),
+            "Fiabilité non mesurée." if r["simulated"] else f"{f['events']} soumissions observées."]
 
 
 def limits(r: dict) -> list[str]:
-    out = [
-        ("H7 raisonne par phrase et l'entrepôt par section : « sans retouche » est une approximation "
-        "plus sévère."),
-        ("Une citation « sans source » désigne une source absente du dossier. Qu'une source existe ne "
-        "prouve pas qu'elle soutient la phrase."),
-        ("Une phrase modifiée par le consultant n'est pas revérifiée dans l'entrepôt : seule sa source "
-        "est contrôlée."),
-        f"Aucun taux n'est affiché sous {pilotage.MIN_SAMPLE} cas.",
-        ("La file, les recommandations et la prédiction décrivent la situation à la date des données, "
-        "quelle que soit la période choisie.")]
+    out = ["Une source qui existe ne prouve pas qu'elle soutient la phrase.",
+           "File, recommandations et prévision ne suivent pas la période."]
     if r["simulated"]:
         out.insert(0, SIMULATION)
     return out
@@ -315,63 +300,47 @@ def render_docx(r: dict, path: Path) -> None:
 
     heading("Synthèse")
     waiting = count(r["to_review"], "livrable attend", "livrables attendent")
-    para(f"{waiting} une relecture, dont {r['overdue']} depuis plus de "
-         f"{pilotage.REVIEW_OVERDUE_HOURS} h. Chez les consultants : "
+    para(f"{waiting} une relecture, dont {r['overdue']} en retard. Chez les consultants : "
          f"{count(r['todo'], 'livrable', 'livrables')}, dont "
          f"{count(r['returned'], 'renvoi', 'renvois')} à reprendre.")
-    if r["recommendations"]:
-        top = r["recommendations"][0]
-        para(f"Priorité : {top['action']} ({top['finding']}.)")
     para(forecast_lines(r)[0])
 
     heading("Recommandations prioritaires")
     if r["recommendations"]:
-        table(["", "Constat", "Seuil", "Pour", "Action"],
-              [(str(i), x["finding"], x["threshold"], x["actor"], x["action"])
-               for i, x in enumerate(r["recommendations"], 1)], [0.6, 4.4, 3.9, 2.2, 6.3])
+        table(["", "Constat", "Pour", "Action"],
+              [(str(i), x["finding"], x["actor"], x["action"])
+               for i, x in enumerate(r["recommendations"], 1)], [0.6, 7.0, 2.6, 7.2])
     else:
         para("Aucune règle ne se déclenche sur ce périmètre.")
 
-    heading("Critères de réussite (hypothèse H7)")
+    heading("Critères de réussite")
     table(["Critère", "Cible", "Mesure", "Verdict"], h7_rows(r), [6.0, 1.7, 6.0, 3.7])
 
     heading("Indicateurs")
     delay = ("effectif insuffisant" if r["delays"] < pilotage.MIN_SAMPLE
-             else f"{num(r['delay'], 1)} h ({r['delays']} livrables)")
-    table(["Indicateur", "Valeur", "Décision liée"], [
-        ("Livrables à valider", f"{r['to_review']}, dont {r['overdue']} en retard",
-         "Qui relit quoi aujourd'hui"),
-        ("Délai médian de validation", delay, "Renforcer ou répartir la relecture"),
-        ("Renvois à la première relecture", rate(r["rejected_first"], r["decided_first"]),
-         "Revoir la préparation avant soumission"),
-        ("Phrases bloquantes à vérifier", f"{r['blocking_review']} en relecture",
-         "Ce qui se vérifie en premier"),
-        ("Phrases bloquantes à corriger", f"{r['blocking_draft']} chez les consultants",
-         "Ce qui se corrige avant de soumettre"),
-        ("Phrases vérifiées à la génération", NOT_MEASURED if r["simulated"] else rate(r["verified"], r["generated"]),
-         "Effort de relecture à prévoir"),
-        ("Citations sans source détectées avant relecture",
-         NOT_MEASURED if r["simulated"] else rate(r["invalid_detected"], r["citations_generated"]),
-         "Régler la recherche ou le modèle"),
-    ], [6.4, 5.6, 5.4])
+             else f"{num(r['delay'])} h (médiane, {r['delays']} livrables)")
+    table(["Indicateur", "Valeur"], [
+        ("Livrables à valider", f"{r['to_review']}, dont {r['overdue']} en retard"),
+        ("Délai de validation", delay),
+        ("Renvois en première relecture", rate(r["rejected_first"], r["decided_first"])),
+        ("Phrases bloquantes",
+         f"{r['blocking_review']} en relecture, {r['blocking_draft']} chez les consultants"),
+        ("Phrases vérifiées à la génération",
+         NOT_MEASURED if r["simulated"] else rate(r["verified"], r["generated"])),
+        ("Citations sans source avant relecture",
+         NOT_MEASURED if r["simulated"] else rate(r["invalid_detected"], r["citations_generated"])),
+    ], [8.7, 8.7])
 
-    heading("Prédiction : charge de relecture")
+    heading("Charge de relecture à 2 semaines")
     for line in forecast_lines(r):
         para(line)
-    f = r["forecast"]
-    if internal and f and f["risk_status"] == "ok" and not r["simulated"]:
-        para(f"Le risque de renvoi vient de l'historique global : taux observé selon la présence d'une "
-             f"phrase bloquante. Sur {f['risk_tested']} cas rétrospectifs, score de Brier "
-             f"{num(f['risk_brier'], 3)}, contre {num(f['risk_brier_naive'], 3)} pour le taux global.")
-
     if internal and r["queue"]:
-        heading("File à valider, par priorité (jours d'attente × (1 + risque))")
-        table(["Mission", "Consultant", "Attente", "Bloquantes", "Risque de renvoi (intervalle, n)"], [
+        heading("File à valider")
+        table(["Mission", "Consultant", "Attente", "Bloquantes", "Risque de renvoi"], [
             (d["mission_name"], r["people"].get(d["author_key"], "—"),
              f"{num(d['state_age_hours'] / 24, 1)} j",
              "—" if d["blocking_open"] is None else d["blocking_open"],
-             "non estimé" if d["risk"] is None else
-             f"{pct(d['risk'])} ({pct(d['risk_low'])} à {pct(d['risk_high'])}, n = {d['risk_n']})")
+             NOT_MEASURED if d["risk"] is None else f"{pct(d['risk'])} (n = {d['risk_n']})")
             for d in r["queue"][:12]], [4.4, 4.0, 1.8, 2.1, 5.1])
         if len(r["queue"]) > 12:
             para(f"… et {len(r['queue']) - 12} autres livrables.", color=grey)

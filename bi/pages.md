@@ -1,15 +1,15 @@
 # Les pages du rapport
 
 Quatre pages visibles et une page masquée, générées par [`pbip/rapport.py`](pbip/rapport.py).
-Qui voit quoi : [docs/14](../docs/14-acteurs-dashboard.md). Définitions : [`KPI.md`](KPI.md).
+Qui voit quoi : [docs/14](../docs/14-acteurs-dashboard.md). Décisions, formules et seuils : [`KPI.md`](KPI.md).
 
-Commun : titre nominal, sous-titre (périmètre, mesure, période), zone Constat, au plus 4 KPI avec leur décision,
+Commun : titre nominal, périmètre et période, constat d'une ligne, au plus 4 KPI,
 barre latérale (navigation, bouton « Rapport imprimable », filtres Période, Client, Type, Consultant synchronisés).
 
 | Page | Visuels |
 |---|---|
-| Synthèse | 4 KPI · 3 recommandations prioritaires · courbe des soumissions par quinzaine avec prévision, intervalle, n et test |
-| Production | 4 KPI · brouillons et renvois avec motif · sections à revoir par priorité · recommandations au consultant |
-| Validation | 4 KPI · file triée par attente et risque · charge par consultant, sans classement · recommandations au responsable |
-| Administration | 4 KPI · banc A/B/C/D avec IC et décision · règle de décision · signalements par format (taux et n) · missions signalées |
-| Rapport (masquée) | constat · recommandations · critères H7 · indicateurs · prédiction · limites |
+| Synthèse | 4 KPI · tableau de 3 recommandations au plus · soumissions par quinzaine et estimation |
+| Production | 3 KPI · recommandations au consultant · brouillons et renvois · sections à revoir |
+| Validation | 4 KPI · recommandations au responsable · file de validation · charge par consultant, sans classement |
+| Administration | 4 KPI · banc A/B/C/D, « non mesuré » sans résultat réel · signalements par format et par mission |
+| Rapport (masquée) | constat · recommandations · critères de réussite · indicateurs · charge à venir · limites |

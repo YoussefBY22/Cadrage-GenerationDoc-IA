@@ -4,10 +4,10 @@
   "position": {
     "x": 1260.0,
     "y": 186,
-    "z": 3200,
+    "z": 2600,
     "width": 308.0,
-    "height": 122,
-    "tabOrder": 3200
+    "height": 128,
+    "tabOrder": 2600
   },
   "visual": {
     "visualType": "cardVisual",
@@ -322,51 +322,13 @@
           }
         }
       ],
-      "visualHeaderTooltip": [
-        {
-          "properties": {
-            "type": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Default'"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Formule : médiane des heures entre la première soumission et l''approbation.\nDécision : Renforcer ou répartir la relecture\nCible : aucun seuil dans H7\nFlux : suit la période.\nLimite : heures calendaires ; pas de valeur sous 30 livrables ; ne voit pas ce qui attend encore.'"
-                }
-              }
-            },
-            "titleFontColor": {
-              "solid": {
-                "color": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "'#2E2E38'"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      ],
       "visualHeader": [
         {
           "properties": {
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "showTooltipButton": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
+                  "Value": "false"
                 }
               }
             }
@@ -379,7 +341,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Délai de validation. Formule : médiane des heures entre la première soumission et l''approbation. Décision : Renforcer ou répartir la relecture.'"
+                  "Value": "'Indicateur : Délai de validation'"
                 }
               }
             }

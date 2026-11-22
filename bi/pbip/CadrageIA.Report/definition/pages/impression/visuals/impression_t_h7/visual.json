@@ -4,10 +4,10 @@
   "position": {
     "x": 52,
     "y": 548,
-    "z": 1700,
+    "z": 1400,
     "width": 796,
     "height": 28,
-    "tabOrder": 1700
+    "tabOrder": 1400
   },
   "visual": {
     "visualType": "shape",
@@ -69,7 +69,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Critères de réussite (hypothèse H7)'"
+                  "Value": "'Critères de réussite'"
                 }
               }
             },
@@ -240,7 +240,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Critères de réussite (hypothèse H7)'"
+                  "Value": "'Critères de réussite'"
                 }
               }
             }

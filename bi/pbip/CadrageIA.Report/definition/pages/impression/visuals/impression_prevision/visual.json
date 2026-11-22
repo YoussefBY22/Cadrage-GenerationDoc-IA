@@ -3,11 +3,11 @@
   "name": "impression_prevision",
   "position": {
     "x": 52,
-    "y": 964,
-    "z": 3900,
+    "y": 1008,
+    "z": 3600,
     "width": 796,
-    "height": 100,
-    "tabOrder": 3900
+    "height": 70,
+    "tabOrder": 3600
   },
   "visual": {
     "visualType": "shape",

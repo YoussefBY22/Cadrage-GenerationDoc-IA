@@ -211,28 +211,26 @@ def _appui() -> list[Mesure]:
 
 
 def _recommandations(m: dict[str, str]) -> None:
+    """Une ligne de tableau par règle déclenchée, les plus prioritaires seulement : jamais de boîte vide."""
     for acteur, suffixe in SUFFIXE.items():
-        regles = "'Règles'" if acteur is None else f"FILTER('Règles', 'Règles'[Acteur] = \"{acteur}\")"
-        for i in range(1, pilotage.MAX_RECOMMENDATIONS + 1):
-            debut = (
-                f"VAR vListe = FILTER(ADDCOLUMNS({regles}, \"@n\",\n"
-                "    VAR vCode = 'Règles'[Code de règle]\n"
-                "    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)\n"
-                f"VAR vPremiers = TOPN({i}, vListe, 'Règles'[Priorité], ASC)\n"
-                "VAR vLigne = TOPN(1, vPremiers, 'Règles'[Priorité], DESC)\n")
-            rien = '"Aucune règle ne se déclenche sur ce périmètre."' if i == 1 else '" "'
-            m[f"Reco {i} constat{suffixe}"] = debut + (
-                "VAR vEtats = MAXX(vLigne, 'Règles'[États])\n"
-                "VAR vTotal = CALCULATE(COUNTROWS(Livrables),\n"
-                "    KEEPFILTERS(FILTER(ALL(Livrables[Code d'état]), CONTAINSSTRING(vEtats, Livrables[Code d'état]))))\n"
-                f"RETURN IF(COUNTROWS(vPremiers) < {i}, {rien},\n"
-                f'    "{i}. " & MAXX(vLigne, \'Règles\'[Libellé]) & " : " & MAXX(vLigne, [@n]) & " sur "\n'
-                "    & (vTotal + 0) & \" (\" & MAXX(vLigne, 'Règles'[Population]) & \")\")")
-            pour = "\"Pour le \" & LOWER(MAXX(vLigne, 'Règles'[Acteur])) & \" : \" & " if acteur is None else ""
-            m[f"Reco {i} action{suffixe}"] = debut + (
-                f'RETURN IF(COUNTROWS(vPremiers) < {i}, " ",\n'
-                f"    {pour}MAXX(vLigne, 'Règles'[Action]) & UNICHAR(10)\n"
-                "    & \"Seuil : \" & MAXX(vLigne, 'Règles'[Seuil]))")
+        pour_lui = "TRUE()" if acteur is None else f"'Règles'[Acteur] = \"{acteur}\""
+        signalees = ("FILTER(ADDCOLUMNS(FILTER(ALL('Règles'), " + pour_lui + "), \"@n\",\n"
+                     "    VAR vCode = 'Règles'[Code de règle]\n"
+                     "    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)")
+        m[f"Reco rang{suffixe}"] = (
+            "VAR vPriorite = SELECTEDVALUE('Règles'[Priorité])\n"
+            f"VAR vListe = {signalees}\n"
+            "VAR vRang = COUNTROWS(FILTER(vListe, 'Règles'[Priorité] <= vPriorite)) + 0\n"
+            "RETURN IF(COUNTROWS(FILTER(vListe, 'Règles'[Priorité] = vPriorite)) > 0\n"
+            f"    && vRang <= {pilotage.MAX_RECOMMENDATIONS}, vRang)")
+        si_retenue = f"IF(NOT ISBLANK([Reco rang{suffixe}]), "
+        m[f"Reco nombre{suffixe}"] = si_retenue + (
+            "VAR vCode = SELECTEDVALUE('Règles'[Code de règle])\n"
+            "    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode))")
+        if acteur is None:
+            m["Reco pour"] = si_retenue + "SELECTEDVALUE('Règles'[Acteur]))"
+        m[f"Reco action{suffixe}"] = si_retenue + "SELECTEDVALUE('Règles'[Action]))"
+        m[f"Reco état{suffixe}"] = f'VAR vListe = {signalees}\nRETURN IF(COUNTROWS(vListe) + 0 = 0, "Aucune action", " ")'
 
 
 def _prediction(m: dict[str, str]) -> None:
@@ -254,31 +252,18 @@ def _prediction(m: dict[str, str]) -> None:
     def arrondi(nom: str, fmt: str = "0") -> str:
         return f'FORMAT({colonne(nom)}, "{fmt}", "fr-FR")'
 
-    niveau = f"{pilotage.INTERVAL * 100:.0f} %"
     for nom, champ in (("Soumissions réelles", "Réel"), ("Prévision", "Point prévu"),
                        ("Borne basse", "Borne basse prévue"), ("Borne haute", "Borne haute prévue")):
         m[nom] = ici + (f"VAR vCle = {colonne('Clé de prévision')}\n"
                         f"RETURN CALCULATE(SUM('Série de prévision'[{champ}]), "
                         "'Série de prévision'[Clé de prévision] = vCle)")
     m["Prévision valeur"] = ici + (
-        f'RETURN SWITCH(vStatut, "ok", {arrondi("Point")} & " soumissions attendues, entre " & {arrondi("Bas")}'
-        f' & " et " & {arrondi("Haut")} & " (intervalle de {niveau})",\n'
+        f'RETURN SWITCH(vStatut, "ok", {arrondi("Point")} & " soumissions attendues (" & {arrondi("Bas")}'
+        f' & " à " & {arrondi("Haut")} & ")",\n'
         '    "not_better", "Pas de prévision fiable", "Historique insuffisant")')
     m["Prévision méthode"] = ici + (
-        'RETURN SWITCH(vStatut, "ok", '
-        f'"Moyenne des {pilotage.WINDOW_WEEKS} dernières semaines, n = " & {arrondi("Soumissions")}'
-        f' & " soumissions. Test rétrospectif : erreur de " & {arrondi("Erreur", "0.0")}'
-        f' & ", contre " & {arrondi("Erreur naïve", "0.0")} & " pour la référence naïve ("'
-        f' & {arrondi("Origines")} & " prévisions).",\n'
-        '    "not_better", "La méthode ne fait pas mieux que répéter les 2 dernières semaines.",\n'
-        f'    "Il faut au moins {N_MIN} soumissions et {pilotage.MIN_ORIGINS} prévisions vérifiables.")')
-    m["Prévision risque"] = ici + (
-        'RETURN SWITCH(MAXX(vPrevision, \'Prévisions\'[Statut du risque]),\n'
-        f'    "ok", "Risque de renvoi : testé sur " & {arrondi("Cas testés")} & " cas passés, score de Brier "\n'
-        f'        & {arrondi("Brier", "0.000")} & ", contre " & {arrondi("Brier naïf", "0.000")}'
-        ' & " pour le taux global",\n'
-        '    "not_better", "Risque de renvoi non publié : il ne fait pas mieux que le taux global",\n'
-        '    "Risque de renvoi non publié : historique insuffisant")')
+        f'RETURN IF(vStatut <> "ok", " ", IF({DEMO}, "Fiabilité non mesurée",\n'
+        f'    {arrondi("Soumissions")} & " soumissions observées"))')
     m["Mention simulation"] = (
         "IF(MAX(\'Source des données\'[Est une démonstration]) = 1,\n"
         '    "Simulation sur données inventées", " ")')
@@ -301,53 +286,35 @@ def presentation() -> list[Mesure]:
     perimetre = f'"Client : " & {client} & "  ·  type : " & {kind} & "  ·  consultant : " & {personne}'
     quand = f'"  |  " & {periode} & ", situation au " & vJour'
 
-    # Sous-titres : périmètre, mesure, période
-    for page, mesures in (("synthese", "livrables en nombre, délai en heures"),
-                          ("production", "livrables et phrases en nombre, sections en %"),
-                          ("validation", "livrables en nombre, attente en jours, délai en heures"),
-                          ("administration", "phrases, citations et documents en % et en nombre")):
-        m[f"Sous-titre {page}"] = jour + f'RETURN {perimetre} & "  |  {mesures}" & {quand}'
+    # Sous-titres : périmètre et période
+    for page in ("synthese", "production", "validation", "administration"):
+        m[f"Sous-titre {page}"] = jour + f"RETURN {perimetre} & {quand}"
     m["Filtres du rapport"] = jour + f'RETURN {perimetre} & {quand}'
 
-    # Constats : le message vit dans sa zone, jamais dans un titre
-    accord = 'IF({0} > 1, " livrables attendent", " livrable attend")'
-    livrables = 'IF({0} > 1, " livrables", " livrable")'
-    phrases = 'IF({0} > 1, " phrases bloquantes", " phrase bloquante")'
+    # Constats : le message vit dans sa zone, jamais dans un titre ; une ligne, aucun seuil
     m["Constat synthese"] = (
-        "VAR vFile = [Livrables à valider]\nVAR vRetard = [Relectures en retard]\n"
-        "VAR vReste = [Citations sans source après approbation]\n"
-        'RETURN IF(vFile = 0, "Aucun livrable en attente de relecture. ", vFile & ' + accord.format("vFile")
-        + f' & " une relecture, dont " & vRetard & " depuis plus de {RETARD} h. ")\n'
-        '    & IF(ISBLANK(vReste), "Citations après approbation : non mesuré.",\n'
-        '        IF(vReste > 0, vReste & IF(vReste > 1, " citations sans source restent", " citation sans source reste")\n'
-        '            & " après approbation.",\n'
-        '            "Aucune citation sans source dans les livrables approuvés mesurés."))')
+        "VAR vFile = [Livrables à valider]\nVAR vReste = [Citations sans source après approbation]\n"
+        'RETURN IF(vFile = 0, "Aucune relecture en attente",\n'
+        '    vFile & " à valider, dont " & [Relectures en retard] & " en retard")\n'
+        '    & IF(vReste > 0, " · " & vReste & " sans source après approbation", "")')
     m["Constat production"] = (
         "VAR vTodo = [Livrables à traiter]\n"
-        'RETURN IF(vTodo = 0, "Aucun livrable à traiter sur ce périmètre.",\n'
-        '    vTodo & ' + livrables.format("vTodo") + ' & " à traiter, dont " & [Renvois à reprendre]'
-        + ' & IF([Renvois à reprendre] > 1, " renvoyés. ", " renvoyé. ")\n'
-        '    & [Phrases bloquantes à corriger] & ' + phrases.format("[Phrases bloquantes à corriger]")
-        + ' & " à corriger avant de soumettre.")')
+        'RETURN IF(vTodo = 0, "Aucun livrable à traiter",\n'
+        '    vTodo & " à traiter · " & [Renvois à reprendre] & IF([Renvois à reprendre] > 1, " renvoyés", " renvoyé"))')
     m["Constat validation"] = (
-        "VAR vFile = [Livrables à valider]\n"
-        'RETURN IF(vFile = 0, "Aucun livrable en attente de relecture sur ce périmètre.",\n'
-        '    vFile & ' + livrables.format("vFile")
-        + f' & " à valider, dont " & [Relectures en retard] & " depuis plus de {RETARD} h. "\n'
-        '    & [Phrases bloquantes à vérifier] & ' + phrases.format("[Phrases bloquantes à vérifier]")
-        + ' & " à vérifier avant d\'approuver.")')
+        "VAR vN = [Phrases bloquantes à vérifier]\n"
+        'RETURN IF([Livrables à valider] = 0, "Aucune relecture en attente",\n'
+        '    [Relectures en retard] & " en retard · " & vN & IF(vN > 1, " phrases bloquantes", " phrase bloquante"))')
     m["Constat administration"] = (
         'VAR vAlertes = [Alertes d\'injection]\n'
-        'RETURN [Banc décision] & ". " & vAlertes & IF(vAlertes > 1, " alertes", " alerte")\n'
-        '    & " d\'injection, dans " & ([Nombre de documents signalés] + 0) & " documents à examiner."')
+        'RETURN [Banc décision] & " · " & vAlertes & IF(vAlertes > 1, " alertes", " alerte") & " à examiner"')
 
     # --- cartes : valeur numérique (épinglable avec alerte dans le Service), effectif en sous-titre
     m["Note Livrables à traiter"] = '"dont " & [Renvois à reprendre] & IF([Renvois à reprendre] > 1, " renvoyés", " renvoyé")'
     m["Note Phrases bloquantes à corriger"] = '"sur " & [Livrables à traiter] & IF([Livrables à traiter] > 1, " livrables", " livrable") & " à traiter"'
     m["Note Sections acceptées sans retouche"] = effectif(
-        "[Nombre de sections sans retouche]", "[Sections rédigées puis approuvées]",
-        f"· cible H7 ≥ {pilotage.H7_REUSABLE * 100:.0f} %")
-    m["Note Livrables à valider"] = f'"dont " & [Relectures en retard] & " depuis plus de {RETARD} h"'
+        "[Nombre de sections sans retouche]", "[Sections rédigées puis approuvées]", "sections")
+    m["Note Livrables à valider"] = '"dont " & [Relectures en retard] & " en retard"'
     m["Note Délai de validation"] = (
         f'VAR vN = [Livrables avec délai]\nRETURN IF(vN < {N_MIN}, "Effectif insuffisant (n = " & vN & ")",\n'
         '    "médiane, n = " & vN & " livrables")')
@@ -391,10 +358,8 @@ def presentation() -> list[Mesure]:
     m["File consultant"] = si_file + "CALCULATE(SELECTEDVALUE(Personnes[Consultant]), CROSSFILTER(Livrables[Clé de consultant], Personnes[Clé de personne], BOTH)))"
     m["File bloquantes"] = si_file + "SUM(Livrables[Phrases bloquantes]) + 0)"
     m["File risque"] = si_file + (
-        f'IF({DEMO}, "Non mesuré", '
-        'IF(ISBLANK(MAX(Livrables[Risque])), "non estimé", FORMAT(MAX(Livrables[Risque]), "0 %") & " ["\n'
-        '    & FORMAT(MAX(Livrables[Risque bas]), "0 %") & " à " & FORMAT(MAX(Livrables[Risque haut]), "0 %")\n'
-        '    & "], n = " & MAX(Livrables[Risque effectif]))))')
+        f'IF({DEMO}, "Non mesuré", IF(ISBLANK(MAX(Livrables[Risque])), "Non mesuré",\n'
+        '    FORMAT(MAX(Livrables[Risque]), "0 %") & " (n = " & MAX(Livrables[Risque effectif]) & ")")))')
     m["Couleur d'attente"] = (
         f'VAR v = [File attente]\nRETURN IF(NOT ISBLANK(v), IF(v * 24 > {RETARD}, "{FOND_ROUGE}", "{FOND_BLANC}"))')
     m["Couleur de blocage"] = f'IF([File bloquantes] > 0, "{FOND_GRIS}", "{FOND_BLANC}")'
@@ -414,15 +379,11 @@ def presentation() -> list[Mesure]:
         f'RETURN IF(vN < {N_MIN}, "Effectif insuffisant (n = " & vN & ")",\n'
         f'    FORMAT(vTaux, "0 %") & " (" & [Nombre de sections sans retouche] & " sur " & vN & ") · {cible} · "\n'
         f'    & IF(vTaux >= {pilotage.H7_REUSABLE}, "atteint", "non atteint") & ", approximation par section")')
-    m["Rapport synthèse"] = (
-        '[Livrables à valider] & " livrables attendent une relecture, dont " & [Relectures en retard]\n'
-        f'    & " depuis plus de {RETARD} h. " & [Livrables à traiter] & " sont chez les consultants, dont "\n'
-        '    & [Renvois à reprendre] & " renvois à reprendre."')
     m["Rapport file"] = '[Livrables à valider] & IF([Livrables à valider] > 1, " livrables", " livrable") & ", dont " & [Relectures en retard] & " en retard"'
     m["Rapport délai"] = (
         "VAR v = [Délai de validation]\n"
         'RETURN IF(ISBLANK(v), [Note Délai de validation],\n'
-        '    FORMAT(v, "0.0", "fr-FR") & " h (" & [Note Délai de validation] & ")")')
+        '    FORMAT(v, "0") & " h (" & [Note Délai de validation] & ")")')
     m["Rapport renvois"] = (
         "VAR v = [Renvois à la première relecture]\n"
         'RETURN IF(ISBLANK(v), [Note Renvois à la première relecture],\n'
@@ -435,7 +396,7 @@ def presentation() -> list[Mesure]:
         f'    FORMAT([Phrases vérifiées], "0 %") & " de " & {entier("vN")} & " phrases générées")')
     m["Rapport détectées"] = (
         f'VAR vN = [Citations générées]\nRETURN IF(vN < {N_MIN}, "Effectif insuffisant",\n'
-        '    FORMAT([Citations sans source avant relecture], "0.0 %", "fr-FR") & " ("\n'
+        '    FORMAT([Citations sans source avant relecture], "0 %") & " ("\n'
         f'    & [Nombre de citations sans source avant relecture] & " sur " & {entier("vN")} & ")")')
 
     # --- administration
@@ -444,21 +405,16 @@ def presentation() -> list[Mesure]:
         "VAR vMesurees = COUNTROWS(FILTER(ALL(Banc), NOT ISBLANK(Banc[TPV]))) + 0\n"
         "VAR vNombre = COUNTROWS(vRetenues) + 0\n"
         'RETURN IF(vMesurees = 0, "Banc d\'essai non mesuré",\n'
-        f'    IF(vNombre = 0, "Rester sur {pilotage.REFERENCE_CONFIG} : aucun écart favorable concluant",\n'
-        '        "Écart concluant pour : " & CONCATENATEX(vRetenues, Banc[Configuration], ", ")))')
+        f'    IF(vNombre = 0, "Rester sur {pilotage.REFERENCE_CONFIG}",\n'
+        '        "À retenir : " & CONCATENATEX(vRetenues, Banc[Configuration], ", ")))')
     m["Banc montage"] = "SELECTEDVALUE(Banc[Montage])"
     m["Banc effectif"] = "MAX(Banc[Sections du banc])"
     m["Banc TPV"] = (
-        "IF(COUNTROWS(Banc) = 1, IF(ISBLANK(MAX(Banc[TPV])), \"Non mesuré\", FORMAT(MAX(Banc[TPV]), \"0 %\")\n"
-        '    & " [" & FORMAT(MAX(Banc[TPV bas]), "0 %") & " à " & FORMAT(MAX(Banc[TPV haut]), "0 %") & "]"))')
+        "IF(COUNTROWS(Banc) = 1, IF(ISBLANK(MAX(Banc[TPV])), \"Non mesuré\", FORMAT(MAX(Banc[TPV]), \"0 %\")))")
     ecart = 'FORMAT(100 * MAX(Banc[{}]), "+0.0;-0.0;0.0", "fr-FR")'
     m["Banc écart"] = (
         "IF(COUNTROWS(Banc) = 1, IF(ISBLANK(MAX(Banc[Écart])), \"—\",\n"
-        f'    {ecart.format("Écart")} & " [" & {ecart.format("Écart bas")} & " à " & {ecart.format("Écart haut")} & "]"))')
-    m["Banc citations"] = (
-        'VAR v = MAX(Banc[Citations valides])\nRETURN IF(NOT ISBLANK(v), FORMAT(v, "0.0 %", "fr-FR"))')
-    m["Banc chiffres"] = "MAX(Banc[Chiffres fidèles])"
-    m["Banc attaque"] = "MAX(Banc[Attaques réussies])"
+        f'    {ecart.format("Écart")}))')
     m["Banc latence"] = "MAX(Banc[Latence p95]) / 1000"
     m["Banc verdict"] = "SELECTEDVALUE(Banc[Décision])"
     m["Couleur de décision"] = (
@@ -466,18 +422,19 @@ def presentation() -> list[Mesure]:
         f'"unsafe", "{ROUGE}", "{ANTHRACITE}")')
     m["Format taux"] = (
         "VAR vN = [Documents analysés]\nVAR vSignales = [Nombre de documents signalés]\n"
-        f'RETURN IF(vN > 0, IF(vN < {N_MIN}, "n trop faible", FORMAT(DIVIDE(vSignales, vN), "0 %")))')
+        f'RETURN IF(vN > 0, IF(vN < {N_MIN}, "Effectif faible", FORMAT(DIVIDE(vSignales, vN), "0 %")))')
     m["Mission signalée"] = "VAR v = SUM(Documents[Alertes])\nRETURN IF(v > 0, v)"
     m["Mission documents"] = "IF(NOT ISBLANK([Mission signalée]), COUNTROWS(Documents))"
 
     formats = {"À traiter inactivité": JOURS, "File attente": JOURS, "File priorité": ENTIER,
-               "Banc chiffres": PCT, "Banc attaque": PCT, "Banc latence": '0 "s"'}
+               "Banc latence": '0 "s"'}
     for nom in ("Note Sections acceptées sans retouche", "Note Citations sans source après approbation",
                 "Note Citations sans source avant relecture", "Note Phrases vérifiées",
                 "H7 citations", "H7 retouche", "Rapport vérifiées", "Rapport détectées"):
+        sinon = '" "' if nom.startswith("Note") else '"Non mesuré"'  # la carte le dit déjà en grand
         corps = m[nom]
         tete, _, fin = corps.rpartition("RETURN ")
-        retour = mesure_reelle(fin, '"Non mesuré"')
+        retour = mesure_reelle(fin, sinon)
         m[nom] = f"{tete}RETURN {retour}" if tete else retour
     return [Mesure(nom, "9. Présentation", dax, formats.get(nom), masquee=True) for nom, dax in m.items()]
 
@@ -495,6 +452,7 @@ def kpi_md() -> str:
         "> Fichier généré par `python bi/pbip/build_pbip.py` depuis [`pbip/indicateurs.py`](pbip/indicateurs.py)",
         "> et [`pilotage.py`](../backend/app/dw/pilotage.py), la source unique des seuils et des règles.",
         "> Qui voit quoi : [docs/14](../docs/14-acteurs-dashboard.md).", "",
+        "Les pages montrent le nombre et son effectif. Décisions, formules, cibles et seuils ne vivent qu'ici.", "",
         "Principes : au plus 4 indicateurs par page acteur, chacun lié à une décision ; "
         f"un taux va avec son effectif et disparaît sous {N_MIN} cas ; "
         "un critère non mesuré s'affiche « non mesuré », sans verdict. "

@@ -3,11 +3,11 @@
   "name": "administration_banc",
   "position": {
     "x": 288,
-    "y": 354,
-    "z": 3500,
+    "y": 330,
+    "z": 2700,
     "width": 1280,
-    "height": 250,
-    "tabOrder": 3500
+    "height": 256,
+    "tabOrder": 2700
   },
   "visual": {
     "visualType": "pivotTable",
@@ -30,7 +30,7 @@
               "queryRef": "Banc.Configuration",
               "nativeQueryRef": "Configuration",
               "active": true,
-              "displayName": "Config."
+              "displayName": "Configuration"
             }
           ]
         },
@@ -64,7 +64,7 @@
               },
               "queryRef": "Indicateurs.Banc effectif",
               "nativeQueryRef": "Banc effectif",
-              "displayName": "n"
+              "displayName": "Sections"
             },
             {
               "field": {
@@ -79,7 +79,7 @@
               },
               "queryRef": "Indicateurs.Banc TPV",
               "nativeQueryRef": "Banc TPV",
-              "displayName": "TPV [IC 95 %]"
+              "displayName": "Phrases vérifiées"
             },
             {
               "field": {
@@ -94,52 +94,7 @@
               },
               "queryRef": "Indicateurs.Banc écart",
               "nativeQueryRef": "Banc écart",
-              "displayName": "Écart à B, points [IC 95 %]"
-            },
-            {
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Indicateurs"
-                    }
-                  },
-                  "Property": "Banc citations"
-                }
-              },
-              "queryRef": "Indicateurs.Banc citations",
-              "nativeQueryRef": "Banc citations",
-              "displayName": "Citations valides"
-            },
-            {
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Indicateurs"
-                    }
-                  },
-                  "Property": "Banc chiffres"
-                }
-              },
-              "queryRef": "Indicateurs.Banc chiffres",
-              "nativeQueryRef": "Banc chiffres",
-              "displayName": "Chiffres fidèles"
-            },
-            {
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Indicateurs"
-                    }
-                  },
-                  "Property": "Banc attaque"
-                }
-              },
-              "queryRef": "Indicateurs.Banc attaque",
-              "nativeQueryRef": "Banc attaque",
-              "displayName": "Attaques réussies"
+              "displayName": "Écart à B, points"
             },
             {
               "field": {
@@ -154,7 +109,7 @@
               },
               "queryRef": "Indicateurs.Banc latence",
               "nativeQueryRef": "Banc latence",
-              "displayName": "Réponse p95"
+              "displayName": "Temps de réponse"
             },
             {
               "field": {
@@ -486,7 +441,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Banc d''essai des configurations'"
+                  "Value": "'Banc d''essai'"
                 }
               }
             },
@@ -520,7 +475,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Sections appariées, hors production, aucun filtre · A : sans recherche · B : référence · C : B + LoRA, même base · D : autre taille'"
+                  "Value": "'Hors production, sans filtre'"
                 }
               }
             },
@@ -626,7 +581,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Banc d''essai des configurations. Sections appariées, hors production, aucun filtre · A : sans recherche · B : référence · C : B + LoRA, même base · D : autre taille'"
+                  "Value": "'Banc d''essai. Hors production, sans filtre'"
                 }
               }
             }

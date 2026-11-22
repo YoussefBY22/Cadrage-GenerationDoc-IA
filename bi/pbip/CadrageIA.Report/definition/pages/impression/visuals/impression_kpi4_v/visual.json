@@ -2,12 +2,12 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
   "name": "impression_kpi4_v",
   "position": {
-    "x": 366,
-    "y": 866,
-    "z": 3400,
-    "width": 482,
-    "height": 26,
-    "tabOrder": 3400
+    "x": 386,
+    "y": 876,
+    "z": 3100,
+    "width": 462,
+    "height": 30,
+    "tabOrder": 3100
   },
   "visual": {
     "visualType": "shape",

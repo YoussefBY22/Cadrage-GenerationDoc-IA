@@ -3,11 +3,11 @@
   "name": "impression_f_kpi",
   "position": {
     "x": 52,
-    "y": 743,
-    "z": 2400,
+    "y": 733,
+    "z": 2100,
     "width": 796,
     "height": 3,
-    "tabOrder": -25
+    "tabOrder": -22
   },
   "visual": {
     "visualType": "shape",

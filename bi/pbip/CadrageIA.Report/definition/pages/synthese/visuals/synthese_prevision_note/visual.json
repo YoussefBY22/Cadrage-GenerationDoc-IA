@@ -2,12 +2,12 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
   "name": "synthese_prevision_note",
   "position": {
-    "x": 936,
-    "y": 768,
-    "z": 4400,
-    "width": 620,
-    "height": 76,
-    "tabOrder": 4400
+    "x": 304,
+    "y": 822,
+    "z": 3000,
+    "width": 980,
+    "height": 52,
+    "tabOrder": 3000
   },
   "visual": {
     "visualType": "shape",

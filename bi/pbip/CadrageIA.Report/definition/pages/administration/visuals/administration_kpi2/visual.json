@@ -4,10 +4,10 @@
   "position": {
     "x": 612.0,
     "y": 186,
-    "z": 2600,
+    "z": 2400,
     "width": 308.0,
-    "height": 122,
-    "tabOrder": 2600
+    "height": 128,
+    "tabOrder": 2400
   },
   "visual": {
     "visualType": "cardVisual",
@@ -322,51 +322,13 @@
           }
         }
       ],
-      "visualHeaderTooltip": [
-        {
-          "properties": {
-            "type": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Default'"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Formule : citations générées dont la source n''est pas dans le dossier ÷ citations générées.\nDécision : Régler la recherche ou le modèle\nCible : aucune : le critère H7 porte sur ce qui reste après approbation\nFlux : suit la période.'"
-                }
-              }
-            },
-            "titleFontColor": {
-              "solid": {
-                "color": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "'#2E2E38'"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      ],
       "visualHeader": [
         {
           "properties": {
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "showTooltipButton": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
+                  "Value": "false"
                 }
               }
             }
@@ -379,7 +341,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Sans source avant relecture. Formule : citations générées dont la source n''est pas dans le dossier ÷ citations générées. Décision : Régler la recherche ou le modèle.'"
+                  "Value": "'Indicateur : Sans source avant relecture'"
                 }
               }
             }

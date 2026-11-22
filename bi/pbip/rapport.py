@@ -4,6 +4,7 @@ Règles de conception, avec leurs sources, dans docs/14 §6 :
 - titres nominaux ; sous-titre périmètre, mesure, période ; le message vit dans une zone « Constat » ;
 - titres de visuels neutres, tous à la même taille ;
 - au plus 4 KPI par page, en mesures numériques (épinglables avec alerte dans le Service) ;
+- peu de texte : décisions, formules et seuils sont dans bi/KPI.md, pas sur les pages ;
 - texte alternatif sur ce qui porte une information, décor hors de l'ordre de tabulation.
 
 Grille 1600 × 900 (page imprimable : 900 × 1273, A4 portrait) : barre latérale de 256 px,
@@ -22,13 +23,11 @@ from indicateurs import (
     GRIS_CLAIR,
     GRIS_TEXTE,
     JAUNE,
-    KPIS,
     RESPONSABLE,
     ROUGE,
     SUFFIXE,
     TOUS,
     TOUT,
-    pilotage,
 )
 from pbir import CHAQUE_POINT, DEFAUT, SCHEMA, SCHEMA_VISUEL, SEMIBOLD, col, mes, props, ref, requete, serie
 
@@ -36,7 +35,9 @@ L, H, BARRE = 1600, 900, 256
 A4_L, A4_H = 900, 1273
 X0, LC, G = 288, 1280, 16
 BAS = H - 24
-HAUT_CORPS = 354
+HAUT_CORPS = 330
+HAUT_RECOS = 180
+HAUT_SUITE = HAUT_CORPS + HAUT_RECOS + G
 BLANC, FOND, BARRE_2 = "#FFFFFF", "#F6F6FA", "#3C3C48"
 THEME_BASE = "CY26SU02"
 TITRE_VISUEL = 13.0
@@ -52,7 +53,6 @@ SEGMENTS = {  # groupe de synchronisation → (libellé, table, colonne, valeur 
     "type": ("Type de livrable", "Choix du type", "Type choisi", TOUS),
     "consultant": ("Consultant", "Choix du consultant", "Consultant choisi", TOUS),
 }
-DEFINITIONS = {k.nom: k for k in KPIS}
 RESPONSIVES = ("barChart", "clusteredBarChart", "clusteredColumnChart", "lineChart")
 
 
@@ -218,22 +218,20 @@ class Page:
     def cartes(self, liste: list[tuple[str, str | None]]) -> None:
         assert len(liste) <= 4, "au plus 4 KPI par page"
         for i, ((nom, titre), (x, w)) in enumerate(zip(liste, colonnes(len(liste)), strict=True), 1):
-            self.kpi(i, (x, 186, w, 152), nom, titre)
+            self.kpi(i, (x, 186, w, 128), nom, titre)
 
     def kpi(self, i: int, boite: tuple, indicateur: str, titre: str | None) -> None:
         x, y, w, h = boite
-        k = DEFINITIONS[indicateur]
         titre = titre or indicateur
         conteneur = {
             "title": [props(show=True, text=titre, fontSize=TITRE_VISUEL, titleWrap=True)],
             "subTitle": [props(show=True, text=mes(f"Note {indicateur}"), fontSize=10.0, fontColor=GRIS_TEXTE,
                                titleWrap=True)],
             "padding": [props(top=8.0, bottom=0.0, left=16.0, right=8.0)],
-            "visualHeaderTooltip": [props(type="Default", text=k.description, titleFontColor=ANTHRACITE)],
-            "visualHeader": [props(show=True, showTooltipButton=True)],
-            **alternatif(f"{titre}. Formule : {k.formule} Décision : {k.decision}."),
+            "visualHeader": [props(show=False)],
+            **alternatif(f"Indicateur : {titre}"),
         }
-        self.poser(f"kpi{i}", "cardVisual", (x, y, w, h - 30), req=requete({"Data": [mes(indicateur)]}),
+        self.poser(f"kpi{i}", "cardVisual", (x, y, w, h), req=requete({"Data": [mes(indicateur)]}),
                    conteneur=conteneur, objets={
             "layout": [props(maxTiles=1), props(DEFAUT, backgroundShow=False, paddingUniform=0, cellPadding=0)],
             "value": [props(DEFAUT, fontSize=28.0, fontColor=ANTHRACITE, fontFamily=SEMIBOLD, showBlankAs="Non mesuré",
@@ -242,8 +240,6 @@ class Page:
             "fillCustom": [props(DEFAUT, show=False)],
             "padding": [props(DEFAUT, paddingUniform=0, paddingIndividual=False)],
         })
-        self.rectangle(f"kpi{i}_bande", (x, y + h - 30, w, 30), ANTHRACITE)
-        self.texte(f"kpi{i}_decision", (x + 16, y + h - 30, w - 20, 30), "Décision : " + k.decision, 9.5, BLANC)
 
     def graphique(self, nom: str, vtype: str, boite: tuple, roles: dict, titre: str, sous_titre, objets: dict,
                   tri: tuple | None = None, alt=None) -> None:
@@ -259,7 +255,8 @@ class Page:
         })
 
     def tableau(self, nom: str, boite: tuple, ligne: tuple | dict, valeurs: list, titre: str, sous_titre: str,
-                tri: tuple, *, rangs: float = 4.0, fonds: dict | None = None, encres: dict | None = None) -> None:
+                tri: tuple, *, rangs: float = 4.0, fonds: dict | None = None, encres: dict | None = None,
+                alt=None) -> None:
         # Une matrice à une seule colonne de lignes : le visuel « table » reste vide avec ce PBIR.
         cellules = [props(fontSize=10.5, fontColorPrimary=ANTHRACITE, fontColorSecondary=ANTHRACITE,
                           backColorPrimary=BLANC, backColorSecondary=BLANC)]
@@ -279,25 +276,21 @@ class Page:
             "rowHeaders": [props(fontSize=10.5, fontColor=ANTHRACITE, showExpandCollapseButtons=False)],
             "values": cellules,
             "subTotals": [props(rowSubtotals=False, columnSubtotals=False)],
-        }, tri)
+        }, tri, alt)
 
     def recommandations(self, boite: tuple, acteur: str | None, titre: str) -> None:
-        x, y, w, h = boite
-        self.texte("recos_titre", (x, y, w, 28), titre, TITRE_VISUEL, ANTHRACITE, gras=True)
-        n = pilotage.MAX_RECOMMENDATIONS
-        hauteur = (h - 32 - 10 * (n - 1)) / n
         suffixe = SUFFIXE[acteur]
-        for i in range(n):
-            haut = y + 32 + i * (hauteur + 10)
-            self.rectangle(f"reco{i + 1}_filet", (x, haut, 5, hauteur), JAUNE if i == 0 else GRIS_CLAIR)
-            self.calcule(f"reco{i + 1}", (x + 5, haut, w - 5, hauteur), mes(f"Reco {i + 1} constat{suffixe}"),
-                         11.5, ANTHRACITE, gras=True, sous_titre=mes(f"Reco {i + 1} action{suffixe}"),
-                         taille_sous=10, fond=BLANC, marge=12)
+        valeurs = [(f"Reco rang{suffixe}", "Priorité"), (f"Reco nombre{suffixe}", "Livrables")]
+        if acteur is None:
+            valeurs.append(("Reco pour", "Pour"))
+        valeurs.append((f"Reco action{suffixe}", "Action"))
+        self.tableau("recos", boite, (col("Règles", "Libellé"), "Constat"), valeurs, titre,
+                     mes(f"Reco état{suffixe}"), (mes(f"Reco rang{suffixe}"), "Ascending"), rangs=3.0, alt=titre)
 
     def prevision(self, boite: tuple) -> None:
         """Série régulière par quinzaine, prévision et bornes : des formes de point, pas seulement des couleurs."""
         x, y, w, h = boite
-        note = 118
+        note = 62
         reel, prevu = mes("Soumissions réelles"), mes("Prévision")
         bas, haut = mes("Borne basse"), mes("Borne haute")
         date = col("Série de prévision", "Fin de quinzaine")
@@ -305,7 +298,7 @@ class Page:
             "prevision", "lineChart", (x, y, w, h - note),
             {"Category": [date],
              "Y": [(reel, "Réel"), (prevu, "Prévision"), (haut, "Borne haute"), (bas, "Borne basse")]},
-            "Soumissions en relecture, par quinzaine", "Historique, puis prévision à 2 semaines et son intervalle", {
+            "Soumissions en relecture", "Par quinzaine", {
                 # Dates régulières (pas de 14 j) ; en axe continu, Power BI traduirait les mois en anglais
                 "categoryAxis": axe(axisType="Categorical", fontSize=9.0, gridlineShow=False,
                                     preferredCategoryWidth=20.0, maxMarginFactor=30),
@@ -322,10 +315,10 @@ class Page:
                               props(serie(haut), fill=GRIS), props(serie(bas), fill=GRIS)],
             }, tri=(date, "Ascending"), alt=mes("Prévision valeur"))
         self.rectangle("prevision_fond", (x, y + h - note, w, note), ANTHRACITE)
-        self.calcule("prevision_note", (x + 16, y + h - note + 10, w - 28, 76), mes("Prévision valeur"), 11.5, JAUNE,
-                     gras=True, sous_titre=mes("Prévision méthode"), taille_sous=9.5, encre_sous=BLANC)
-        self.calcule("prevision_simulation", (x + 16, y + h - 26, w - 28, 24), mes("Mention simulation"), 9.5, JAUNE,
-                     gras=True)
+        self.calcule("prevision_note", (x + 16, y + h - note + 8, w - 300, note - 10), mes("Prévision valeur"), 11.5,
+                     JAUNE, gras=True, sous_titre=mes("Prévision méthode"), taille_sous=9.5, encre_sous=BLANC)
+        self.calcule("prevision_simulation", (x + w - 280, y + h - note + 18, 264, 28), mes("Mention simulation"), 9.5,
+                     JAUNE, gras=True, alignement="right")
 
 
 def axe(titre: str | None = None, **kw) -> list:
@@ -343,69 +336,60 @@ def sans_axe(**kw) -> list:
 def synthese() -> Page:
     p = Page("synthese")
     p.entete()
-    p.cartes([("Livrables à valider", None), ("Livrables à traiter", None),
+    p.cartes([("Livrables à valider", "À valider"), ("Livrables à traiter", "À traiter"),
               ("Citations sans source après approbation", "Sans source après approbation"),
               ("Délai de validation", None)])
-    gauche = 616
-    p.recommandations((X0, HAUT_CORPS, gauche, BAS - HAUT_CORPS), None, "Recommandations prioritaires")
-    p.prevision((X0 + gauche + G, HAUT_CORPS, LC - gauche - G, BAS - HAUT_CORPS))
+    p.recommandations((X0, HAUT_CORPS, LC, HAUT_RECOS), None, "Recommandations prioritaires")
+    p.prevision((X0, HAUT_SUITE, LC, BAS - HAUT_SUITE))
     return p
 
 
 def production() -> Page:
     p = Page("production")
     p.entete()
-    p.cartes([("Livrables à traiter", None), ("Phrases bloquantes à corriger", "Phrases bloquantes"),
+    p.cartes([("Livrables à traiter", "À traiter"), ("Phrases bloquantes à corriger", "Phrases bloquantes"),
               ("Sections acceptées sans retouche", "Acceptées sans retouche")])
-    gauche, droite = 808, LC - 808 - G
-    p.tableau("a_traiter", (X0, HAUT_CORPS, gauche, 254), col("Livrables", "Livrable"),
+    p.recommandations((X0, HAUT_CORPS, LC, HAUT_RECOS), CONSULTANT, "Recommandations au consultant")
+    gauche, droite = 744, LC - 744 - G
+    p.tableau("a_traiter", (X0, HAUT_SUITE, gauche, BAS - HAUT_SUITE), col("Livrables", "Livrable"),
               [("À traiter état", "État"), ("À traiter motif", "Motif du renvoi"),
-               ("À traiter bloquantes", "Bloquantes"), ("À traiter sans preuve", "Sans preuve"),
-               ("À traiter inactivité", "Inactif")],
-              "Brouillons et renvois", "Par durée d'inactivité · motif détaillé dans l'application",
+               ("À traiter bloquantes", "Bloquantes"), ("À traiter inactivité", "Inactif")],
+              "Brouillons et renvois", "Les plus anciens d'abord",
               (mes("À traiter inactivité"), "Descending"), rangs=2.0,
               fonds={"À traiter bloquantes": "Couleur de correction"})
-    haut = HAUT_CORPS + 254 + G
-    p.tableau("sections", (X0, haut, gauche, BAS - haut), col("Sections courantes", "Section à revoir"),
-              [("Section refus", "À faire"), ("Section bloquantes", "Bloquantes"),
-               ("Section sans source", "Sans source"), ("Section priorité", "Priorité")],
-              "Sections à revoir", "Priorité : source absente (5), autre blocage (3), refus faute de preuve (2)",
+    p.tableau("sections", (X0 + gauche + G, HAUT_SUITE, droite, BAS - HAUT_SUITE),
+              col("Sections courantes", "Section à revoir"),
+              [("Section refus", "À faire"), ("Section bloquantes", "Bloquantes"), ("Section priorité", "Priorité")],
+              "Sections à revoir", "Les plus urgentes d'abord",
               (mes("Section priorité"), "Descending"), rangs=2.0)
-    p.recommandations((X0 + gauche + G, HAUT_CORPS, droite, BAS - HAUT_CORPS), CONSULTANT,
-                      "Recommandations au consultant")
     return p
 
 
 def validation() -> Page:
     p = Page("validation")
     p.entete()
-    p.cartes([("Livrables à valider", None), ("Délai de validation", None),
+    p.cartes([("Livrables à valider", "À valider"), ("Délai de validation", None),
               ("Renvois à la première relecture", "Renvois en 1re relecture"),
-              ("Phrases bloquantes à vérifier", "Bloquantes à vérifier")])
-    gauche, droite = 824, LC - 824 - G
-    p.tableau("file", (X0, HAUT_CORPS, gauche, 340), col("Livrables", "Livrable"),
+              ("Phrases bloquantes à vérifier", "Phrases bloquantes")])
+    p.recommandations((X0, HAUT_CORPS, LC, HAUT_RECOS), RESPONSABLE, "Recommandations au responsable")
+    gauche, droite = 808, LC - 808 - G
+    p.tableau("file", (X0, HAUT_SUITE, gauche, BAS - HAUT_SUITE), col("Livrables", "Livrable"),
               [("File consultant", "Consultant"), ("File attente", "Attente"), ("File bloquantes", "Bloquantes"),
-               ("File risque", "Risque de renvoi [80 %], n"), ("File priorité", "Priorité")],
-              "File de validation",
-              f"Priorité = jours d'attente × (1 + risque) · fond rouge : plus de {pilotage.REVIEW_OVERDUE_HOURS} h",
+               ("File risque", "Risque de renvoi"), ("File priorité", "Priorité")],
+              "File de validation", "En rouge : en retard",
               (mes("File priorité"), "Descending"), rangs=1.0,
               fonds={"File attente": "Couleur d'attente", "File bloquantes": "Couleur de blocage"})
-    haut = HAUT_CORPS + 340 + 10
     personne = col("Personnes", "Consultant")
     attente, chez_lui = mes("Charge en relecture"), mes("Charge chez le consultant")
-    p.graphique("charge", "barChart", (X0, haut, gauche, BAS - haut),
+    p.graphique("charge", "barChart", (X0 + gauche + G, HAUT_SUITE, droite, BAS - HAUT_SUITE),
                 {"Category": [personne], "Y": [(attente, "En relecture"), (chez_lui, "Chez le consultant")]},
-                "Charge par consultant", "Livrables ouverts, par ordre alphabétique (ce n'est pas un classement)",
-                {"categoryAxis": axe(maxMarginFactor=40, gridlineShow=False, fontSize=9.5),
+                "Charge par consultant", "Livrables ouverts",
+                {"categoryAxis": axe(maxMarginFactor=45, gridlineShow=False, fontSize=9.5),
                  "valueAxis": sans_axe(start=0.0),
-                 "legend": [props(show=True, position="Right", showTitle=False, fontSize=9.5)],
+                 "legend": [props(show=True, position="Top", showTitle=False, fontSize=9.5)],
                  "labels": [props(show=True, fontSize=9.5, color=BLANC, labelPosition="InsideCenter")],
                  "dataPoint": [props(serie(attente), fill=ANTHRACITE), props(serie(chez_lui), fill=GRIS)]},
                 tri=(personne, "Ascending"))
-    x = X0 + gauche + G
-    p.recommandations((x, HAUT_CORPS, droite, BAS - HAUT_CORPS - 72), RESPONSABLE, "Recommandations au responsable")
-    p.calcule("risque", (x, BAS - 62, droite, 62), mes("Prévision risque"), 9.5, GRIS_TEXTE,
-              sous_titre=mes("Mention simulation"), taille_sous=9.5)
     return p
 
 
@@ -414,40 +398,25 @@ def administration() -> Page:
     p.entete()
     p.cartes([("Phrases vérifiées", "Phrases vérifiées"),
               ("Citations sans source avant relecture", "Sans source avant relecture"),
-              ("Alertes d'injection", None), ("Documents signalés", None)])
+              ("Alertes d'injection", "Consignes cachées"), ("Documents signalés", None)])
     config = col("Banc", "Configuration")
-    p.tableau("banc", (X0, HAUT_CORPS, LC, 250), (config, "Config."),
-              [("Banc montage", "Montage"), ("Banc effectif", "n"), ("Banc TPV", "TPV [IC 95 %]"),
-               ("Banc écart", "Écart à B, points [IC 95 %]"), ("Banc citations", "Citations valides"),
-               ("Banc chiffres", "Chiffres fidèles"), ("Banc attaque", "Attaques réussies"),
-               ("Banc latence", "Réponse p95"), ("Banc verdict", "Décision")],
-              "Banc d'essai des configurations",
-              "Sections appariées, hors production, aucun filtre · A : sans recherche · B : référence · "
-              "C : B + LoRA, même base · D : autre taille",
+    bas_banc = HAUT_CORPS + 256
+    p.tableau("banc", (X0, HAUT_CORPS, LC, bas_banc - HAUT_CORPS), (config, "Configuration"),
+              [("Banc montage", "Montage"), ("Banc effectif", "Sections"), ("Banc TPV", "Phrases vérifiées"),
+               ("Banc écart", "Écart à B, points"), ("Banc latence", "Temps de réponse"),
+               ("Banc verdict", "Décision")],
+              "Banc d'essai", "Hors production, sans filtre",
               (config, "Ascending"), rangs=5.0, encres={"Banc verdict": "Couleur de décision"})
-    haut = HAUT_CORPS + 250 + G
-    (x1, w), (x2, _), (x3, _) = colonnes(3)
-    # Un sous-titre est coupé à trois lignes : la règle s'écrit ligne à ligne
-    p.rectangle("regle_fond", (x1, haut, w, BAS - haut), BLANC)
-    p.texte("regle_titre", (x1 + 16, haut + 10, w - 24, 28), "Règle de décision du banc", TITRE_VISUEL, ANTHRACITE,
-            gras=True)
-    for i, (ligne, gras) in enumerate([
-        ("Retenir une configuration seulement si :", False),
-        ("1. l'intervalle à 95 % de l'écart de TPV avec B", True),
-        ("    est au-dessus de 0 (bootstrap apparié) ;", True),
-        ("2. aucune sécurité ne se dégrade :", True),
-        ("    citations, chiffres, attaques, refus manqués.", False),
-        ("Un écart non concluant ne change rien.", False),
-    ]):
-        p.texte(f"regle{i}", (x1 + 16, haut + 48 + i * 30, w - 24, 26), ligne, 10.5,
-                ANTHRACITE if gras else GRIS_TEXTE, gras=gras)
-    p.tableau("formats", (x2, haut, w, BAS - haut), col("Documents", "Format"),
-              [("Documents analysés", "n"), ("Nombre de documents signalés", "Signalés"), ("Format taux", "Taux")],
-              "Signalements par format", f"Filtre client seulement · pas de taux sous {pilotage.MIN_SAMPLE}",
+    haut = bas_banc + G
+    (x1, w), (x2, _) = colonnes(2)
+    p.tableau("formats", (x1, haut, w, BAS - haut), col("Documents", "Format"),
+              [("Documents analysés", "Documents"), ("Nombre de documents signalés", "Signalés"),
+               ("Format taux", "Part signalée")],
+              "Signalements par format", "Filtre client seulement",
               (col("Documents", "Format"), "Ascending"), rangs=3.0)
-    p.tableau("missions", (x3, haut, w, BAS - haut), col("Missions", "Mission"),
-              [("Mission signalée", "Alertes"), ("Mission documents", "Documents")],
-              "Missions signalées", "Au moins une alerte d'injection",
+    p.tableau("missions", (x2, haut, w, BAS - haut), col("Missions", "Mission"),
+              [("Mission signalée", "Alertes"), ("Mission documents", "Documents de la mission")],
+              "Missions signalées", "Les plus touchées d'abord",
               (mes("Mission signalée"), "Descending"), rangs=2.0)
     return p
 
@@ -463,52 +432,47 @@ def impression() -> Page:
     p.bouton("retour", (A4_L - 52 - 120, 56, 120, 34), "←  Synthèse", "synthese", fond=FOND, encre=GRIS_TEXTE,
              survol=GRIS_CLAIR, taille=10.0, alignement="center")
     p.calcule("filtres", (x, 110, w, 40), mes("Filtres du rapport"), 9.5, GRIS_TEXTE)
-    p.calcule("simulation", (x, 150, w, 24), mes("Mention simulation"), 11, ROUGE, gras=True)
+    p.texte("interne", (x, 150, 420, 26), "Interne au cabinet", 10, ANTHRACITE, gras=True)
+    p.calcule("simulation", (x + 420, 154, w - 420, 26), mes("Mention simulation"), 10, ROUGE, gras=True,
+              alignement="right")
 
     def titre(nom: str, y: float, texte: str) -> None:
         p.texte(f"t_{nom}", (x, y, w, 28), texte, 13, ANTHRACITE, gras=True)
         p.rectangle(f"f_{nom}", (x, y + 29, w, 3), JAUNE)
 
-    titre("constat", 182, "Constat")
-    p.calcule("constat", (x, 220, w, 48), mes("Constat synthese"), 11, ANTHRACITE)
+    titre("constat", 200, "Constat")
+    p.calcule("constat", (x, 242, w, 36), mes("Constat synthese"), 11.5, ANTHRACITE, gras=True)
 
-    titre("priorites", 270, "Recommandations prioritaires")
-    for i in range(pilotage.MAX_RECOMMENDATIONS):
-        p.calcule(f"reco{i + 1}", (x, 310 + i * 78, w, 76), mes(f"Reco {i + 1} constat"), 11, ANTHRACITE, gras=True,
-                  sous_titre=mes(f"Reco {i + 1} action"), taille_sous=9.5)
+    p.recommandations((x, 300, w, 210), None, "Recommandations prioritaires")
 
     def lignes(nom: str, y: float, contenu: list[tuple[str, str]], pas: float) -> None:
         for i, (libelle, mesure) in enumerate(contenu):
             haut = y + i * pas
-            p.texte(f"{nom}{i}_l", (x, haut, 310, 24), libelle, 9.5, GRIS_TEXTE)
-            p.calcule(f"{nom}{i}_v", (x + 314, haut + 2, w - 314, pas - 2), mes(mesure), 9.5, ANTHRACITE, gras=True)
+            p.texte(f"{nom}{i}_l", (x, haut, 330, 24), libelle, 9.5, GRIS_TEXTE)
+            p.calcule(f"{nom}{i}_v", (x + 334, haut + 2, w - 334, pas - 2), mes(mesure), 9.5, ANTHRACITE, gras=True)
 
-    titre("h7", 548, "Critères de réussite (hypothèse H7)")
-    lignes("h7", 586, [("Citations sans source après approbation", "H7 citations"),
-                       ("Sections acceptées sans retouche", "H7 retouche")], 42)
+    titre("h7", 548, "Critères de réussite")
+    lignes("h7", 590, [("Citations sans source après approbation", "H7 citations"),
+                       ("Sections acceptées sans retouche", "H7 retouche")], 44)
 
-    titre("kpi", 714, "Indicateurs")
-    lignes("kpi", 752, [("Livrables à valider", "Rapport file"),
+    titre("kpi", 704, "Indicateurs")
+    lignes("kpi", 746, [("Livrables à valider", "Rapport file"),
                         ("Délai de validation", "Rapport délai"),
-                        ("Renvois à la première relecture", "Rapport renvois"),
+                        ("Renvois en première relecture", "Rapport renvois"),
                         ("Phrases bloquantes", "Rapport bloquantes"),
                         ("Phrases vérifiées à la génération", "Rapport vérifiées"),
-                        ("Citations sans source avant relecture", "Rapport détectées")], 28)
+                        ("Citations sans source avant relecture", "Rapport détectées")], 32)
 
-    titre("prediction", 926, "Prédiction de la charge de relecture à 2 semaines")
-    p.calcule("prevision", (x, 964, w, 100), mes("Prévision valeur"), 11, ANTHRACITE, gras=True,
+    titre("prediction", 966, "Charge de relecture à 2 semaines")
+    p.calcule("prevision", (x, 1008, w, 70), mes("Prévision valeur"), 11, ANTHRACITE, gras=True,
               sous_titre=mes("Prévision méthode"), taille_sous=9.5)
 
-    titre("limites", 1066, "Limites")
+    titre("limites", 1110, "Limites")
     for i, ligne in enumerate([
-        "Sans retouche : mesuré par section, alors que H7 raisonne par phrase.",
         "Une source qui existe ne prouve pas qu'elle soutient la phrase.",
-        "Une phrase modifiée n'est pas revérifiée ici : seule sa source est contrôlée.",
-        "File, recommandations et prédiction ne suivent pas la période.",
-        "Document interne, multi-client. Pour un client : python -m app.dw.report --audience client.",
-        "L'export PDF de Desktop ignore cette page masquée : utiliser la commande ci-dessus (bi/PUBLICATION.md).",
+        "File, recommandations et prévision ne suivent pas la période.",
     ]):
-        p.texte(f"limite{i}", (x, 1102 + i * 22, w, 22), "•  " + ligne, 9, GRIS_TEXTE)
+        p.texte(f"limite{i}", (x, 1152 + i * 26, w, 24), "•  " + ligne, 9, GRIS_TEXTE)
     return p
 
 

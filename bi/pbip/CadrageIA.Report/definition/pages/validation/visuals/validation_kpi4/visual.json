@@ -4,10 +4,10 @@
   "position": {
     "x": 1260.0,
     "y": 186,
-    "z": 3200,
+    "z": 2600,
     "width": 308.0,
-    "height": 122,
-    "tabOrder": 3200
+    "height": 128,
+    "tabOrder": 2600
   },
   "visual": {
     "visualType": "cardVisual",
@@ -217,7 +217,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Bloquantes à vérifier'"
+                  "Value": "'Phrases bloquantes'"
                 }
               }
             },
@@ -322,51 +322,13 @@
           }
         }
       ],
-      "visualHeaderTooltip": [
-        {
-          "properties": {
-            "type": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Default'"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Formule : phrases bloquantes, non acquittées, des livrables en relecture.\nDécision : Quoi vérifier en premier\nCible : 0 à l''approbation (règle du produit)\nSituation à la date des données : ne suit pas la période.'"
-                }
-              }
-            },
-            "titleFontColor": {
-              "solid": {
-                "color": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "'#2E2E38'"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      ],
       "visualHeader": [
         {
           "properties": {
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "showTooltipButton": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
+                  "Value": "false"
                 }
               }
             }
@@ -379,7 +341,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Bloquantes à vérifier. Formule : phrases bloquantes, non acquittées, des livrables en relecture. Décision : Quoi vérifier en premier.'"
+                  "Value": "'Indicateur : Phrases bloquantes'"
                 }
               }
             }

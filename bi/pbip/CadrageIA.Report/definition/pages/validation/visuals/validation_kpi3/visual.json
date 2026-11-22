@@ -4,10 +4,10 @@
   "position": {
     "x": 936.0,
     "y": 186,
-    "z": 2900,
+    "z": 2500,
     "width": 308.0,
-    "height": 122,
-    "tabOrder": 2900
+    "height": 128,
+    "tabOrder": 2500
   },
   "visual": {
     "visualType": "cardVisual",
@@ -322,51 +322,13 @@
           }
         }
       ],
-      "visualHeaderTooltip": [
-        {
-          "properties": {
-            "type": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Default'"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Formule : livrables renvoyés à leur première relecture ÷ livrables dont la première relecture est décidée.\nDécision : Revoir la préparation avant soumission\nCible : aucun seuil dans H7\nFlux : suit la période.\nLimite : pas de taux sous 30 décisions.'"
-                }
-              }
-            },
-            "titleFontColor": {
-              "solid": {
-                "color": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "'#2E2E38'"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      ],
       "visualHeader": [
         {
           "properties": {
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "showTooltipButton": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
+                  "Value": "false"
                 }
               }
             }
@@ -379,7 +341,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Renvois en 1re relecture. Formule : livrables renvoyés à leur première relecture ÷ livrables dont la première relecture est décidée. Décision : Revoir la préparation avant soumission.'"
+                  "Value": "'Indicateur : Renvois en 1re relecture'"
                 }
               }
             }

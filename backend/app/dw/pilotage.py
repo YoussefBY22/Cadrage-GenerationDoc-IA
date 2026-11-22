@@ -56,31 +56,31 @@ RULES: tuple[Rule, ...] = (
     Rule("citation_restante", 1, RESPONSABLE, ("approved",),
          "Approuvés avec une citation sans source", "livrables approuvés",
          "au moins 1 citation sans source dans la version approuvée (H7 : 0)",
-         "Faire corriger puis réapprouver avant tout envoi au client."),
+         "Corriger puis faire réapprouver."),
     Rule("relecture_en_retard", 2, RESPONSABLE, ("in_review",),
          "Relectures en retard", "livrables en relecture",
          f"en relecture depuis plus de {REVIEW_OVERDUE_HOURS} h",
-         "Relire d'abord le plus ancien, ou confier la relecture à un autre responsable."),
+         "Relire d'abord le plus ancien."),
     Rule("renvoi_a_reprendre", 3, CONSULTANT, ("draft", "rejected"),
          "Renvois à reprendre", "livrables chez les consultants",
          "renvoyé par un responsable et pas encore resoumis",
-         "Reprendre ces livrables avant d'en commencer d'autres, en partant du motif."),
+         "Reprendre selon le motif du renvoi."),
     Rule("bloquant_en_relecture", 4, RESPONSABLE, ("in_review",),
          "Soumis avec une phrase bloquante", "livrables en relecture",
          "au moins 1 phrase bloquante encore présente",
-         "Vérifier ces phrases en premier : acquitter avec raison ou renvoyer avec motif."),
+         "Vérifier avant d'approuver."),
     Rule("bloquant_avant_soumission", 5, CONSULTANT, ("draft", "rejected"),
          "Brouillons avec une phrase bloquante", "livrables chez les consultants",
          "au moins 1 phrase bloquante encore présente",
-         "Corriger la source ou le chiffre avant de soumettre."),
+         "Corriger la source ou le chiffre."),
     Rule("preuve_manquante", 6, CONSULTANT, ("draft", "rejected"),
          "Sections refusées faute de preuve", "livrables chez les consultants",
          "au moins 1 section refusée dans la version courante",
-         "Ajouter le document manquant au dossier, puis régénérer la section."),
+         "Ajouter le document manquant."),
     Rule("brouillon_en_sommeil", 7, CONSULTANT, ("draft", "rejected"),
          "Brouillons sans activité", "livrables chez les consultants",
          f"aucune activité depuis plus de {DRAFT_STALE_HOURS // 24} jours",
-         "Soumettre le livrable, ou le signaler au responsable s'il est bloqué."),
+         "Soumettre ou signaler le blocage."),
 )
 
 REASONS: tuple[tuple[str, str, str], ...] = (
@@ -128,7 +128,7 @@ def recommendations(deliverables: Sequence[Mapping], actions: Sequence[Mapping],
         if n:
             total = sum(1 for d in deliverables if d["state"] in rule.states)
             out.append({"code": rule.code, "actor": rule.actor, "n": n, "total": total,
-                        "finding": f"{rule.label} : {n} sur {total} ({rule.population})",
+                        "finding": f"{rule.label} : {n}",
                         "threshold": rule.threshold, "action": rule.action})
     return out[:limit]
 

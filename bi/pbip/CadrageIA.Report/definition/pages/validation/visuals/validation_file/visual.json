@@ -3,11 +3,11 @@
   "name": "validation_file",
   "position": {
     "x": 288,
-    "y": 354,
-    "z": 3500,
-    "width": 824,
-    "height": 340,
-    "tabOrder": 3500
+    "y": 526,
+    "z": 2800,
+    "width": 808,
+    "height": 350,
+    "tabOrder": 2800
   },
   "visual": {
     "visualType": "pivotTable",
@@ -93,7 +93,7 @@
               },
               "queryRef": "Indicateurs.File risque",
               "nativeQueryRef": "File risque",
-              "displayName": "Risque de renvoi [80 %], n"
+              "displayName": "Risque de renvoi"
             },
             {
               "field": {
@@ -489,7 +489,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Priorité = jours d''attente × (1 + risque) · fond rouge : plus de 48 h'"
+                  "Value": "'En rouge : en retard'"
                 }
               }
             },
@@ -595,7 +595,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'File de validation. Priorité = jours d''attente × (1 + risque) · fond rouge : plus de 48 h'"
+                  "Value": "'File de validation. En rouge : en retard'"
                 }
               }
             }

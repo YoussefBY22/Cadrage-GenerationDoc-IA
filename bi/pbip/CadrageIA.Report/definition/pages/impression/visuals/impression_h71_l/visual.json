@@ -3,11 +3,11 @@
   "name": "impression_h71_l",
   "position": {
     "x": 52,
-    "y": 628,
-    "z": 2100,
-    "width": 310,
+    "y": 634,
+    "z": 1800,
+    "width": 330,
     "height": 24,
-    "tabOrder": 2100
+    "tabOrder": 1800
   },
   "visual": {
     "visualType": "shape",

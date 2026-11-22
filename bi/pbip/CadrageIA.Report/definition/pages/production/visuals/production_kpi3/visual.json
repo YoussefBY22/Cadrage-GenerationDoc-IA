@@ -4,10 +4,10 @@
   "position": {
     "x": 1152.0,
     "y": 186,
-    "z": 2900,
+    "z": 2500,
     "width": 416.0,
-    "height": 122,
-    "tabOrder": 2900
+    "height": 128,
+    "tabOrder": 2500
   },
   "visual": {
     "visualType": "cardVisual",
@@ -322,51 +322,13 @@
           }
         }
       ],
-      "visualHeaderTooltip": [
-        {
-          "properties": {
-            "type": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Default'"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Formule : sections approuvées mot pour mot ÷ sections rédigées puis approuvées (refus exclus).\nDécision : Partir du premier jet ou le retravailler\nCible : au moins 50 % (H7)\nFlux : suit la période.\nLimite : H7 raisonne par phrase, l''entrepôt par section (plus sévère). Pas de taux sous 30 sections.'"
-                }
-              }
-            },
-            "titleFontColor": {
-              "solid": {
-                "color": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "'#2E2E38'"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      ],
       "visualHeader": [
         {
           "properties": {
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "showTooltipButton": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
+                  "Value": "false"
                 }
               }
             }
@@ -379,7 +341,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Acceptées sans retouche. Formule : sections approuvées mot pour mot ÷ sections rédigées puis approuvées (refus exclus). Décision : Partir du premier jet ou le retravailler.'"
+                  "Value": "'Indicateur : Acceptées sans retouche'"
                 }
               }
             }

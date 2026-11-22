@@ -4,10 +4,10 @@
   "position": {
     "x": 612.0,
     "y": 186,
-    "z": 2600,
+    "z": 2400,
     "width": 308.0,
-    "height": 122,
-    "tabOrder": 2600
+    "height": 128,
+    "tabOrder": 2400
   },
   "visual": {
     "visualType": "cardVisual",
@@ -217,7 +217,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Livrables à traiter'"
+                  "Value": "'À traiter'"
                 }
               }
             },
@@ -322,51 +322,13 @@
           }
         }
       ],
-      "visualHeaderTooltip": [
-        {
-          "properties": {
-            "type": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Default'"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Formule : livrables en brouillon ou renvoyés, dont les renvois pas encore resoumis.\nDécision : Par quel livrable commencer\nCible : aucun seuil dans H7\nSituation à la date des données : ne suit pas la période.'"
-                }
-              }
-            },
-            "titleFontColor": {
-              "solid": {
-                "color": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "'#2E2E38'"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      ],
       "visualHeader": [
         {
           "properties": {
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "showTooltipButton": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
+                  "Value": "false"
                 }
               }
             }
@@ -379,7 +341,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Livrables à traiter. Formule : livrables en brouillon ou renvoyés, dont les renvois pas encore resoumis. Décision : Par quel livrable commencer.'"
+                  "Value": "'Indicateur : À traiter'"
                 }
               }
             }

@@ -3,11 +3,11 @@
   "name": "impression_constat",
   "position": {
     "x": 52,
-    "y": 220,
-    "z": 1100,
+    "y": 242,
+    "z": 1200,
     "width": 796,
-    "height": 48,
-    "tabOrder": 1100
+    "height": 36,
+    "tabOrder": 1200
   },
   "visual": {
     "visualType": "shape",
@@ -92,7 +92,7 @@
             "fontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "11D"
+                  "Value": "11.5D"
                 }
               }
             },
@@ -117,7 +117,7 @@
             "fontFamily": {
               "expr": {
                 "Literal": {
-                  "Value": "'Segoe UI'"
+                  "Value": "'Segoe UI Semibold'"
                 }
               }
             },

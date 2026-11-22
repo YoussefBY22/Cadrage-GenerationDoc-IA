@@ -4,10 +4,10 @@
   "position": {
     "x": 936.0,
     "y": 186,
-    "z": 2900,
+    "z": 2500,
     "width": 308.0,
-    "height": 122,
-    "tabOrder": 2900
+    "height": 128,
+    "tabOrder": 2500
   },
   "visual": {
     "visualType": "cardVisual",
@@ -217,7 +217,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Alertes d''injection'"
+                  "Value": "'Consignes cachées'"
                 }
               }
             },
@@ -322,51 +322,13 @@
           }
         }
       ],
-      "visualHeaderTooltip": [
-        {
-          "properties": {
-            "type": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Default'"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Formule : consignes cachées détectées dans les documents importés.\nDécision : Examiner chaque passage signalé\nCible : examiner toutes les alertes\nSituation à la date des données : ne suit pas la période.\nLimite : une alerte est une détection, pas une attaque réussie.'"
-                }
-              }
-            },
-            "titleFontColor": {
-              "solid": {
-                "color": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "'#2E2E38'"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      ],
       "visualHeader": [
         {
           "properties": {
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "showTooltipButton": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
+                  "Value": "false"
                 }
               }
             }
@@ -379,7 +341,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Alertes d''injection. Formule : consignes cachées détectées dans les documents importés. Décision : Examiner chaque passage signalé.'"
+                  "Value": "'Indicateur : Consignes cachées'"
                 }
               }
             }

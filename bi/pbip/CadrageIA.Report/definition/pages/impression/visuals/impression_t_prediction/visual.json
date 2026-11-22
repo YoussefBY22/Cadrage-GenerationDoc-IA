@@ -3,11 +3,11 @@
   "name": "impression_t_prediction",
   "position": {
     "x": 52,
-    "y": 926,
-    "z": 3700,
+    "y": 966,
+    "z": 3400,
     "width": 796,
     "height": 28,
-    "tabOrder": 3700
+    "tabOrder": 3400
   },
   "visual": {
     "visualType": "shape",
@@ -69,7 +69,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Prédiction de la charge de relecture à 2 semaines'"
+                  "Value": "'Charge de relecture à 2 semaines'"
                 }
               }
             },
@@ -240,7 +240,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Prédiction de la charge de relecture à 2 semaines'"
+                  "Value": "'Charge de relecture à 2 semaines'"
                 }
               }
             }

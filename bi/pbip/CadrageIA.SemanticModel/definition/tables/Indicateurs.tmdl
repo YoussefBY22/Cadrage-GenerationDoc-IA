@@ -172,246 +172,94 @@ table Indicateurs
 		formatString: 0 %
 		displayFolder: Administration
 
-	measure 'Reco 1 constat' =
-			VAR vListe = FILTER(ADDCOLUMNS('Règles', "@n",
+	measure 'Reco rang' =
+			VAR vPriorite = SELECTEDVALUE('Règles'[Priorité])
+			VAR vListe = FILTER(ADDCOLUMNS(FILTER(ALL('Règles'), TRUE()), "@n",
 			    VAR vCode = 'Règles'[Code de règle]
 			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
-			VAR vPremiers = TOPN(1, vListe, 'Règles'[Priorité], ASC)
-			VAR vLigne = TOPN(1, vPremiers, 'Règles'[Priorité], DESC)
-			VAR vEtats = MAXX(vLigne, 'Règles'[États])
-			VAR vTotal = CALCULATE(COUNTROWS(Livrables),
-			    KEEPFILTERS(FILTER(ALL(Livrables[Code d'état]), CONTAINSSTRING(vEtats, Livrables[Code d'état]))))
-			RETURN IF(COUNTROWS(vPremiers) < 1, "Aucune règle ne se déclenche sur ce périmètre.",
-			    "1. " & MAXX(vLigne, 'Règles'[Libellé]) & " : " & MAXX(vLigne, [@n]) & " sur "
-			    & (vTotal + 0) & " (" & MAXX(vLigne, 'Règles'[Population]) & ")")
+			VAR vRang = COUNTROWS(FILTER(vListe, 'Règles'[Priorité] <= vPriorite)) + 0
+			RETURN IF(COUNTROWS(FILTER(vListe, 'Règles'[Priorité] = vPriorite)) > 0
+			    && vRang <= 3, vRang)
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Reco 1 action' =
-			VAR vListe = FILTER(ADDCOLUMNS('Règles', "@n",
-			    VAR vCode = 'Règles'[Code de règle]
-			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
-			VAR vPremiers = TOPN(1, vListe, 'Règles'[Priorité], ASC)
-			VAR vLigne = TOPN(1, vPremiers, 'Règles'[Priorité], DESC)
-			RETURN IF(COUNTROWS(vPremiers) < 1, " ",
-			    "Pour le " & LOWER(MAXX(vLigne, 'Règles'[Acteur])) & " : " & MAXX(vLigne, 'Règles'[Action]) & UNICHAR(10)
-			    & "Seuil : " & MAXX(vLigne, 'Règles'[Seuil]))
+	measure 'Reco nombre' =
+			IF(NOT ISBLANK([Reco rang]), VAR vCode = SELECTEDVALUE('Règles'[Code de règle])
+			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode))
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Reco 2 constat' =
-			VAR vListe = FILTER(ADDCOLUMNS('Règles', "@n",
-			    VAR vCode = 'Règles'[Code de règle]
-			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
-			VAR vPremiers = TOPN(2, vListe, 'Règles'[Priorité], ASC)
-			VAR vLigne = TOPN(1, vPremiers, 'Règles'[Priorité], DESC)
-			VAR vEtats = MAXX(vLigne, 'Règles'[États])
-			VAR vTotal = CALCULATE(COUNTROWS(Livrables),
-			    KEEPFILTERS(FILTER(ALL(Livrables[Code d'état]), CONTAINSSTRING(vEtats, Livrables[Code d'état]))))
-			RETURN IF(COUNTROWS(vPremiers) < 2, " ",
-			    "2. " & MAXX(vLigne, 'Règles'[Libellé]) & " : " & MAXX(vLigne, [@n]) & " sur "
-			    & (vTotal + 0) & " (" & MAXX(vLigne, 'Règles'[Population]) & ")")
+	measure 'Reco pour' = IF(NOT ISBLANK([Reco rang]), SELECTEDVALUE('Règles'[Acteur]))
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Reco 2 action' =
-			VAR vListe = FILTER(ADDCOLUMNS('Règles', "@n",
-			    VAR vCode = 'Règles'[Code de règle]
-			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
-			VAR vPremiers = TOPN(2, vListe, 'Règles'[Priorité], ASC)
-			VAR vLigne = TOPN(1, vPremiers, 'Règles'[Priorité], DESC)
-			RETURN IF(COUNTROWS(vPremiers) < 2, " ",
-			    "Pour le " & LOWER(MAXX(vLigne, 'Règles'[Acteur])) & " : " & MAXX(vLigne, 'Règles'[Action]) & UNICHAR(10)
-			    & "Seuil : " & MAXX(vLigne, 'Règles'[Seuil]))
+	measure 'Reco action' = IF(NOT ISBLANK([Reco rang]), SELECTEDVALUE('Règles'[Action]))
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Reco 3 constat' =
-			VAR vListe = FILTER(ADDCOLUMNS('Règles', "@n",
+	measure 'Reco état' =
+			VAR vListe = FILTER(ADDCOLUMNS(FILTER(ALL('Règles'), TRUE()), "@n",
 			    VAR vCode = 'Règles'[Code de règle]
 			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
-			VAR vPremiers = TOPN(3, vListe, 'Règles'[Priorité], ASC)
-			VAR vLigne = TOPN(1, vPremiers, 'Règles'[Priorité], DESC)
-			VAR vEtats = MAXX(vLigne, 'Règles'[États])
-			VAR vTotal = CALCULATE(COUNTROWS(Livrables),
-			    KEEPFILTERS(FILTER(ALL(Livrables[Code d'état]), CONTAINSSTRING(vEtats, Livrables[Code d'état]))))
-			RETURN IF(COUNTROWS(vPremiers) < 3, " ",
-			    "3. " & MAXX(vLigne, 'Règles'[Libellé]) & " : " & MAXX(vLigne, [@n]) & " sur "
-			    & (vTotal + 0) & " (" & MAXX(vLigne, 'Règles'[Population]) & ")")
+			RETURN IF(COUNTROWS(vListe) + 0 = 0, "Aucune action", " ")
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Reco 3 action' =
-			VAR vListe = FILTER(ADDCOLUMNS('Règles', "@n",
+	measure 'Reco rang (consultant)' =
+			VAR vPriorite = SELECTEDVALUE('Règles'[Priorité])
+			VAR vListe = FILTER(ADDCOLUMNS(FILTER(ALL('Règles'), 'Règles'[Acteur] = "Consultant"), "@n",
 			    VAR vCode = 'Règles'[Code de règle]
 			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
-			VAR vPremiers = TOPN(3, vListe, 'Règles'[Priorité], ASC)
-			VAR vLigne = TOPN(1, vPremiers, 'Règles'[Priorité], DESC)
-			RETURN IF(COUNTROWS(vPremiers) < 3, " ",
-			    "Pour le " & LOWER(MAXX(vLigne, 'Règles'[Acteur])) & " : " & MAXX(vLigne, 'Règles'[Action]) & UNICHAR(10)
-			    & "Seuil : " & MAXX(vLigne, 'Règles'[Seuil]))
+			VAR vRang = COUNTROWS(FILTER(vListe, 'Règles'[Priorité] <= vPriorite)) + 0
+			RETURN IF(COUNTROWS(FILTER(vListe, 'Règles'[Priorité] = vPriorite)) > 0
+			    && vRang <= 3, vRang)
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Reco 1 constat (consultant)' =
-			VAR vListe = FILTER(ADDCOLUMNS(FILTER('Règles', 'Règles'[Acteur] = "Consultant"), "@n",
-			    VAR vCode = 'Règles'[Code de règle]
-			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
-			VAR vPremiers = TOPN(1, vListe, 'Règles'[Priorité], ASC)
-			VAR vLigne = TOPN(1, vPremiers, 'Règles'[Priorité], DESC)
-			VAR vEtats = MAXX(vLigne, 'Règles'[États])
-			VAR vTotal = CALCULATE(COUNTROWS(Livrables),
-			    KEEPFILTERS(FILTER(ALL(Livrables[Code d'état]), CONTAINSSTRING(vEtats, Livrables[Code d'état]))))
-			RETURN IF(COUNTROWS(vPremiers) < 1, "Aucune règle ne se déclenche sur ce périmètre.",
-			    "1. " & MAXX(vLigne, 'Règles'[Libellé]) & " : " & MAXX(vLigne, [@n]) & " sur "
-			    & (vTotal + 0) & " (" & MAXX(vLigne, 'Règles'[Population]) & ")")
+	measure 'Reco nombre (consultant)' =
+			IF(NOT ISBLANK([Reco rang (consultant)]), VAR vCode = SELECTEDVALUE('Règles'[Code de règle])
+			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode))
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Reco 1 action (consultant)' =
-			VAR vListe = FILTER(ADDCOLUMNS(FILTER('Règles', 'Règles'[Acteur] = "Consultant"), "@n",
-			    VAR vCode = 'Règles'[Code de règle]
-			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
-			VAR vPremiers = TOPN(1, vListe, 'Règles'[Priorité], ASC)
-			VAR vLigne = TOPN(1, vPremiers, 'Règles'[Priorité], DESC)
-			RETURN IF(COUNTROWS(vPremiers) < 1, " ",
-			    MAXX(vLigne, 'Règles'[Action]) & UNICHAR(10)
-			    & "Seuil : " & MAXX(vLigne, 'Règles'[Seuil]))
+	measure 'Reco action (consultant)' = IF(NOT ISBLANK([Reco rang (consultant)]), SELECTEDVALUE('Règles'[Action]))
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Reco 2 constat (consultant)' =
-			VAR vListe = FILTER(ADDCOLUMNS(FILTER('Règles', 'Règles'[Acteur] = "Consultant"), "@n",
+	measure 'Reco état (consultant)' =
+			VAR vListe = FILTER(ADDCOLUMNS(FILTER(ALL('Règles'), 'Règles'[Acteur] = "Consultant"), "@n",
 			    VAR vCode = 'Règles'[Code de règle]
 			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
-			VAR vPremiers = TOPN(2, vListe, 'Règles'[Priorité], ASC)
-			VAR vLigne = TOPN(1, vPremiers, 'Règles'[Priorité], DESC)
-			VAR vEtats = MAXX(vLigne, 'Règles'[États])
-			VAR vTotal = CALCULATE(COUNTROWS(Livrables),
-			    KEEPFILTERS(FILTER(ALL(Livrables[Code d'état]), CONTAINSSTRING(vEtats, Livrables[Code d'état]))))
-			RETURN IF(COUNTROWS(vPremiers) < 2, " ",
-			    "2. " & MAXX(vLigne, 'Règles'[Libellé]) & " : " & MAXX(vLigne, [@n]) & " sur "
-			    & (vTotal + 0) & " (" & MAXX(vLigne, 'Règles'[Population]) & ")")
+			RETURN IF(COUNTROWS(vListe) + 0 = 0, "Aucune action", " ")
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Reco 2 action (consultant)' =
-			VAR vListe = FILTER(ADDCOLUMNS(FILTER('Règles', 'Règles'[Acteur] = "Consultant"), "@n",
+	measure 'Reco rang (responsable)' =
+			VAR vPriorite = SELECTEDVALUE('Règles'[Priorité])
+			VAR vListe = FILTER(ADDCOLUMNS(FILTER(ALL('Règles'), 'Règles'[Acteur] = "Responsable"), "@n",
 			    VAR vCode = 'Règles'[Code de règle]
 			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
-			VAR vPremiers = TOPN(2, vListe, 'Règles'[Priorité], ASC)
-			VAR vLigne = TOPN(1, vPremiers, 'Règles'[Priorité], DESC)
-			RETURN IF(COUNTROWS(vPremiers) < 2, " ",
-			    MAXX(vLigne, 'Règles'[Action]) & UNICHAR(10)
-			    & "Seuil : " & MAXX(vLigne, 'Règles'[Seuil]))
+			VAR vRang = COUNTROWS(FILTER(vListe, 'Règles'[Priorité] <= vPriorite)) + 0
+			RETURN IF(COUNTROWS(FILTER(vListe, 'Règles'[Priorité] = vPriorite)) > 0
+			    && vRang <= 3, vRang)
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Reco 3 constat (consultant)' =
-			VAR vListe = FILTER(ADDCOLUMNS(FILTER('Règles', 'Règles'[Acteur] = "Consultant"), "@n",
-			    VAR vCode = 'Règles'[Code de règle]
-			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
-			VAR vPremiers = TOPN(3, vListe, 'Règles'[Priorité], ASC)
-			VAR vLigne = TOPN(1, vPremiers, 'Règles'[Priorité], DESC)
-			VAR vEtats = MAXX(vLigne, 'Règles'[États])
-			VAR vTotal = CALCULATE(COUNTROWS(Livrables),
-			    KEEPFILTERS(FILTER(ALL(Livrables[Code d'état]), CONTAINSSTRING(vEtats, Livrables[Code d'état]))))
-			RETURN IF(COUNTROWS(vPremiers) < 3, " ",
-			    "3. " & MAXX(vLigne, 'Règles'[Libellé]) & " : " & MAXX(vLigne, [@n]) & " sur "
-			    & (vTotal + 0) & " (" & MAXX(vLigne, 'Règles'[Population]) & ")")
+	measure 'Reco nombre (responsable)' =
+			IF(NOT ISBLANK([Reco rang (responsable)]), VAR vCode = SELECTEDVALUE('Règles'[Code de règle])
+			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode))
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Reco 3 action (consultant)' =
-			VAR vListe = FILTER(ADDCOLUMNS(FILTER('Règles', 'Règles'[Acteur] = "Consultant"), "@n",
-			    VAR vCode = 'Règles'[Code de règle]
-			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
-			VAR vPremiers = TOPN(3, vListe, 'Règles'[Priorité], ASC)
-			VAR vLigne = TOPN(1, vPremiers, 'Règles'[Priorité], DESC)
-			RETURN IF(COUNTROWS(vPremiers) < 3, " ",
-			    MAXX(vLigne, 'Règles'[Action]) & UNICHAR(10)
-			    & "Seuil : " & MAXX(vLigne, 'Règles'[Seuil]))
+	measure 'Reco action (responsable)' = IF(NOT ISBLANK([Reco rang (responsable)]), SELECTEDVALUE('Règles'[Action]))
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Reco 1 constat (responsable)' =
-			VAR vListe = FILTER(ADDCOLUMNS(FILTER('Règles', 'Règles'[Acteur] = "Responsable"), "@n",
+	measure 'Reco état (responsable)' =
+			VAR vListe = FILTER(ADDCOLUMNS(FILTER(ALL('Règles'), 'Règles'[Acteur] = "Responsable"), "@n",
 			    VAR vCode = 'Règles'[Code de règle]
 			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
-			VAR vPremiers = TOPN(1, vListe, 'Règles'[Priorité], ASC)
-			VAR vLigne = TOPN(1, vPremiers, 'Règles'[Priorité], DESC)
-			VAR vEtats = MAXX(vLigne, 'Règles'[États])
-			VAR vTotal = CALCULATE(COUNTROWS(Livrables),
-			    KEEPFILTERS(FILTER(ALL(Livrables[Code d'état]), CONTAINSSTRING(vEtats, Livrables[Code d'état]))))
-			RETURN IF(COUNTROWS(vPremiers) < 1, "Aucune règle ne se déclenche sur ce périmètre.",
-			    "1. " & MAXX(vLigne, 'Règles'[Libellé]) & " : " & MAXX(vLigne, [@n]) & " sur "
-			    & (vTotal + 0) & " (" & MAXX(vLigne, 'Règles'[Population]) & ")")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Reco 1 action (responsable)' =
-			VAR vListe = FILTER(ADDCOLUMNS(FILTER('Règles', 'Règles'[Acteur] = "Responsable"), "@n",
-			    VAR vCode = 'Règles'[Code de règle]
-			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
-			VAR vPremiers = TOPN(1, vListe, 'Règles'[Priorité], ASC)
-			VAR vLigne = TOPN(1, vPremiers, 'Règles'[Priorité], DESC)
-			RETURN IF(COUNTROWS(vPremiers) < 1, " ",
-			    MAXX(vLigne, 'Règles'[Action]) & UNICHAR(10)
-			    & "Seuil : " & MAXX(vLigne, 'Règles'[Seuil]))
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Reco 2 constat (responsable)' =
-			VAR vListe = FILTER(ADDCOLUMNS(FILTER('Règles', 'Règles'[Acteur] = "Responsable"), "@n",
-			    VAR vCode = 'Règles'[Code de règle]
-			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
-			VAR vPremiers = TOPN(2, vListe, 'Règles'[Priorité], ASC)
-			VAR vLigne = TOPN(1, vPremiers, 'Règles'[Priorité], DESC)
-			VAR vEtats = MAXX(vLigne, 'Règles'[États])
-			VAR vTotal = CALCULATE(COUNTROWS(Livrables),
-			    KEEPFILTERS(FILTER(ALL(Livrables[Code d'état]), CONTAINSSTRING(vEtats, Livrables[Code d'état]))))
-			RETURN IF(COUNTROWS(vPremiers) < 2, " ",
-			    "2. " & MAXX(vLigne, 'Règles'[Libellé]) & " : " & MAXX(vLigne, [@n]) & " sur "
-			    & (vTotal + 0) & " (" & MAXX(vLigne, 'Règles'[Population]) & ")")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Reco 2 action (responsable)' =
-			VAR vListe = FILTER(ADDCOLUMNS(FILTER('Règles', 'Règles'[Acteur] = "Responsable"), "@n",
-			    VAR vCode = 'Règles'[Code de règle]
-			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
-			VAR vPremiers = TOPN(2, vListe, 'Règles'[Priorité], ASC)
-			VAR vLigne = TOPN(1, vPremiers, 'Règles'[Priorité], DESC)
-			RETURN IF(COUNTROWS(vPremiers) < 2, " ",
-			    MAXX(vLigne, 'Règles'[Action]) & UNICHAR(10)
-			    & "Seuil : " & MAXX(vLigne, 'Règles'[Seuil]))
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Reco 3 constat (responsable)' =
-			VAR vListe = FILTER(ADDCOLUMNS(FILTER('Règles', 'Règles'[Acteur] = "Responsable"), "@n",
-			    VAR vCode = 'Règles'[Code de règle]
-			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
-			VAR vPremiers = TOPN(3, vListe, 'Règles'[Priorité], ASC)
-			VAR vLigne = TOPN(1, vPremiers, 'Règles'[Priorité], DESC)
-			VAR vEtats = MAXX(vLigne, 'Règles'[États])
-			VAR vTotal = CALCULATE(COUNTROWS(Livrables),
-			    KEEPFILTERS(FILTER(ALL(Livrables[Code d'état]), CONTAINSSTRING(vEtats, Livrables[Code d'état]))))
-			RETURN IF(COUNTROWS(vPremiers) < 3, " ",
-			    "3. " & MAXX(vLigne, 'Règles'[Libellé]) & " : " & MAXX(vLigne, [@n]) & " sur "
-			    & (vTotal + 0) & " (" & MAXX(vLigne, 'Règles'[Population]) & ")")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Reco 3 action (responsable)' =
-			VAR vListe = FILTER(ADDCOLUMNS(FILTER('Règles', 'Règles'[Acteur] = "Responsable"), "@n",
-			    VAR vCode = 'Règles'[Code de règle]
-			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
-			VAR vPremiers = TOPN(3, vListe, 'Règles'[Priorité], ASC)
-			VAR vLigne = TOPN(1, vPremiers, 'Règles'[Priorité], DESC)
-			RETURN IF(COUNTROWS(vPremiers) < 3, " ",
-			    MAXX(vLigne, 'Règles'[Action]) & UNICHAR(10)
-			    & "Seuil : " & MAXX(vLigne, 'Règles'[Seuil]))
+			RETURN IF(COUNTROWS(vListe) + 0 = 0, "Aucune action", " ")
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -480,7 +328,7 @@ table Indicateurs
 			        || 'Prévisions'[Périmètre consultant] = vPersonne))
 			VAR vPrevision = TOPN(1, vCandidats, 'Prévisions'[Rang de périmètre], ASC, 'Prévisions'[Clé de prévision], ASC)
 			VAR vStatut = MAXX(vPrevision, 'Prévisions'[Statut de prévision])
-			RETURN SWITCH(vStatut, "ok", FORMAT(MAXX(vPrevision, 'Prévisions'[Point]), "0", "fr-FR") & " soumissions attendues, entre " & FORMAT(MAXX(vPrevision, 'Prévisions'[Bas]), "0", "fr-FR") & " et " & FORMAT(MAXX(vPrevision, 'Prévisions'[Haut]), "0", "fr-FR") & " (intervalle de 80 %)",
+			RETURN SWITCH(vStatut, "ok", FORMAT(MAXX(vPrevision, 'Prévisions'[Point]), "0", "fr-FR") & " soumissions attendues (" & FORMAT(MAXX(vPrevision, 'Prévisions'[Bas]), "0", "fr-FR") & " à " & FORMAT(MAXX(vPrevision, 'Prévisions'[Haut]), "0", "fr-FR") & ")",
 			    "not_better", "Pas de prévision fiable", "Historique insuffisant")
 		displayFolder: 9. Présentation
 		isHidden
@@ -494,26 +342,8 @@ table Indicateurs
 			        || 'Prévisions'[Périmètre consultant] = vPersonne))
 			VAR vPrevision = TOPN(1, vCandidats, 'Prévisions'[Rang de périmètre], ASC, 'Prévisions'[Clé de prévision], ASC)
 			VAR vStatut = MAXX(vPrevision, 'Prévisions'[Statut de prévision])
-			RETURN SWITCH(vStatut, "ok", "Moyenne des 8 dernières semaines, n = " & FORMAT(MAXX(vPrevision, 'Prévisions'[Soumissions]), "0", "fr-FR") & " soumissions. Test rétrospectif : erreur de " & FORMAT(MAXX(vPrevision, 'Prévisions'[Erreur]), "0.0", "fr-FR") & ", contre " & FORMAT(MAXX(vPrevision, 'Prévisions'[Erreur naïve]), "0.0", "fr-FR") & " pour la référence naïve (" & FORMAT(MAXX(vPrevision, 'Prévisions'[Origines]), "0", "fr-FR") & " prévisions).",
-			    "not_better", "La méthode ne fait pas mieux que répéter les 2 dernières semaines.",
-			    "Il faut au moins 30 soumissions et 10 prévisions vérifiables.")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Prévision risque' =
-			VAR vClient = SELECTEDVALUE('Choix du client'[Client choisi], "Tous")
-			VAR vType = SELECTEDVALUE('Choix du type'[Type choisi], "Tous")
-			VAR vPersonne = SELECTEDVALUE('Choix du consultant'[Consultant choisi], "Tous")
-			VAR vCandidats = FILTER(ALL('Prévisions'), 'Prévisions'[Périmètre client] = vClient
-			    && 'Prévisions'[Périmètre type] = vType && (vPersonne = "Tous"
-			        || 'Prévisions'[Périmètre consultant] = vPersonne))
-			VAR vPrevision = TOPN(1, vCandidats, 'Prévisions'[Rang de périmètre], ASC, 'Prévisions'[Clé de prévision], ASC)
-			VAR vStatut = MAXX(vPrevision, 'Prévisions'[Statut de prévision])
-			RETURN SWITCH(MAXX(vPrevision, 'Prévisions'[Statut du risque]),
-			    "ok", "Risque de renvoi : testé sur " & FORMAT(MAXX(vPrevision, 'Prévisions'[Cas testés]), "0", "fr-FR") & " cas passés, score de Brier "
-			        & FORMAT(MAXX(vPrevision, 'Prévisions'[Brier]), "0.000", "fr-FR") & ", contre " & FORMAT(MAXX(vPrevision, 'Prévisions'[Brier naïf]), "0.000", "fr-FR") & " pour le taux global",
-			    "not_better", "Risque de renvoi non publié : il ne fait pas mieux que le taux global",
-			    "Risque de renvoi non publié : historique insuffisant")
+			RETURN IF(vStatut <> "ok", " ", IF(MAX('Source des données'[Est une démonstration]) = 1, "Fiabilité non mesurée",
+			    FORMAT(MAXX(vPrevision, 'Prévisions'[Soumissions]), "0", "fr-FR") & " soumissions observées"))
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -534,28 +364,28 @@ table Indicateurs
 	measure 'Sous-titre synthese' =
 			VAR vDate = MAX('Source des données'[Date de situation])
 			VAR vJour = MID(vDate, 9, 2) & "/" & MID(vDate, 6, 2) & "/" & LEFT(vDate, 4)
-			RETURN "Client : " & SELECTEDVALUE('Choix du client'[Client choisi], "Tous") & "  ·  type : " & SELECTEDVALUE('Choix du type'[Type choisi], "Tous") & "  ·  consultant : " & SELECTEDVALUE('Choix du consultant'[Consultant choisi], "Tous") & "  |  livrables en nombre, délai en heures" & "  |  " & SELECTEDVALUE('Choix de période'[Période choisie], "Tout l'historique") & ", situation au " & vJour
+			RETURN "Client : " & SELECTEDVALUE('Choix du client'[Client choisi], "Tous") & "  ·  type : " & SELECTEDVALUE('Choix du type'[Type choisi], "Tous") & "  ·  consultant : " & SELECTEDVALUE('Choix du consultant'[Consultant choisi], "Tous") & "  |  " & SELECTEDVALUE('Choix de période'[Période choisie], "Tout l'historique") & ", situation au " & vJour
 		displayFolder: 9. Présentation
 		isHidden
 
 	measure 'Sous-titre production' =
 			VAR vDate = MAX('Source des données'[Date de situation])
 			VAR vJour = MID(vDate, 9, 2) & "/" & MID(vDate, 6, 2) & "/" & LEFT(vDate, 4)
-			RETURN "Client : " & SELECTEDVALUE('Choix du client'[Client choisi], "Tous") & "  ·  type : " & SELECTEDVALUE('Choix du type'[Type choisi], "Tous") & "  ·  consultant : " & SELECTEDVALUE('Choix du consultant'[Consultant choisi], "Tous") & "  |  livrables et phrases en nombre, sections en %" & "  |  " & SELECTEDVALUE('Choix de période'[Période choisie], "Tout l'historique") & ", situation au " & vJour
+			RETURN "Client : " & SELECTEDVALUE('Choix du client'[Client choisi], "Tous") & "  ·  type : " & SELECTEDVALUE('Choix du type'[Type choisi], "Tous") & "  ·  consultant : " & SELECTEDVALUE('Choix du consultant'[Consultant choisi], "Tous") & "  |  " & SELECTEDVALUE('Choix de période'[Période choisie], "Tout l'historique") & ", situation au " & vJour
 		displayFolder: 9. Présentation
 		isHidden
 
 	measure 'Sous-titre validation' =
 			VAR vDate = MAX('Source des données'[Date de situation])
 			VAR vJour = MID(vDate, 9, 2) & "/" & MID(vDate, 6, 2) & "/" & LEFT(vDate, 4)
-			RETURN "Client : " & SELECTEDVALUE('Choix du client'[Client choisi], "Tous") & "  ·  type : " & SELECTEDVALUE('Choix du type'[Type choisi], "Tous") & "  ·  consultant : " & SELECTEDVALUE('Choix du consultant'[Consultant choisi], "Tous") & "  |  livrables en nombre, attente en jours, délai en heures" & "  |  " & SELECTEDVALUE('Choix de période'[Période choisie], "Tout l'historique") & ", situation au " & vJour
+			RETURN "Client : " & SELECTEDVALUE('Choix du client'[Client choisi], "Tous") & "  ·  type : " & SELECTEDVALUE('Choix du type'[Type choisi], "Tous") & "  ·  consultant : " & SELECTEDVALUE('Choix du consultant'[Consultant choisi], "Tous") & "  |  " & SELECTEDVALUE('Choix de période'[Période choisie], "Tout l'historique") & ", situation au " & vJour
 		displayFolder: 9. Présentation
 		isHidden
 
 	measure 'Sous-titre administration' =
 			VAR vDate = MAX('Source des données'[Date de situation])
 			VAR vJour = MID(vDate, 9, 2) & "/" & MID(vDate, 6, 2) & "/" & LEFT(vDate, 4)
-			RETURN "Client : " & SELECTEDVALUE('Choix du client'[Client choisi], "Tous") & "  ·  type : " & SELECTEDVALUE('Choix du type'[Type choisi], "Tous") & "  ·  consultant : " & SELECTEDVALUE('Choix du consultant'[Consultant choisi], "Tous") & "  |  phrases, citations et documents en % et en nombre" & "  |  " & SELECTEDVALUE('Choix de période'[Période choisie], "Tout l'historique") & ", situation au " & vJour
+			RETURN "Client : " & SELECTEDVALUE('Choix du client'[Client choisi], "Tous") & "  ·  type : " & SELECTEDVALUE('Choix du type'[Type choisi], "Tous") & "  ·  consultant : " & SELECTEDVALUE('Choix du consultant'[Consultant choisi], "Tous") & "  |  " & SELECTEDVALUE('Choix de période'[Période choisie], "Tout l'historique") & ", situation au " & vJour
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -568,36 +398,30 @@ table Indicateurs
 
 	measure 'Constat synthese' =
 			VAR vFile = [Livrables à valider]
-			VAR vRetard = [Relectures en retard]
 			VAR vReste = [Citations sans source après approbation]
-			RETURN IF(vFile = 0, "Aucun livrable en attente de relecture. ", vFile & IF(vFile > 1, " livrables attendent", " livrable attend") & " une relecture, dont " & vRetard & " depuis plus de 48 h. ")
-			    & IF(ISBLANK(vReste), "Citations après approbation : non mesuré.",
-			        IF(vReste > 0, vReste & IF(vReste > 1, " citations sans source restent", " citation sans source reste")
-			            & " après approbation.",
-			            "Aucune citation sans source dans les livrables approuvés mesurés."))
+			RETURN IF(vFile = 0, "Aucune relecture en attente",
+			    vFile & " à valider, dont " & [Relectures en retard] & " en retard")
+			    & IF(vReste > 0, " · " & vReste & " sans source après approbation", "")
 		displayFolder: 9. Présentation
 		isHidden
 
 	measure 'Constat production' =
 			VAR vTodo = [Livrables à traiter]
-			RETURN IF(vTodo = 0, "Aucun livrable à traiter sur ce périmètre.",
-			    vTodo & IF(vTodo > 1, " livrables", " livrable") & " à traiter, dont " & [Renvois à reprendre] & IF([Renvois à reprendre] > 1, " renvoyés. ", " renvoyé. ")
-			    & [Phrases bloquantes à corriger] & IF([Phrases bloquantes à corriger] > 1, " phrases bloquantes", " phrase bloquante") & " à corriger avant de soumettre.")
+			RETURN IF(vTodo = 0, "Aucun livrable à traiter",
+			    vTodo & " à traiter · " & [Renvois à reprendre] & IF([Renvois à reprendre] > 1, " renvoyés", " renvoyé"))
 		displayFolder: 9. Présentation
 		isHidden
 
 	measure 'Constat validation' =
-			VAR vFile = [Livrables à valider]
-			RETURN IF(vFile = 0, "Aucun livrable en attente de relecture sur ce périmètre.",
-			    vFile & IF(vFile > 1, " livrables", " livrable") & " à valider, dont " & [Relectures en retard] & " depuis plus de 48 h. "
-			    & [Phrases bloquantes à vérifier] & IF([Phrases bloquantes à vérifier] > 1, " phrases bloquantes", " phrase bloquante") & " à vérifier avant d'approuver.")
+			VAR vN = [Phrases bloquantes à vérifier]
+			RETURN IF([Livrables à valider] = 0, "Aucune relecture en attente",
+			    [Relectures en retard] & " en retard · " & vN & IF(vN > 1, " phrases bloquantes", " phrase bloquante"))
 		displayFolder: 9. Présentation
 		isHidden
 
 	measure 'Constat administration' =
 			VAR vAlertes = [Alertes d'injection]
-			RETURN [Banc décision] & ". " & vAlertes & IF(vAlertes > 1, " alertes", " alerte")
-			    & " d'injection, dans " & ([Nombre de documents signalés] + 0) & " documents à examiner."
+			RETURN [Banc décision] & " · " & vAlertes & IF(vAlertes > 1, " alertes", " alerte") & " à examiner"
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -612,11 +436,11 @@ table Indicateurs
 	measure 'Note Sections acceptées sans retouche' =
 			VAR vPart = [Nombre de sections sans retouche] + 0
 			VAR vN = [Sections rédigées puis approuvées] + 0
-			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(vN < 30, "Effectif insuffisant (n = " & vN & ")", FORMAT(vPart, "#,0", "fr-FR") & " sur " & FORMAT(vN, "#,0", "fr-FR") & " · cible H7 ≥ 50 %"))
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, " ", IF(vN < 30, "Effectif insuffisant (n = " & vN & ")", FORMAT(vPart, "#,0", "fr-FR") & " sur " & FORMAT(vN, "#,0", "fr-FR") & " sections"))
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Note Livrables à valider' = "dont " & [Relectures en retard] & " depuis plus de 48 h"
+	measure 'Note Livrables à valider' = "dont " & [Relectures en retard] & " en retard"
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -640,21 +464,21 @@ table Indicateurs
 
 	measure 'Note Citations sans source après approbation' =
 			VAR vN = [Livrables mesurés]
-			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(vN = 0, "Non mesuré", "sur " & FORMAT([Citations approuvées], "#,0", "fr-FR") & " citations, " & vN & IF(vN > 1, " livrables mesurés", " livrable mesuré")))
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, " ", IF(vN = 0, "Non mesuré", "sur " & FORMAT([Citations approuvées], "#,0", "fr-FR") & " citations, " & vN & IF(vN > 1, " livrables mesurés", " livrable mesuré")))
 		displayFolder: 9. Présentation
 		isHidden
 
 	measure 'Note Citations sans source avant relecture' =
 			VAR vPart = [Nombre de citations sans source avant relecture] + 0
 			VAR vN = [Citations générées] + 0
-			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(vN < 30, "Effectif insuffisant (n = " & vN & ")", FORMAT(vPart, "#,0", "fr-FR") & " sur " & FORMAT(vN, "#,0", "fr-FR") & " citations"))
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, " ", IF(vN < 30, "Effectif insuffisant (n = " & vN & ")", FORMAT(vPart, "#,0", "fr-FR") & " sur " & FORMAT(vN, "#,0", "fr-FR") & " citations"))
 		displayFolder: 9. Présentation
 		isHidden
 
 	measure 'Note Phrases vérifiées' =
 			VAR vPart = [Nombre de phrases vérifiées] + 0
 			VAR vN = [Phrases générées] + 0
-			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(vN < 30, "Effectif insuffisant (n = " & vN & ")", FORMAT(vPart, "#,0", "fr-FR") & " sur " & FORMAT(vN, "#,0", "fr-FR") & " phrases"))
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, " ", IF(vN < 30, "Effectif insuffisant (n = " & vN & ")", FORMAT(vPart, "#,0", "fr-FR") & " sur " & FORMAT(vN, "#,0", "fr-FR") & " phrases"))
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -739,9 +563,8 @@ table Indicateurs
 		isHidden
 
 	measure 'File risque' =
-			IF(NOT ISBLANK([File attente]), IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(ISBLANK(MAX(Livrables[Risque])), "non estimé", FORMAT(MAX(Livrables[Risque]), "0 %") & " ["
-			    & FORMAT(MAX(Livrables[Risque bas]), "0 %") & " à " & FORMAT(MAX(Livrables[Risque haut]), "0 %")
-			    & "], n = " & MAX(Livrables[Risque effectif]))))
+			IF(NOT ISBLANK([File attente]), IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(ISBLANK(MAX(Livrables[Risque])), "Non mesuré",
+			    FORMAT(MAX(Livrables[Risque]), "0 %") & " (n = " & MAX(Livrables[Risque effectif]) & ")")))
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -778,13 +601,6 @@ table Indicateurs
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Rapport synthèse' =
-			[Livrables à valider] & " livrables attendent une relecture, dont " & [Relectures en retard]
-			    & " depuis plus de 48 h. " & [Livrables à traiter] & " sont chez les consultants, dont "
-			    & [Renvois à reprendre] & " renvois à reprendre."
-		displayFolder: 9. Présentation
-		isHidden
-
 	measure 'Rapport file' = [Livrables à valider] & IF([Livrables à valider] > 1, " livrables", " livrable") & ", dont " & [Relectures en retard] & " en retard"
 		displayFolder: 9. Présentation
 		isHidden
@@ -792,7 +608,7 @@ table Indicateurs
 	measure 'Rapport délai' =
 			VAR v = [Délai de validation]
 			RETURN IF(ISBLANK(v), [Note Délai de validation],
-			    FORMAT(v, "0.0", "fr-FR") & " h (" & [Note Délai de validation] & ")")
+			    FORMAT(v, "0") & " h (" & [Note Délai de validation] & ")")
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -817,7 +633,7 @@ table Indicateurs
 	measure 'Rapport détectées' =
 			VAR vN = [Citations générées]
 			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(vN < 30, "Effectif insuffisant",
-			    FORMAT([Citations sans source avant relecture], "0.0 %", "fr-FR") & " ("
+			    FORMAT([Citations sans source avant relecture], "0 %") & " ("
 			    & [Nombre de citations sans source avant relecture] & " sur " & FORMAT(vN, "#,0", "fr-FR") & ")"))
 		displayFolder: 9. Présentation
 		isHidden
@@ -827,8 +643,8 @@ table Indicateurs
 			VAR vMesurees = COUNTROWS(FILTER(ALL(Banc), NOT ISBLANK(Banc[TPV]))) + 0
 			VAR vNombre = COUNTROWS(vRetenues) + 0
 			RETURN IF(vMesurees = 0, "Banc d'essai non mesuré",
-			    IF(vNombre = 0, "Rester sur B : aucun écart favorable concluant",
-			        "Écart concluant pour : " & CONCATENATEX(vRetenues, Banc[Configuration], ", ")))
+			    IF(vNombre = 0, "Rester sur B",
+			        "À retenir : " & CONCATENATEX(vRetenues, Banc[Configuration], ", ")))
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -840,31 +656,13 @@ table Indicateurs
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Banc TPV' =
-			IF(COUNTROWS(Banc) = 1, IF(ISBLANK(MAX(Banc[TPV])), "Non mesuré", FORMAT(MAX(Banc[TPV]), "0 %")
-			    & " [" & FORMAT(MAX(Banc[TPV bas]), "0 %") & " à " & FORMAT(MAX(Banc[TPV haut]), "0 %") & "]"))
+	measure 'Banc TPV' = IF(COUNTROWS(Banc) = 1, IF(ISBLANK(MAX(Banc[TPV])), "Non mesuré", FORMAT(MAX(Banc[TPV]), "0 %")))
 		displayFolder: 9. Présentation
 		isHidden
 
 	measure 'Banc écart' =
 			IF(COUNTROWS(Banc) = 1, IF(ISBLANK(MAX(Banc[Écart])), "—",
-			    FORMAT(100 * MAX(Banc[Écart]), "+0.0;-0.0;0.0", "fr-FR") & " [" & FORMAT(100 * MAX(Banc[Écart bas]), "+0.0;-0.0;0.0", "fr-FR") & " à " & FORMAT(100 * MAX(Banc[Écart haut]), "+0.0;-0.0;0.0", "fr-FR") & "]"))
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Banc citations' =
-			VAR v = MAX(Banc[Citations valides])
-			RETURN IF(NOT ISBLANK(v), FORMAT(v, "0.0 %", "fr-FR"))
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Banc chiffres' = MAX(Banc[Chiffres fidèles])
-		formatString: 0 %
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Banc attaque' = MAX(Banc[Attaques réussies])
-		formatString: 0 %
+			    FORMAT(100 * MAX(Banc[Écart]), "+0.0;-0.0;0.0", "fr-FR")))
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -884,7 +682,7 @@ table Indicateurs
 	measure 'Format taux' =
 			VAR vN = [Documents analysés]
 			VAR vSignales = [Nombre de documents signalés]
-			RETURN IF(vN > 0, IF(vN < 30, "n trop faible", FORMAT(DIVIDE(vSignales, vN), "0 %")))
+			RETURN IF(vN > 0, IF(vN < 30, "Effectif faible", FORMAT(DIVIDE(vSignales, vN), "0 %")))
 		displayFolder: 9. Présentation
 		isHidden
 

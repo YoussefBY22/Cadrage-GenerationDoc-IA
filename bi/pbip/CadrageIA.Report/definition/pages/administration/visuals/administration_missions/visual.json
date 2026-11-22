@@ -2,12 +2,12 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
   "name": "administration_missions",
   "position": {
-    "x": 1152.0,
-    "y": 620,
-    "z": 4500,
-    "width": 416.0,
-    "height": 256,
-    "tabOrder": 4500
+    "x": 936.0,
+    "y": 602,
+    "z": 2900,
+    "width": 632.0,
+    "height": 274,
+    "tabOrder": 2900
   },
   "visual": {
     "visualType": "pivotTable",
@@ -63,7 +63,7 @@
               },
               "queryRef": "Indicateurs.Mission documents",
               "nativeQueryRef": "Mission documents",
-              "displayName": "Documents"
+              "displayName": "Documents de la mission"
             }
           ]
         }
@@ -384,7 +384,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Au moins une alerte d''injection'"
+                  "Value": "'Les plus touchées d''abord'"
                 }
               }
             },
@@ -490,7 +490,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Missions signalées. Au moins une alerte d''injection'"
+                  "Value": "'Missions signalées. Les plus touchées d''abord'"
                 }
               }
             }

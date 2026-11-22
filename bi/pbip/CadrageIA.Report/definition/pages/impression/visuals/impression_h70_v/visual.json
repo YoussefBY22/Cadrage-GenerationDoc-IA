@@ -2,12 +2,12 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
   "name": "impression_h70_v",
   "position": {
-    "x": 366,
-    "y": 588,
-    "z": 2000,
-    "width": 482,
-    "height": 40,
-    "tabOrder": 2000
+    "x": 386,
+    "y": 592,
+    "z": 1700,
+    "width": 462,
+    "height": 42,
+    "tabOrder": 1700
   },
   "visual": {
     "visualType": "shape",

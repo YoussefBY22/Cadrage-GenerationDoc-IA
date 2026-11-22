@@ -4,6 +4,8 @@
 > et [`pilotage.py`](../backend/app/dw/pilotage.py), la source unique des seuils et des règles.
 > Qui voit quoi : [docs/14](../docs/14-acteurs-dashboard.md).
 
+Les pages montrent le nombre et son effectif. Décisions, formules, cibles et seuils ne vivent qu'ici.
+
 Principes : au plus 4 indicateurs par page acteur, chacun lié à une décision ; un taux va avec son effectif et disparaît sous 30 cas ; un critère non mesuré s'affiche « non mesuré », sans verdict. Sur les données de démonstration, aucune qualité de modèle n'est mesurée.
 
 ## Consultant
@@ -174,13 +176,13 @@ Règles déterministes, sans LLM. Les 3 plus prioritaires qui se déclenchent su
 
 | Priorité | Code | Pour | Constat | Seuil | Action |
 |---:|---|---|---|---|---|
-| 1 | `citation_restante` | Responsable | Approuvés avec une citation sans source : n sur N livrables approuvés | au moins 1 citation sans source dans la version approuvée (H7 : 0) | Faire corriger puis réapprouver avant tout envoi au client. |
-| 2 | `relecture_en_retard` | Responsable | Relectures en retard : n sur N livrables en relecture | en relecture depuis plus de 48 h | Relire d'abord le plus ancien, ou confier la relecture à un autre responsable. |
-| 3 | `renvoi_a_reprendre` | Consultant | Renvois à reprendre : n sur N livrables chez les consultants | renvoyé par un responsable et pas encore resoumis | Reprendre ces livrables avant d'en commencer d'autres, en partant du motif. |
-| 4 | `bloquant_en_relecture` | Responsable | Soumis avec une phrase bloquante : n sur N livrables en relecture | au moins 1 phrase bloquante encore présente | Vérifier ces phrases en premier : acquitter avec raison ou renvoyer avec motif. |
-| 5 | `bloquant_avant_soumission` | Consultant | Brouillons avec une phrase bloquante : n sur N livrables chez les consultants | au moins 1 phrase bloquante encore présente | Corriger la source ou le chiffre avant de soumettre. |
-| 6 | `preuve_manquante` | Consultant | Sections refusées faute de preuve : n sur N livrables chez les consultants | au moins 1 section refusée dans la version courante | Ajouter le document manquant au dossier, puis régénérer la section. |
-| 7 | `brouillon_en_sommeil` | Consultant | Brouillons sans activité : n sur N livrables chez les consultants | aucune activité depuis plus de 5 jours | Soumettre le livrable, ou le signaler au responsable s'il est bloqué. |
+| 1 | `citation_restante` | Responsable | Approuvés avec une citation sans source : n sur N livrables approuvés | au moins 1 citation sans source dans la version approuvée (H7 : 0) | Corriger puis faire réapprouver. |
+| 2 | `relecture_en_retard` | Responsable | Relectures en retard : n sur N livrables en relecture | en relecture depuis plus de 48 h | Relire d'abord le plus ancien. |
+| 3 | `renvoi_a_reprendre` | Consultant | Renvois à reprendre : n sur N livrables chez les consultants | renvoyé par un responsable et pas encore resoumis | Reprendre selon le motif du renvoi. |
+| 4 | `bloquant_en_relecture` | Responsable | Soumis avec une phrase bloquante : n sur N livrables en relecture | au moins 1 phrase bloquante encore présente | Vérifier avant d'approuver. |
+| 5 | `bloquant_avant_soumission` | Consultant | Brouillons avec une phrase bloquante : n sur N livrables chez les consultants | au moins 1 phrase bloquante encore présente | Corriger la source ou le chiffre. |
+| 6 | `preuve_manquante` | Consultant | Sections refusées faute de preuve : n sur N livrables chez les consultants | au moins 1 section refusée dans la version courante | Ajouter le document manquant. |
+| 7 | `brouillon_en_sommeil` | Consultant | Brouillons sans activité : n sur N livrables chez les consultants | aucune activité depuis plus de 5 jours | Soumettre ou signaler le blocage. |
 
 ## Alertes et tuiles
 

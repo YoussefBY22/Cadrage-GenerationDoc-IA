@@ -2,12 +2,12 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
   "name": "validation_charge",
   "position": {
-    "x": 288,
-    "y": 704,
-    "z": 3600,
-    "width": 824,
-    "height": 172,
-    "tabOrder": 3600
+    "x": 1112,
+    "y": 526,
+    "z": 2900,
+    "width": 456,
+    "height": 350,
+    "tabOrder": 2900
   },
   "visual": {
     "visualType": "barChart",
@@ -126,7 +126,7 @@
             "maxMarginFactor": {
               "expr": {
                 "Literal": {
-                  "Value": "40L"
+                  "Value": "45L"
                 }
               }
             },
@@ -187,7 +187,7 @@
             "position": {
               "expr": {
                 "Literal": {
-                  "Value": "'Right'"
+                  "Value": "'Top'"
                 }
               }
             },
@@ -346,7 +346,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Livrables ouverts, par ordre alphabétique (ce n''est pas un classement)'"
+                  "Value": "'Livrables ouverts'"
                 }
               }
             },
@@ -452,7 +452,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Charge par consultant. Livrables ouverts, par ordre alphabétique (ce n''est pas un classement)'"
+                  "Value": "'Charge par consultant. Livrables ouverts'"
                 }
               }
             }

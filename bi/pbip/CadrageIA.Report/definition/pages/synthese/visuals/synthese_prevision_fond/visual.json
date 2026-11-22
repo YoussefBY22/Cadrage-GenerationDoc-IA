@@ -2,12 +2,12 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
   "name": "synthese_prevision_fond",
   "position": {
-    "x": 920,
-    "y": 758,
-    "z": 4300,
-    "width": 648,
-    "height": 118,
-    "tabOrder": -44
+    "x": 288,
+    "y": 814,
+    "z": 2900,
+    "width": 1280,
+    "height": 62,
+    "tabOrder": -30
   },
   "visual": {
     "visualType": "shape",

@@ -2,12 +2,12 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
   "name": "impression_simulation",
   "position": {
-    "x": 52,
-    "y": 150,
-    "z": 800,
-    "width": 796,
-    "height": 24,
-    "tabOrder": 800
+    "x": 472,
+    "y": 154,
+    "z": 900,
+    "width": 376,
+    "height": 26,
+    "tabOrder": 900
   },
   "visual": {
     "visualType": "shape",
@@ -92,7 +92,7 @@
             "fontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "11D"
+                  "Value": "10D"
                 }
               }
             },
@@ -124,7 +124,7 @@
             "alignment": {
               "expr": {
                 "Literal": {
-                  "Value": "'left'"
+                  "Value": "'right'"
                 }
               }
             }

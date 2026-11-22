@@ -4,10 +4,10 @@
   "position": {
     "x": 936.0,
     "y": 186,
-    "z": 2900,
+    "z": 2500,
     "width": 308.0,
-    "height": 122,
-    "tabOrder": 2900
+    "height": 128,
+    "tabOrder": 2500
   },
   "visual": {
     "visualType": "cardVisual",
@@ -322,51 +322,13 @@
           }
         }
       ],
-      "visualHeaderTooltip": [
-        {
-          "properties": {
-            "type": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Default'"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Formule : citations de la version approuvée dont la source n''est pas dans le dossier.\nDécision : Autoriser ou bloquer l''envoi au client\nCible : 0 (H7)\nFlux : suit la période.\nLimite : « non mesuré » si la version approuvée n''a pas de sections lisibles ; qu''une source existe ne prouve pas qu''elle soutient la phrase.'"
-                }
-              }
-            },
-            "titleFontColor": {
-              "solid": {
-                "color": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "'#2E2E38'"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      ],
       "visualHeader": [
         {
           "properties": {
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "showTooltipButton": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
+                  "Value": "false"
                 }
               }
             }
@@ -379,7 +341,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Sans source après approbation. Formule : citations de la version approuvée dont la source n''est pas dans le dossier. Décision : Autoriser ou bloquer l''envoi au client.'"
+                  "Value": "'Indicateur : Sans source après approbation'"
                 }
               }
             }

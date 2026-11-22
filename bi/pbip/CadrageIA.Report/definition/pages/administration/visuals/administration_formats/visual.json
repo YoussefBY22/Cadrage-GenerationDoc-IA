@@ -2,12 +2,12 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
   "name": "administration_formats",
   "position": {
-    "x": 720.0,
-    "y": 620,
-    "z": 4400,
-    "width": 416.0,
-    "height": 256,
-    "tabOrder": 4400
+    "x": 288.0,
+    "y": 602,
+    "z": 2800,
+    "width": 632.0,
+    "height": 274,
+    "tabOrder": 2800
   },
   "visual": {
     "visualType": "pivotTable",
@@ -48,7 +48,7 @@
               },
               "queryRef": "Indicateurs.Documents analysés",
               "nativeQueryRef": "Documents analysés",
-              "displayName": "n"
+              "displayName": "Documents"
             },
             {
               "field": {
@@ -78,7 +78,7 @@
               },
               "queryRef": "Indicateurs.Format taux",
               "nativeQueryRef": "Format taux",
-              "displayName": "Taux"
+              "displayName": "Part signalée"
             }
           ]
         }
@@ -399,7 +399,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Filtre client seulement · pas de taux sous 30'"
+                  "Value": "'Filtre client seulement'"
                 }
               }
             },
@@ -505,7 +505,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Signalements par format. Filtre client seulement · pas de taux sous 30'"
+                  "Value": "'Signalements par format. Filtre client seulement'"
                 }
               }
             }

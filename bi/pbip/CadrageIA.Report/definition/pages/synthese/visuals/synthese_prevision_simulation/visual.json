@@ -2,12 +2,12 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
   "name": "synthese_prevision_simulation",
   "position": {
-    "x": 936,
-    "y": 850,
-    "z": 4500,
-    "width": 620,
-    "height": 24,
-    "tabOrder": 4500
+    "x": 1288,
+    "y": 832,
+    "z": 3100,
+    "width": 264,
+    "height": 28,
+    "tabOrder": 3100
   },
   "visual": {
     "visualType": "shape",
@@ -124,7 +124,7 @@
             "alignment": {
               "expr": {
                 "Literal": {
-                  "Value": "'left'"
+                  "Value": "'right'"
                 }
               }
             }

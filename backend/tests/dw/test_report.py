@@ -26,7 +26,7 @@ def text_of(path) -> str:
 def test_internal_report_has_every_part(engine, tmp_path):
     body = text_of(report.write_report(engine, report.Scope(), tmp_path / "r.docx"))
     for part in ("Synthèse", "Recommandations prioritaires", "Critères de réussite", "Indicateurs",
-                 "Prédiction", "Limites", "Situation au 20/11/2026", report.SIMULATION):
+                 "Charge de relecture", "Limites", "Situation au 20/11/2026", report.SIMULATION):
         assert part in body
     assert "Non mesuré" in body and "Temps gagné" not in body
 
@@ -79,4 +79,10 @@ def test_invented_data_measures_no_model_quality(engine):
     assert data["simulated"]
     assert {row[3] for row in report.h7_rows(data)} == {"Non mesuré"}
     assert all(d["risk"] is None for d in data["queue"])
-    assert "référence naïve" not in " ".join(report.forecast_lines(data))
+    assert "Fiabilité non mesurée." in report.forecast_lines(data)
+
+
+def test_internal_report_keeps_proofs_out_of_the_page(engine, tmp_path):
+    body = text_of(report.write_report(engine, report.Scope(), tmp_path / "s.docx"))
+    for word in ("Décision liée", "Seuil", "Brier", "TPV", "naïve", "H7"):
+        assert word not in body

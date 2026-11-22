@@ -38,7 +38,8 @@ H7, indicateurs, prédiction, limites, date. Elle suit les quatre filtres.
 
 ## 2. Ce que disent les pages
 
-- **Titre** nominal, **sous-titre** avec périmètre, mesure et période, **constat** dans sa propre zone.
+- **Titre** nominal, **sous-titre** avec périmètre et période, **constat** d'une ligne dans sa propre zone.
+- **Peu de texte** : décisions, formules, seuils et tests sont dans ce document et dans `bi/KPI.md`.
 - **Période** : elle porte sur les flux (générations, soumissions, approbations). La file, les recommandations et la
   prédiction décrivent la situation à la date des données.
 - **Effectif** : un taux va avec son n et disparaît sous 30 cas. Un critère non mesuré n'a pas de verdict. « Zéro
@@ -50,7 +51,7 @@ H7, indicateurs, prédiction, limites, date. Elle suit les quatre filtres.
 
 ## 3. Recommandations
 
-Sept règles déterministes, sans LLM : constat chiffré, seuil, acteur, action. Elles sont définies une seule fois dans
+Sept règles déterministes, sans LLM : constat chiffré, acteur, action (le seuil reste dans `KPI.md`). Elles sont définies une seule fois dans
 [`pilotage.py`](../backend/app/dw/pilotage.py). L'ETL les évalue par livrable (`fact_action`), puis Power BI et la
 commande de rapport ne font que compter dans le périmètre filtré. Table complète :
 [`bi/KPI.md`](../bi/KPI.md#recommandations).
@@ -104,16 +105,16 @@ Sources lues le 22/11/2026. **Non vérifié** : la source primaire n'a pas pu ê
 |---|---|---|---|
 | Un rapport a des pages et des filtres ; un tableau de bord est une page de tuiles du Service, sans segment, avec alertes | [Learn, dashboards](https://learn.microsoft.com/en-us/power-bi/create-reports/service-dashboards) | lu | ceci est un rapport ; tuiles à épingler dans `PUBLICATION.md` |
 | Ne pas mêler des sujets ou objectifs opposés sur une page ; l'important en haut à gauche ; répétition | [Learn, mise en page](https://learn.microsoft.com/en-us/training/modules/power-bi-effective-reports/2-design-layout) | lu | une page par acteur, même grille |
-| Retirer le superflu ; cartes pour les nombres clés, avec contexte ; échelles et couleurs constantes | [Learn, conseils de conception](https://learn.microsoft.com/en-us/power-bi/create-reports/service-dashboards-design-tips) | lu | 4 cartes au plus, n et décision sur chacune |
+| Retirer le superflu ; cartes pour les nombres clés, avec contexte ; échelles et couleurs constantes | [Learn, conseils de conception](https://learn.microsoft.com/en-us/power-bi/create-reports/service-dashboards-design-tips) | lu | 4 cartes au plus, n sous chaque taux |
 | Ne garder que les visuels nécessaires | [Learn, optimisation](https://learn.microsoft.com/en-us/power-bi/guidance/power-bi-optimization) | lu ; aucun maximum chiffré n'y figure | « 4 pages, 4 KPI » est un choix du projet |
 | Noms de pages courts et nominaux | exemples officiels [Competitive Marketing](https://learn.microsoft.com/en-us/power-bi/create-reports/sample-competitive-marketing-analysis) (« Executive Overview »), [Corporate Spend](https://learn.microsoft.com/en-us/power-bi/create-reports/sample-corporate-spend) (« IT Spend Trend »), [Store Sales](https://learn.microsoft.com/en-us/power-bi/create-reports/sample-store-sales) (« Store Sales Overview ») | lu : aucun titre interrogatif | Synthèse, Production, Validation, Administration |
 | Texte alternatif (250 caractères au plus), décor hors tabulation, titres de même taille, pas de jargon | [Learn, accessibilité](https://learn.microsoft.com/en-us/power-bi/create-reports/desktop-accessibility-creating-reports) | lu | texte alternatif sur les objets porteurs, `tabOrder` négatif pour le décor, titres en 13 |
 | Contraste d'au moins 4,5:1 ; pas d'information par la seule couleur ; pas de vert contre rouge | même page | lu, contrastes calculés | texte gris `#5F5F6B` (5,8:1 sur le fond), formes de points, plus de vert |
-| Ne pas mettre l'essentiel dans une info-bulle | même page | lu | n et décision écrits sur la carte |
+| Ne pas mettre l'essentiel dans une info-bulle | même page | lu | n écrit sur la carte |
 | Prévision native : courbe avec données de temps | [Learn, volet Analytique](https://learn.microsoft.com/en-us/power-bi/transform-model/desktop-analytics-pane) | lu ; « une seule série » n'y figure pas | prévision calculée par l'ETL pour porter le test rétrospectif |
 | RLS limitée aux Lecteurs ; rôles additifs ; sans rôle, aucune ligne | [Learn, RLS](https://learn.microsoft.com/en-us/fabric/security/service-admin-row-level-security), [guide](https://learn.microsoft.com/en-us/power-bi/guidance/rls-guidance) | lu | trois rôles, un par personne |
 | L'export PDF de Desktop exclut les pages masquées | [Learn, export PDF](https://learn.microsoft.com/en-us/power-bi/collaborate-share/end-user-pdf) | lu | le fichier officiel vient de `app.dw.report` |
 | Alertes sur cartes, KPI et jauges numériques | [Learn, alertes](https://learn.microsoft.com/en-us/power-bi/create-reports/service-set-data-alerts) | lu | cartes en mesures numériques |
 | ISO 24896 « Notation for business reporting » publiée en juin 2026, IBCS 2.0 aligné dessus | [IBCS](https://www.ibcs.com/iso-24896/) | lu chez IBCS seulement ; iso.org a refusé la lecture | — |
-| Titre « qui, quoi, quand » ; message séparé du titre | IBCS 2.0 | **non vérifié** : le texte des règles n'est pas publié sur les pages lisibles | sous-titre périmètre, mesure, période ; zone Constat |
+| Titre « qui, quoi, quand » ; message séparé du titre | IBCS 2.0 | **non vérifié** : le texte des règles n'est pas publié sur les pages lisibles | sous-titre périmètre et période ; zone Constat |
 | Contenu de la norme ISO 24896 (notations, échelles, surlignage) | ISO | **non vérifié** : norme payante, non lue | aucune conformité revendiquée |

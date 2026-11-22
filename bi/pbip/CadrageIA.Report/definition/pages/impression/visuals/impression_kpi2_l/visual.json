@@ -3,11 +3,11 @@
   "name": "impression_kpi2_l",
   "position": {
     "x": 52,
-    "y": 808,
-    "z": 2900,
-    "width": 310,
+    "y": 810,
+    "z": 2600,
+    "width": 330,
     "height": 24,
-    "tabOrder": 2900
+    "tabOrder": 2600
   },
   "visual": {
     "visualType": "shape",
@@ -69,7 +69,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Renvois à la première relecture'"
+                  "Value": "'Renvois en première relecture'"
                 }
               }
             },
@@ -240,7 +240,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Renvois à la première relecture'"
+                  "Value": "'Renvois en première relecture'"
                 }
               }
             }

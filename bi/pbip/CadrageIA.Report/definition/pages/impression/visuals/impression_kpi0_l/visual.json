@@ -3,11 +3,11 @@
   "name": "impression_kpi0_l",
   "position": {
     "x": 52,
-    "y": 752,
-    "z": 2500,
-    "width": 310,
+    "y": 746,
+    "z": 2200,
+    "width": 330,
     "height": 24,
-    "tabOrder": 2500
+    "tabOrder": 2200
   },
   "visual": {
     "visualType": "shape",

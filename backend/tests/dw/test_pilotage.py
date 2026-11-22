@@ -48,7 +48,7 @@ def test_recommendations_follow_scope_priority_and_actor():
             {"deliverable_id": "hors_filtre", "rule_code": "citation_restante"}]
     got = pilotage.recommendations(ds, acts)
     assert [r["code"] for r in got] == ["relecture_en_retard", "preuve_manquante"]
-    assert got[0]["finding"] == "Relectures en retard : 1 sur 2 (livrables en relecture)"
+    assert got[0]["finding"] == "Relectures en retard : 1"
     assert [r["code"] for r in pilotage.recommendations(ds, acts, pilotage.CONSULTANT)] == [
         "preuve_manquante"]
     assert len(pilotage.recommendations(ds, acts, limit=1)) == 1

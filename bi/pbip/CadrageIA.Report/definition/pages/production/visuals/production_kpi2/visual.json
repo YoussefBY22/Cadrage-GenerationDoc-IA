@@ -4,10 +4,10 @@
   "position": {
     "x": 720.0,
     "y": 186,
-    "z": 2600,
+    "z": 2400,
     "width": 416.0,
-    "height": 122,
-    "tabOrder": 2600
+    "height": 128,
+    "tabOrder": 2400
   },
   "visual": {
     "visualType": "cardVisual",
@@ -322,51 +322,13 @@
           }
         }
       ],
-      "visualHeaderTooltip": [
-        {
-          "properties": {
-            "type": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Default'"
-                }
-              }
-            },
-            "text": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Formule : phrases des livrables chez le consultant dont la source est absente du dossier, ou rejetées par le vérificateur et inchangées depuis.\nDécision : Quoi corriger avant de soumettre\nCible : 0 avant de soumettre (règle du produit)\nSituation à la date des données : ne suit pas la période.\nLimite : une phrase modifiée n''est pas revérifiée ici : seule sa source est contrôlée.'"
-                }
-              }
-            },
-            "titleFontColor": {
-              "solid": {
-                "color": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "'#2E2E38'"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      ],
       "visualHeader": [
         {
           "properties": {
             "show": {
               "expr": {
                 "Literal": {
-                  "Value": "true"
-                }
-              }
-            },
-            "showTooltipButton": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
+                  "Value": "false"
                 }
               }
             }
@@ -379,7 +341,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Phrases bloquantes. Formule : phrases des livrables chez le consultant dont la source est absente du dossier, ou rejetées par le vérificateur et inchangées depuis. Décision : Quoi corriger avant de soumettre.'"
+                  "Value": "'Indicateur : Phrases bloquantes'"
                 }
               }
             }
