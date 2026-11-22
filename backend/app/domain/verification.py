@@ -13,6 +13,7 @@ IssueCode = Literal[
     "INSTRUCTION_ECHO",
     "UNKNOWN_FINDING",
     "TRANSITION_WITH_NUMBER",
+    "RANGE_LOST",
 ]
 
 
