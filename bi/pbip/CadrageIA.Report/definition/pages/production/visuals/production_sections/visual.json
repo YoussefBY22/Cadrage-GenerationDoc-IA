@@ -2,10 +2,10 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
   "name": "production_sections",
   "position": {
-    "x": 1048,
+    "x": 928,
     "y": 526,
     "z": 2800,
-    "width": 520,
+    "width": 640,
     "height": 350,
     "tabOrder": 2800
   },

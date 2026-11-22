@@ -528,7 +528,7 @@ table Indicateurs
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Section refus' = IF(NOT ISBLANK([Section priorité]), IF(CALCULATE(SUM('Sections courantes'[Refus]), KEEPFILTERS(Livrables[Code d'état] IN {"draft", "rejected"})) > 0, "Ajouter une preuve", "Corriger"))
+	measure 'Section refus' = IF(NOT ISBLANK([Section priorité]), IF(CALCULATE(SUM('Sections courantes'[Refus]), KEEPFILTERS(Livrables[Code d'état] IN {"draft", "rejected"})) > 0, "Compléter", "Corriger"))
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -652,7 +652,7 @@ table Indicateurs
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Banc effectif' = MAX(Banc[Sections du banc])
+	measure 'Banc effectif' = IF(COUNTROWS(Banc) = 1, COALESCE(FORMAT(MAX(Banc[Sections du banc]), "0"), "—"))
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -666,8 +666,9 @@ table Indicateurs
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Banc latence' = MAX(Banc[Latence p95]) / 1000
-		formatString: 0 "s"
+	measure 'Banc latence' =
+			IF(COUNTROWS(Banc) = 1, IF(ISBLANK(MAX(Banc[Latence p95])), "—",
+			    FORMAT(MAX(Banc[Latence p95]) / 1000, "0") & " s"))
 		displayFolder: 9. Présentation
 		isHidden
 

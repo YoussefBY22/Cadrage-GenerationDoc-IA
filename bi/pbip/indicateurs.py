@@ -346,7 +346,7 @@ def presentation() -> list[Mesure]:
     m["Section bloquantes"] = si_section + f"CALCULATE(SUM('Sections courantes'[Bloquantes]), {CHEZ_CONSULTANT}) + 0)"
     m["Section sans source"] = si_section + f"CALCULATE(SUM('Sections courantes'[Sans source]), {CHEZ_CONSULTANT}) + 0)"
     m["Section refus"] = si_section + (
-        f'IF(CALCULATE(SUM(\'Sections courantes\'[Refus]), {CHEZ_CONSULTANT}) > 0, "Ajouter une preuve", "Corriger"))')
+        f'IF(CALCULATE(SUM(\'Sections courantes\'[Refus]), {CHEZ_CONSULTANT}) > 0, "Compléter", "Corriger"))')
 
     # Une mesure vide, et non 0, retire de la charge les consultants hors du filtre
     m["Charge en relecture"] = "VAR v = [Livrables à valider]\nRETURN IF(v > 0, v)"
@@ -408,14 +408,16 @@ def presentation() -> list[Mesure]:
         f'    IF(vNombre = 0, "Rester sur {pilotage.REFERENCE_CONFIG}",\n'
         '        "À retenir : " & CONCATENATEX(vRetenues, Banc[Configuration], ", ")))')
     m["Banc montage"] = "SELECTEDVALUE(Banc[Montage])"
-    m["Banc effectif"] = "MAX(Banc[Sections du banc])"
+    m["Banc effectif"] = 'IF(COUNTROWS(Banc) = 1, COALESCE(FORMAT(MAX(Banc[Sections du banc]), "0"), "—"))'
     m["Banc TPV"] = (
         "IF(COUNTROWS(Banc) = 1, IF(ISBLANK(MAX(Banc[TPV])), \"Non mesuré\", FORMAT(MAX(Banc[TPV]), \"0 %\")))")
     ecart = 'FORMAT(100 * MAX(Banc[{}]), "+0.0;-0.0;0.0", "fr-FR")'
     m["Banc écart"] = (
         "IF(COUNTROWS(Banc) = 1, IF(ISBLANK(MAX(Banc[Écart])), \"—\",\n"
         f'    {ecart.format("Écart")}))')
-    m["Banc latence"] = "MAX(Banc[Latence p95]) / 1000"
+    m["Banc latence"] = (
+        "IF(COUNTROWS(Banc) = 1, IF(ISBLANK(MAX(Banc[Latence p95])), \"—\",\n"
+        '    FORMAT(MAX(Banc[Latence p95]) / 1000, "0") & " s"))')
     m["Banc verdict"] = "SELECTEDVALUE(Banc[Décision])"
     m["Couleur de décision"] = (
         f'SWITCH(SELECTEDVALUE(Banc[Code de décision]), "worse", "{ROUGE}", '
@@ -426,8 +428,7 @@ def presentation() -> list[Mesure]:
     m["Mission signalée"] = "VAR v = SUM(Documents[Alertes])\nRETURN IF(v > 0, v)"
     m["Mission documents"] = "IF(NOT ISBLANK([Mission signalée]), COUNTROWS(Documents))"
 
-    formats = {"À traiter inactivité": JOURS, "File attente": JOURS, "File priorité": ENTIER,
-               "Banc latence": '0 "s"'}
+    formats = {"À traiter inactivité": JOURS, "File attente": JOURS, "File priorité": ENTIER}
     for nom in ("Note Sections acceptées sans retouche", "Note Citations sans source après approbation",
                 "Note Citations sans source avant relecture", "Note Phrases vérifiées",
                 "H7 citations", "H7 retouche", "Rapport vérifiées", "Rapport détectées"):

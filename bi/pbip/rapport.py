@@ -350,7 +350,7 @@ def production() -> Page:
     p.cartes([("Livrables à traiter", "À traiter"), ("Phrases bloquantes à corriger", "Phrases bloquantes"),
               ("Sections acceptées sans retouche", "Acceptées sans retouche")])
     p.recommandations((X0, HAUT_CORPS, LC, HAUT_RECOS), CONSULTANT, "Recommandations au consultant")
-    gauche, droite = 744, LC - 744 - G
+    gauche, droite = 624, LC - 624 - G
     p.tableau("a_traiter", (X0, HAUT_SUITE, gauche, BAS - HAUT_SUITE), col("Livrables", "Livrable"),
               [("À traiter état", "État"), ("À traiter motif", "Motif du renvoi"),
                ("À traiter bloquantes", "Bloquantes"), ("À traiter inactivité", "Inactif")],
@@ -400,7 +400,7 @@ def administration() -> Page:
               ("Citations sans source avant relecture", "Sans source avant relecture"),
               ("Alertes d'injection", "Consignes cachées"), ("Documents signalés", None)])
     config = col("Banc", "Configuration")
-    bas_banc = HAUT_CORPS + 256
+    bas_banc = HAUT_CORPS + 224
     p.tableau("banc", (X0, HAUT_CORPS, LC, bas_banc - HAUT_CORPS), (config, "Configuration"),
               [("Banc montage", "Montage"), ("Banc effectif", "Sections"), ("Banc TPV", "Phrases vérifiées"),
                ("Banc écart", "Écart à B, points"), ("Banc latence", "Temps de réponse"),

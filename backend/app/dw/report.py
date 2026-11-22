@@ -331,7 +331,7 @@ def render_docx(r: dict, path: Path) -> None:
         heading("File à valider")
         table(["Mission", "Consultant", "Attente", "Bloquantes", "Risque de renvoi"], [
             (d["mission_name"], r["people"].get(d["author_key"], "—"),
-             f"{num(d['state_age_hours'] / 24, 1)} j",
+             f"{num(d['state_age_hours'] / 24)} j",
              "—" if d["blocking_open"] is None else d["blocking_open"],
              NOT_MEASURED if d["risk"] is None else f"{pct(d['risk'])} (n = {d['risk_n']})")
             for d in r["queue"][:12]], [4.4, 4.0, 1.8, 2.1, 5.1])
