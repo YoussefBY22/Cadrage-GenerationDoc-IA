@@ -9,7 +9,6 @@ from pptx.util import Emu, Inches, Pt
 
 from .common import ExportData
 
-DEFAULT_WEEKS = 4
 RECT, OVAL = 1, 9
 
 
@@ -22,13 +21,18 @@ def _bullets(slide, lines: list[str]) -> None:
         p.font.size = Pt(16)
 
 
-def gantt_schedule(items) -> list[tuple[str, int, int, int]]:
-    """(titre, vague, début, fin) en semaines : les vagues se suivent, les initiatives d'une vague sont parallèles."""
+def gantt_schedule(items) -> list[tuple[str, int, int, int]] | None:
+    """(titre, vague, début, fin) en semaines : les vagues se suivent, les initiatives d'une vague sont parallèles.
+
+    None si une durée manque : aucune barre datée n'est inventée (ordre seulement).
+    """
+    if any(it.initiative.duration_weeks is None for it in items):
+        return None
     out, start = [], 0
     for wave in sorted({it.wave for it in items}):
         end = start
         for it in sorted((x for x in items if x.wave == wave), key=lambda x: x.rank):
-            dur = it.initiative.duration_weeks or DEFAULT_WEEKS
+            dur = it.initiative.duration_weeks
             out.append((it.initiative.title, wave, start, start + dur))
             end = max(end, start + dur)
         start = end
@@ -65,6 +69,15 @@ def _gantt(prs, items, lb) -> None:
     s = prs.slides.add_slide(prs.slide_layouts[5])
     s.shapes.title.text = lb["gantt"]
     sched = gantt_schedule(items)
+    if sched is None:  # durées incomplètes : liste ordonnée, ni barre ni date
+        s.shapes.title.text = lb["gantt_order"]
+        box = s.shapes.add_textbox(Inches(0.6), Inches(1.6), Inches(12), Inches(5))
+        box.text_frame.text = lb["no_dates"]
+        for n, it in enumerate(sorted(items, key=lambda x: (x.wave, x.rank)), 1):
+            para = box.text_frame.add_paragraph()
+            para.text = f"{n}. {it.initiative.title}"
+            para.font.size = Pt(14)
+        return
     total = max(e for *_, e in sched) or 1
     left, width, top, row_h = Inches(3.5), Inches(9), Inches(1.6), Inches(0.45)
     for i, (title, wave, a, b) in enumerate(sched):

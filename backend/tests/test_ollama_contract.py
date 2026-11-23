@@ -64,7 +64,7 @@ def test_generate_request_shape(server):
     assert path == "/api/chat"
     assert body["model"] == "gen-model" and body["stream"] is False
     assert body["messages"][0] == {"role": "system", "content": "règles"}
-    assert body["options"] == {"temperature": 0.0, "seed": 7, "num_predict": 50}
+    assert body["options"] == {"temperature": 0.0, "seed": 7, "num_predict": 50, "num_ctx": 4096}
     assert body["think"] is False and body["keep_alive"] == "30m"
     assert text
 

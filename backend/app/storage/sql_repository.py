@@ -4,9 +4,10 @@ import hashlib
 import json
 from collections.abc import Iterator
 
-from sqlalchemy import Engine, func, insert, select, update
+from sqlalchemy import Engine, delete, func, insert, select, update
 from sqlalchemy.exc import IntegrityError
 
+from ..domain.coeur import ExistingProject, Priority
 from ..domain.documents import Chunk, ParsedDocument
 from ..domain.generation import DeliverableContent, Finding
 from ..domain.ids import new_id
@@ -25,6 +26,21 @@ def _chunk(row) -> Chunk:
         text=row.text, page_start=row.page_start, page_end=row.page_end,
         section_path=tuple(row.section_path or ()), token_estimate=row.token_estimate,
         injection_flags=list(row.injection_flags or []))
+
+
+def _priority(row) -> Priority:
+    return Priority(
+        id=row.id, dossier_id=row.dossier_id, title=row.title, description=row.description or "",
+        rank=row.rank, status=row.status, source_ids=list(row.source_ids or []),
+        author_id=row.author_id, validated_by=row.validated_by, validated_at=row.validated_at,
+        created_at=row.created_at)
+
+
+def _project(row) -> ExistingProject:
+    return ExistingProject(
+        id=row.id, dossier_id=row.dossier_id, title=row.title, state=row.state,
+        duration_weeks=row.duration_weeks, depends_on=list(row.depends_on or []),
+        source_ids=list(row.source_ids or []), author_id=row.author_id, created_at=row.created_at)
 
 
 class SqlRepository:
@@ -96,7 +112,8 @@ class SqlRepository:
                 s.dossier_members.c.user_id == user_id)).scalar()
 
     # --- documents et passages ----------------------------------------------------------------
-    def add_document(self, dossier_id, parsed: ParsedDocument, stored_path) -> str:
+    def add_document(self, dossier_id, parsed: ParsedDocument, stored_path,
+                     role: str = "other") -> str:
         pages = max((b.page for b in parsed.blocks if b.page is not None), default=None)
         doc_id = new_id("doc")
         try:
@@ -104,12 +121,24 @@ class SqlRepository:
                 c.execute(insert(s.documents).values(
                     id=doc_id, dossier_id=dossier_id, filename=parsed.filename, mime=parsed.mime,
                     sha256=parsed.sha256, title=parsed.title, language=parsed.language,
-                    pages=pages, stored_path=stored_path))
+                    pages=pages, stored_path=stored_path, role=role))
         except IntegrityError as exc:
             if self.find_document_by_sha(dossier_id, parsed.sha256):
                 raise DuplicateDocumentError(parsed.sha256) from exc
             raise
         return doc_id
+
+    def set_document_role(self, document_id, role) -> None:
+        with self.engine.begin() as c:
+            c.execute(update(s.documents).where(s.documents.c.id == document_id).values(role=role))
+
+    def document_roles(self, dossier_id) -> dict[str, str]:
+        """{document_id: rôle} pour tout le dossier, dans l'ordre d'import."""
+        stmt = select(s.documents.c.id, s.documents.c.role).where(
+            s.documents.c.dossier_id == dossier_id).order_by(s.documents.c.created_at,
+                                                             s.documents.c.id)
+        with self.engine.connect() as c:
+            return {r[0]: r[1] for r in c.execute(stmt)}
 
     def find_document_by_sha(self, dossier_id, sha256) -> str | None:
         with self.engine.connect() as c:
@@ -266,3 +295,77 @@ class SqlRepository:
                 raise KeyError(chunk_id)
             c.execute(insert(s.injection_alerts).values(
                 id=new_id("chk"), chunk_id=chunk_id, dossier_id=dossier_id, codes=list(codes)))
+
+    # --- priorités institutionnelles ----------------------------------------------------------
+    def create_priority(self, dossier_id, *, title, description, rank, status, source_ids,
+                        author_id) -> Priority:
+        pid = new_id("prt")
+        with self.engine.begin() as c:
+            c.execute(insert(s.priorities).values(
+                id=pid, dossier_id=dossier_id, title=title, description=description, rank=rank,
+                status=status, source_ids=list(source_ids), author_id=author_id))
+        return self.get_priority(pid)
+
+    def get_priority(self, priority_id) -> Priority | None:
+        with self.engine.connect() as c:
+            row = c.execute(select(s.priorities).where(s.priorities.c.id == priority_id)).first()
+        return _priority(row) if row else None
+
+    def list_priorities(self, dossier_id, status: str | None = None) -> list[Priority]:
+        stmt = select(s.priorities).where(s.priorities.c.dossier_id == dossier_id)
+        if status is not None:
+            stmt = stmt.where(s.priorities.c.status == status)
+        with self.engine.connect() as c:
+            return [_priority(r) for r in c.execute(
+                stmt.order_by(s.priorities.c.rank, s.priorities.c.created_at, s.priorities.c.id))]
+
+    def update_priority(self, priority_id, **values) -> Priority | None:
+        with self.engine.begin() as c:
+            c.execute(update(s.priorities).where(s.priorities.c.id == priority_id).values(
+                updated_at=s.utcnow(), **values))
+        return self.get_priority(priority_id)
+
+    def delete_priority(self, priority_id) -> None:
+        with self.engine.begin() as c:
+            c.execute(delete(s.priorities).where(s.priorities.c.id == priority_id))
+
+    # --- projets existants --------------------------------------------------------------------
+    def create_project(self, dossier_id, *, title, state, duration_weeks, depends_on, source_ids,
+                       author_id) -> ExistingProject:
+        pid = new_id("prj")
+        with self.engine.begin() as c:
+            c.execute(insert(s.existing_projects).values(
+                id=pid, dossier_id=dossier_id, title=title, state=state,
+                duration_weeks=duration_weeks, depends_on=list(depends_on),
+                source_ids=list(source_ids), author_id=author_id))
+        return self.get_project(pid)
+
+    def get_project(self, project_id) -> ExistingProject | None:
+        with self.engine.connect() as c:
+            row = c.execute(select(s.existing_projects).where(
+                s.existing_projects.c.id == project_id)).first()
+        return _project(row) if row else None
+
+    def list_projects(self, dossier_id) -> list[ExistingProject]:
+        stmt = select(s.existing_projects).where(s.existing_projects.c.dossier_id == dossier_id)
+        with self.engine.connect() as c:
+            return [_project(r) for r in c.execute(
+                stmt.order_by(s.existing_projects.c.created_at, s.existing_projects.c.id))]
+
+    def update_project(self, project_id, **values) -> ExistingProject | None:
+        with self.engine.begin() as c:
+            c.execute(update(s.existing_projects).where(
+                s.existing_projects.c.id == project_id).values(updated_at=s.utcnow(), **values))
+        return self.get_project(project_id)
+
+    def delete_project(self, project_id) -> None:
+        """Retire le projet et les dépendances d'autres projets vers lui."""
+        with self.engine.begin() as c:
+            rows = c.execute(select(s.existing_projects.c.id, s.existing_projects.c.depends_on)
+                             ).all()
+            for rid, deps in rows:
+                if project_id in (deps or []):
+                    c.execute(update(s.existing_projects).where(
+                        s.existing_projects.c.id == rid).values(
+                        depends_on=[d for d in deps if d != project_id]))
+            c.execute(delete(s.existing_projects).where(s.existing_projects.c.id == project_id))

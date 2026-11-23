@@ -1,0 +1,179 @@
+table Livrables
+
+	column 'Identifiant du livrable'
+		dataType: string
+		isHidden
+		sourceColumn: deliverable_id
+		summarizeBy: none
+
+	column 'Clé de mission'
+		dataType: int64
+		isHidden
+		sourceColumn: mission_key
+		summarizeBy: none
+
+	column 'Mission d''origine'
+		dataType: string
+		isHidden
+		sourceColumn: mission_name
+		summarizeBy: none
+
+	column 'Clé de type'
+		dataType: int64
+		isHidden
+		sourceColumn: type_key
+		summarizeBy: none
+
+	column 'Clé de consultant'
+		dataType: int64
+		isHidden
+		sourceColumn: author_key
+		summarizeBy: none
+
+	column 'Clé de responsable'
+		dataType: int64
+		isHidden
+		sourceColumn: reviewer_key
+		summarizeBy: none
+
+	column Livrable
+		dataType: string
+		sourceColumn: dossier
+		summarizeBy: none
+
+	column 'Code d''état'
+		dataType: string
+		isHidden
+		sourceColumn: state
+		summarizeBy: none
+
+	column 'État'
+		dataType: string
+		sourceColumn: etat
+		summarizeBy: none
+
+	column 'Clé d''approbation'
+		dataType: int64
+		isHidden
+		sourceColumn: approved_date_key
+		summarizeBy: none
+
+	column 'Clé de soumission'
+		dataType: int64
+		isHidden
+		sourceColumn: submitted_date_key
+		summarizeBy: none
+
+	column 'Date de situation'
+		dataType: string
+		isHidden
+		sourceColumn: as_of
+		summarizeBy: none
+
+	column 'Heures dans l''état'
+		dataType: double
+		isHidden
+		sourceColumn: state_age_hours
+		summarizeBy: none
+
+	column 'Heures sans activité'
+		dataType: double
+		isHidden
+		sourceColumn: idle_hours
+		summarizeBy: none
+
+	column 'Renvoyé'
+		dataType: int64
+		isHidden
+		sourceColumn: returned
+		summarizeBy: none
+
+	column 'Code du motif'
+		dataType: string
+		isHidden
+		sourceColumn: reason_code
+		summarizeBy: none
+
+	column 'Motif du renvoi'
+		dataType: string
+		sourceColumn: motif
+		summarizeBy: none
+
+	column 'Sections sans preuve'
+		dataType: int64
+		isHidden
+		sourceColumn: refused_sections
+		summarizeBy: none
+
+	column 'Phrases bloquantes'
+		dataType: int64
+		isHidden
+		sourceColumn: blocking_open
+		summarizeBy: none
+
+	column 'Citations finales'
+		dataType: int64
+		isHidden
+		sourceColumn: citations_total
+		summarizeBy: none
+
+	column 'Citations sans source'
+		dataType: int64
+		isHidden
+		sourceColumn: citations_invalid
+		summarizeBy: none
+
+	column 'Délai en heures'
+		dataType: double
+		isHidden
+		sourceColumn: delay_hours
+		summarizeBy: none
+
+	column 'Renvoyé en première relecture'
+		dataType: int64
+		isHidden
+		sourceColumn: first_rejected
+		summarizeBy: none
+
+	column Risque
+		dataType: double
+		isHidden
+		sourceColumn: risk
+		summarizeBy: none
+
+	column 'Risque bas'
+		dataType: double
+		isHidden
+		sourceColumn: risk_low
+		summarizeBy: none
+
+	column 'Risque haut'
+		dataType: double
+		isHidden
+		sourceColumn: risk_high
+		summarizeBy: none
+
+	column 'Risque effectif'
+		dataType: int64
+		isHidden
+		sourceColumn: risk_n
+		summarizeBy: none
+
+	column 'Est une démonstration'
+		dataType: int64
+		isHidden
+		sourceColumn: is_demo
+		summarizeBy: none
+
+	partition Livrables = m
+		mode: import
+		source =
+				let
+				    Brut = Vue("v_deliverable"),
+				    Choix = Table.SelectColumns(Brut, {"deliverable_id", "mission_key", "mission_name", "type_key", "author_key", "reviewer_key", "state", "approved_date_key", "submitted_date_key", "as_of", "state_age_hours", "idle_hours", "returned", "reason_code", "refused_sections", "blocking_open", "citations_total", "citations_invalid", "delay_hours", "first_rejected", "risk", "risk_low", "risk_high", "risk_n", "is_demo"}),
+				    Typage = Table.TransformColumnTypes(Choix, {{"deliverable_id", type text}, {"mission_key", Int64.Type}, {"mission_name", type text}, {"type_key", Int64.Type}, {"author_key", Int64.Type}, {"reviewer_key", Int64.Type}, {"state", type text}, {"approved_date_key", Int64.Type}, {"submitted_date_key", Int64.Type}, {"as_of", type text}, {"state_age_hours", type number}, {"idle_hours", type number}, {"returned", Int64.Type}, {"reason_code", type text}, {"refused_sections", Int64.Type}, {"blocking_open", Int64.Type}, {"citations_total", Int64.Type}, {"citations_invalid", Int64.Type}, {"delay_hours", type number}, {"first_rejected", Int64.Type}, {"risk", type number}, {"risk_low", type number}, {"risk_high", type number}, {"risk_n", Int64.Type}, {"is_demo", Int64.Type}}, CultureCsv),
+				    AvecNom = Table.AddColumn(Typage, "dossier", each [mission_name] & " · " & Record.FieldOrDefault([#"1" = "constats", #"2" = "feuille de route", #"3" = "TdR", #"4" = "CdC"], Text.From([type_key]), "autre"), type text),
+				    AvecEtat = Table.AddColumn(AvecNom, "etat", each if [state] = null then "Inconnu" else Record.FieldOrDefault([#"draft" = "Brouillon", #"in_review" = "En relecture", #"approved" = "Approuvé", #"rejected" = "Renvoyé"], [state], "Inconnu"), type text),
+				    AvecMotif = Table.AddColumn(AvecEtat, "motif", each if [reason_code] = null then "—" else Record.FieldOrDefault([#"chiffres" = "Chiffres à justifier", #"sources" = "Sources à compléter", #"perimetre" = "Périmètre à préciser", #"redaction" = "Rédaction à clarifier", #"autre" = "Autre motif (voir l'application)"], [reason_code], "—"), type text)
+				in
+				    AvecMotif

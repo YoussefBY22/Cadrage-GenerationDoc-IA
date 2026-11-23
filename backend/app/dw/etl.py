@@ -25,6 +25,7 @@ from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from ..domain.verification import IssueCode
 from ..storage import schema as op
 from . import schema as dw
+from . import snapshot
 from .schema import bind_dw, create_dw
 
 log = logging.getLogger("app.dw")
@@ -38,10 +39,11 @@ TYPES = {"findings": (1, "Constats", "Findings"), "roadmap": (2, "Feuille de rou
          "cdc": (4, "Cahier des charges", "Specification")}
 STATES = {"draft": (1, "Brouillon", 1), "in_review": (2, "En relecture", 2),
           "approved": (3, "Approuvé", 3), "rejected": (4, "Rejeté", 3)}
-ISSUE_SEVERITY = {"LOW_SUPPORT": "warning", "TRANSITION_WITH_NUMBER": "warning"}
+ISSUE_SEVERITY = {"LOW_SUPPORT": "warning", "RANGE_LOST": "warning", "TRANSITION_WITH_NUMBER": "warning"}
 MONTHS_FR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août",
              "septembre", "octobre", "novembre", "décembre"]
 SOURCE_ISSUES = {"UNKNOWN_SOURCE", "FOREIGN_SOURCE"}
+BENCH_LABELS = {"A", "B", "C", "D"}  # le service écrit « default » en production
 
 
 # --- utilitaires ---------------------------------------------------------------------------
@@ -94,8 +96,9 @@ def _words(section: dict | None) -> list[str]:
 # --- chargement ----------------------------------------------------------------------------
 class _Loader:
     def __init__(self, op_engine: Engine, dw_engine: Engine, full: bool, now: datetime,
-                 pseudonymize: bool):
+                 pseudonymize: bool, as_of: datetime | None = None):
         self.ope, self.dwe, self.full, self.now = op_engine, bind_dw(dw_engine), full, now
+        self.as_of = as_of
         self.pseudo = pseudonymize
         self.counts: dict[str, int] = defaultdict(int)
         self.wm: dict[str, str] = {}
@@ -170,13 +173,17 @@ class _Loader:
     def reference_dims(self, c, o) -> None:
         self.dossiers = {r.id: r for r in o.execute(select(op.dossiers))}
         users = list(o.execute(select(op.users)))
-        owners = defaultdict(list)
+        involved = defaultdict(list)     # une personne est « démo » si tous ses dossiers le sont
         for d in self.dossiers.values():
-            owners[d.owner_id].append(bool(d.is_demo))
+            involved[d.owner_id].append(bool(d.is_demo))
+        for m in o.execute(select(op.dossier_members)):
+            if m.dossier_id in self.dossiers:
+                involved[m.user_id].append(bool(self.dossiers[m.dossier_id].is_demo))
         self.op_users = {u.id: u for u in users}
         self.client_keys: dict[str, int] = {r.client_ref: r.client_key
                                             for r in c.execute(select(dw.dim_client))}
         self.mission_keys: dict[str, int] = {}
+        self.client_keys_by_dossier: dict[str, int] = {}
         for d in sorted(self.dossiers.values(), key=lambda r: (str(r.created_at), r.id)):
             ref = hashlib.sha256(d.client_name.encode()).hexdigest()
             if ref not in self.client_keys:
@@ -186,6 +193,7 @@ class _Loader:
                     dw.dim_client.c.client_ref == ref)).scalar()
                 self.counts["dim_client"] += 1
             ck = self.client_keys[ref]
+            self.client_keys_by_dossier[d.id] = ck
             c.execute(update(dw.dim_client).where(dw.dim_client.c.client_key == ck).values(
                 client_name=f"Client {ck:03d}" if self.pseudo else d.client_name[:200],
                 sector=d.sector, is_demo=bool(d.is_demo)))
@@ -207,7 +215,7 @@ class _Loader:
         self.user_keys: dict[str, int] = {r.user_id: r.user_key
                                           for r in c.execute(select(dw.dim_user))}
         for u in users:
-            demo = bool(owners.get(u.id)) and all(owners[u.id])
+            demo = bool(involved.get(u.id)) and all(involved[u.id])
             self.ensure_user(c, u.id, u.role, u.display_name, demo)
         # documents
         chunks = dict(o.execute(select(op.chunks.c.document_id, func.count())
@@ -250,8 +258,13 @@ class _Loader:
             user_label=f"Utilisateur {key:03d}" if self.pseudo else label[:80]))
         return key
 
+    def type_key(self, code: str) -> int:
+        return TYPES[code][0]
+
     def model(self, c, provider, name, adapter, config, demo: bool) -> int:
-        k = (provider or "", name or "", adapter or None, config or None, demo)
+        # `config_label` fait un caractère : seules les lettres du banc y entrent
+        config = config if config in BENCH_LABELS else None
+        k = (provider or "", name or "", adapter or None, config, demo)
         if k not in self.model_keys:
             c.execute(insert(dw.dim_model).values(
                 provider=k[0][:40], model_name=k[1][:120], adapter=k[2], config_label=k[3],
@@ -470,7 +483,8 @@ class _Loader:
                                          m.config_label if m else None, demo),
                     "generated_words": len(gw), "final_words": len(fw), "edit_ratio": ratio,
                     "unchanged": ratio == 0, "was_refused": refused,
-                    "minutes_saved_est": round(float(baseline) * (1 - ratio), 1), "is_demo": demo})
+                    "minutes_saved_est": 0.0 if refused else round(float(baseline) * (1 - ratio), 1),
+                    "is_demo": demo})
                 existing.add((d.id, t.version, skey))
         _insert(c, dw.fact_section_outcome, rows)
         self.counts["fact_section_outcome"] += len(rows)
@@ -488,6 +502,7 @@ class _Loader:
                 self.reference_dims(c, o)
                 self.generations(c, o)
                 self.reviews(c, o)
+                self.counts.update(snapshot.refresh(self, c, o, self.as_of))
                 for src, val in self.wm.items():
                     c.execute(dw.etl_watermark.delete().where(
                         dw.etl_watermark.c.source_table == src))
@@ -516,7 +531,7 @@ def run_etl(op_engine: Engine, dw_engine: Engine, *, full: bool = False,
     if pseudonymize is None:
         from ..config import get_settings
         pseudonymize = bool(getattr(get_settings(), "dw_pseudonymize", False))
-    return _Loader(op_engine, dw_engine, full, now or datetime.now(UTC), pseudonymize).run()
+    return _Loader(op_engine, dw_engine, full, now or datetime.now(UTC), pseudonymize, as_of=now).run()
 
 
 def main() -> None:

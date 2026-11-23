@@ -65,7 +65,9 @@ def analyze(initiatives: list[Initiative]) -> tuple[list[str], list[list[str]], 
     cycles = _cycles(succs)
     if cycles or not order:
         return order, cycles, []
-    dur = {i.id: (i.duration_weeks if i.duration_weeks is not None else 1) for i in initiatives}
+    if any(i.duration_weeks is None for i in initiatives):
+        return order, cycles, []  # sans durées complètes : un ordre, pas de chemin critique inventé
+    dur = {i.id: i.duration_weeks for i in initiatives}
     best: dict[str, int] = {}
     prev: dict[str, str | None] = {}
     for u in order:

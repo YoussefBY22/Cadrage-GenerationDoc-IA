@@ -31,8 +31,8 @@ def rows(repo, sql):
         return [dict(r._mapping) for r in c.execute(text(sql))]
 
 
-def test_seven_views_exist_and_are_idempotent(loaded):
-    assert len(VIEWS) == 7
+def test_views_exist_and_are_idempotent(loaded):
+    assert len(VIEWS) == 14
     create_views(loaded.engine)
     assert set(VIEWS) <= set(inspect(loaded.engine).get_view_names())
     for v in VIEWS:

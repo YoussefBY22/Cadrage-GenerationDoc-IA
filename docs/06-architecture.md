@@ -121,7 +121,7 @@ class DeliverableContent(BaseModel):           # contenu d'une version
 # verification.py
 IssueCode = Literal["UNKNOWN_SOURCE", "FOREIGN_SOURCE", "NUMBER_NOT_FOUND",
                     "FACT_WITHOUT_SOURCE", "LOW_SUPPORT", "INSTRUCTION_ECHO",
-                    "UNKNOWN_FINDING", "TRANSITION_WITH_NUMBER"]
+                    "UNKNOWN_FINDING", "TRANSITION_WITH_NUMBER", "RANGE_LOST"]
 class Issue(BaseModel):
     sentence_index: int; code: IssueCode
     severity: Literal["blocking", "warning"]; detail: str
