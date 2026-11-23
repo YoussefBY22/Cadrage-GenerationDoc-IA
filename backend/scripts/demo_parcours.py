@@ -134,6 +134,17 @@ def run(url: str, creds: dict, out_dir: Path) -> None:
         step(7, "Termes de référence : génération des sections avec vérification")
         tor = ok(c.post(f"/api/v1/dossiers/{did}/deliverables", headers=ch,
                         json={"type": "tor", "initiative_id": top["id"]}), 201)["deliverable_id"]
+        # Budget, profils, calendrier : décisions humaines, jamais dans un diagnostic. Le consultant
+        # les saisit puis les confirme (deux appels) ; sans elles, les sections sont refusées.
+        texts = {"schedule": "Mission de douze semaines, du lancement à la remise du rapport final.",
+                 "profile": "Un chef de projet senior justifiant de huit années d'expérience.",
+                 "criterion": "Offres notées sur 100 : qualité technique 70, prix 30."}
+        for spec in load_template("tor", "fr").sections:
+            for cat in spec.requires_decisions:
+                d = ok(c.post(f"/api/v1/dossiers/{did}/decisions", headers=ch,
+                              json={"category": cat, "text": texts.get(cat, f"Décision {cat}.")}), 201)
+                ok(c.post(f"/api/v1/decisions/{d['id']}:confirm", headers=ch))
+                print(f"     décision confirmée : {cat}")
         for spec in load_template("tor", "fr").sections:
             r = ok(c.post(f"/api/v1/deliverables/{tor}/sections/{spec.key}:generate", headers=ch))
             print(f"     {spec.key:<24} TPV = {r['tpv']:.2f}")
