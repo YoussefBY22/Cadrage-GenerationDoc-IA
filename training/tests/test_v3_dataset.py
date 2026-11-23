@@ -218,3 +218,18 @@ def test_produced_file_rerenders_identically_and_has_licences():
         assert r["meta"]["valide_par_humain"] is False
     assert not {r["meta"]["source"] for r in rows if r["meta"]["split"] == "train"} & \
         {r["meta"]["source"] for r in rows if r["meta"]["split"] == "test"}
+
+
+def test_a_section_the_application_renders_without_model_is_refused():
+    # tor/profil exige des décisions humaines : l'application ne l'envoie pas au modèle (gabarits par type)
+    with pytest.raises(v3_build.CurationError, match="exige des décisions"):
+        v3_build.section_spec(("tor", "profil"))
+    assert all(v3_build.section_spec(e["section"]) for e in v3_curation.EXAMPLES if e["section"][0] != "findings")
+
+
+def test_v2_example_on_a_decision_section_is_skipped_not_rendered():
+    from training.dataset import v2_rerender
+
+    with pytest.raises(v2_rerender.Skipped):
+        v2_rerender.template_section_by_title("Profil des experts")
+    assert v2_rerender.template_section_by_title("Contraintes")[0] == "gabarit:cdc/contraintes"

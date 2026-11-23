@@ -39,3 +39,13 @@ python -m training.dataset.v3_sources --sources-dir DOSSIER --fetch
 python -m training.dataset.v3_build --sources-dir DOSSIER --out-dir training/data/pilote-v3
 ```
 `render_prompt` n'existe pas dans `train_lora.py` : l'invite est rendue par `app.generation.prompting` (`build_section_prompt`, `build_findings_prompt`), la fonction de l'application ; un test le vérifie.
+
+## Paquet d'entraînement Colab (23/11, branche `feature/entrainement-4b`)
+
+`training/colab/cadrage-donnees-publiques.zip` (dans le dépôt : documents publics seulement, SHA-256 vérifié par le carnet) :
+28 exemples v2 relus (les 2 exemples « Profil » et « Calendrier » des TdR sont écartés : l'application ne les envoie plus au modèle) + 25 v3.
+Effectifs : entraînement 33 (8 documents), validation 7 (2 documents), test 13 (6 documents), aucun document des deux côtés.
+Les invites v2 sont refaites avec `app.generation.prompting` et les gabarits actuels ; les v3 sont reconstruites sur la version actuelle de `main`.
+Les 2 exemples v3 qui pointaient sur des sections de décision (profil, calendrier) ont été remplacés par des sections « contexte » et « objectifs ».
+Rien n'a été relu par un humain : décision de l'utilisateur, à garder en tête pour toute conclusion.
+Les invites d'entraînement n'ont pas de fiche de contexte (« CONTEXTE … ») ni de décisions D1..Dn : l'application peut en ajouter à l'inférence.

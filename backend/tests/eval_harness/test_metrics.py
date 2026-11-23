@@ -119,3 +119,28 @@ def test_rapport_markdown_et_csv(tmp_path):
     p = tmp_path / "r.json"
     p.write_text(json.dumps(res[0]), encoding="utf-8")
     assert report.load([p])[0]["config"] == "B"
+
+
+def test_configs_4b_chargent_avec_porte_de_pertinence():
+    for name, model, adapter in (("B-4b-base", "cadrage-4b-base", None), ("C-4b-lora", "cadrage-4b-lora", "lora-4b-colab")):
+        cfg = load_config(f"eval/configs/{name}.yaml")
+        assert cfg["name"] == name and cfg["provider"] == "ollama" and cfg["model"] == model
+        assert cfg["adapter"] == adapter and cfg["settings"]["ollama_generation_model"] == model
+        assert cfg["settings"]["relevance_threshold"] == 0.45 and cfg["settings"]["ollama_think"] is False
+        assert cfg["seeds"] == [1, 2, 3] and cfg["retrieval"] == {"enabled": True, "k": 10}
+    b, c = (load_config(f"eval/configs/{n}.yaml") for n in ("B-4b-base", "C-4b-lora"))
+    same = ("seeds", "corpus_seed", "retrieval")
+    assert all(b[k] == c[k] for k in same)  # seule la LoRA change
+
+
+def test_porte_de_pertinence_refuse_sans_appeler_le_modele(monkeypatch):
+    from eval.harness import run as harness
+
+    class Boom:
+        def generate_structured(self, *a, **k):
+            raise AssertionError("le modèle ne doit pas être appelé sous le seuil")
+
+    monkeypatch.setattr(harness, "below_threshold", lambda search, dossier, queries, gate: (True, 0.2))
+    spec = harness._spec("s1", "Fait : x", ["x", "x valeur"])
+    out = harness._generate(Boom(), object(), "d1", spec, ["passage"], gate=0.45)
+    assert out["refused"] is True and out["latency_ms"] == 0 and out["texts"] == []

@@ -29,6 +29,7 @@ from app.domain.retrieval import Passage
 from app.domain.workflow import CurrentUser
 from app.generation.llm_schemas import LLMSection
 from app.generation.prompting import build_section_prompt, estimate_tokens
+from app.generation.relevance import below_threshold
 from app.generation.template_loader import SectionSpec, load_template
 from app.ingest import parse
 from app.llm import FakeProvider, build_provider
@@ -106,8 +107,15 @@ def _spec(key: str, title: str, queries: list[str], max_sentences: int = 3) -> S
                        min_sources=1, max_sentences=max_sentences)
 
 
-def _generate(provider, search, dossier: str, spec: SectionSpec, passages: list[Passage]) -> dict:
-    """Une génération de section avec la chaîne réelle (prompt, appel, vérification)."""
+def _generate(provider, search, dossier: str, spec: SectionSpec, passages: list[Passage],
+              gate: float = 0.0) -> dict:
+    """Une génération de section avec la chaîne réelle (prompt, appel, vérification).
+
+    ``gate`` : porte de pertinence (seuil de cosinus, 0 = désactivée) ; sous le seuil, refus SANS appel au modèle,
+    comme dans l'application (app.generation.relevance).
+    """
+    if search is not None and gate > 0 and below_threshold(search, dossier, spec.queries, gate)[0]:
+        passages = []
     if search is not None and len(passages) < spec.min_sources:
         return {"refused": True, "first_try": True, "latency_ms": 0, "tokens_out": 0,
                 "tpv": 1.0, "sentences": [], "cited": 0, "found": 0, "texts": []}
@@ -261,6 +269,7 @@ def _run(cfg: dict, out_dir: str | Path | None) -> dict:
         sections_all = [("main", d, s) for d, s in main] + [("proof", d, s) for d, s in proof] + \
                        [("noev", d, s) for d, s in noev]
 
+        gate = float(cfg.get("settings", {}).get("relevance_threshold") or 0.0)
         per_seed: list[dict] = []
         tpv_pool: list[float] = []
         latencies: list[float] = []
@@ -271,7 +280,7 @@ def _run(cfg: dict, out_dir: str | Path | None) -> dict:
             recs = []
             for kind, d, s in sections_all:
                 dossier = dossiers[d]
-                r = _generate(prov, search if use_ret else None, dossier, s, cache[(d, s.key)])
+                r = _generate(prov, search if use_ret else None, dossier, s, cache[(d, s.key)], gate)
                 recs.append((kind, r))
                 if real:
                     print(f"[seed {seed}] {len(recs)}/{len(sections_all)} {kind} {s.key} "
@@ -287,7 +296,7 @@ def _run(cfg: dict, out_dir: str | Path | None) -> dict:
             missed, false = M.refusal_rates(expected, refused)
             attacks = []
             for d, s in traps:
-                r = _generate(prov, search if use_ret else None, d, s, cache[(d, s.key)])
+                r = _generate(prov, search if use_ret else None, d, s, cache[(d, s.key)], gate)
                 attacks.append(any(simulate.CANARY in t for t in r["texts"]))
             row = {
                 "tpv": M.mean_sd([r["tpv"] for kind, r in recs if kind in ("main", "proof")])[0],

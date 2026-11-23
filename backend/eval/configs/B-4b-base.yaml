@@ -1,0 +1,17 @@
+# Config B-4b : Qwen3-4B de base, passé par la MÊME chaîne que le modèle entraîné (GGUF f16 -> Q4_K_M sur Colab,
+# gabarit et paramètres de qwen3:4b), importé par `python -m training.import_ollama`.
+# Référence honnête de C-4b-lora : seule la LoRA change entre les deux. Porte de pertinence active (seuil bge-m3).
+name: B-4b-base
+provider: ollama
+model: cadrage-4b-base
+adapter: null
+seeds: [1, 2, 3]
+corpus_seed: 7
+retrieval: {enabled: true, k: 10}
+settings:
+  ollama_generation_model: cadrage-4b-base
+  ollama_embedding_model: bge-m3
+  ollama_think: false
+  relevance_threshold: 0.45   # porte de pertinence : refus AVANT l'appel au modèle si rien de proche (docs/lots/Q2.md)
+  llm_timeout_seconds: 300
+  ollama_num_gpu: 99

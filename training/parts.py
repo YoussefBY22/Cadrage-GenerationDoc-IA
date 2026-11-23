@@ -3,7 +3,8 @@
   preuve      partie 0 : 2 pas, sauvegarde, reprise, export, réponse d'Ollama. Obligatoire.
   partie K    avance jusqu'à la borne K (50, 100, 150, 200) puis s'arrête ; relancer reprend.
   etat        où on en est, sans rien calculer.
-  exporter    GGUF + Modelfile de la dernière sauvegarde (et de la base, pour comparer).
+  exporter    GGUF Q4_K_M + Modelfile + SHA-256 de la meilleure sauvegarde (adaptateur fusionné).
+  exporter-base  la base Qwen3-4B par la MÊME chaîne, pour comparer honnêtement.
 
 `--store` est le stockage persistant (Google Drive). Deux emplacements de sauvegarde y alternent :
 une coupure pendant l'écriture laisse toujours la précédente intacte, et on réécrit au lieu de
@@ -41,7 +42,7 @@ from training.train_lora import (
 )
 
 WRONG_ORDER = 7
-OPEN_LICENCES = ("CC BY", "Décision 2011/833/UE")
+OPEN_LICENCES = ("CC BY", "Décision 2011/833/UE", "Licence Ouverte")
 SLOTS = ("sauvegarde-a", "sauvegarde-b")
 
 
@@ -140,6 +141,15 @@ def save(cfg: RunConfig, backend, store: Store, state: dict, mark: str) -> None:
     local.mkdir(parents=True)
     backend.save_checkpoint(local)
     store.save(local, state, mark)
+
+
+def save_best(backend, store_root: Path, best: dict, mark: str, cfg: RunConfig) -> None:
+    """Adaptateur seul de la meilleure erreur de validation (l'export prend celui-ci, pas le dernier)."""
+    local = cfg.run_dir / "meilleur-a-sauver"
+    shutil.rmtree(local, ignore_errors=True)
+    (local / "adapter").mkdir(parents=True)
+    backend.save_adapter(local / "adapter")
+    Store(store_root / "meilleur").save(local, best, mark)
 
 
 def _tensors(root: Path) -> dict[str, str]:
@@ -266,6 +276,10 @@ def train_part(cfg: RunConfig, store_root: Path, k: int, stop: guards.StopFlag |
     last = store.latest()
     state = last[1]["state"] if last else {"step": 0, "initial_loss": None, "evals": []}
     measured = {e["step"] for e in state["evals"]}
+    if state.get("stopped_early"):
+        print(f"Arrêt anticipé déjà décidé au pas {state['step']} (l'erreur de validation remontait) : "
+              "passe à l'export, il prend la meilleure sauvegarde.")
+        return OK
     if state["step"] >= end and end in measured:
         print(f"Partie {k} déjà faite (pas {state['step']}).")
         return OK
@@ -280,9 +294,29 @@ def train_part(cfg: RunConfig, store_root: Path, k: int, stop: guards.StopFlag |
         print(f"Reprise au pas {state['step']}.", flush=True)
     else:
         state["evals"].append({"step": 0, "val_loss": backend.evaluate(0)})
+        state["best"] = {"step": 0, "val_loss": state["evals"][0]["val_loss"]}
+        state["bad_evals"] = 0
+        save_best(backend, store_root, state["best"], mark, cfg)  # LoRA neuve = la base : repère de départ
         save(cfg, backend, store, state, mark)
+
+    def measure(step: int) -> bool:
+        """Mesure l'erreur de validation, garde le meilleur adaptateur ; vrai si elle remonte trop longtemps."""
+        v = backend.evaluate(step)
+        state["evals"].append({"step": step, "val_loss": v})
+        best = state.setdefault("best", {"step": 0, "val_loss": state["evals"][0]["val_loss"]})
+        if v < best["val_loss"]:
+            state["best"], state["bad_evals"] = {"step": step, "val_loss": v}, 0
+            save_best(backend, store_root, state["best"], mark, cfg)
+            print(f"  validation {v:.4f} (meilleure jusqu'ici, pas {step})", flush=True)
+            return False
+        state["bad_evals"] = state.get("bad_evals", 0) + 1
+        print(f"  validation {v:.4f} : au-dessus de la meilleure ({best['val_loss']:.4f}, pas {best['step']}) "
+              f"[{state['bad_evals']}/{p.get('early_stop_patience', 2)}]", flush=True)
+        return state["bad_evals"] >= p.get("early_stop_patience", 2)
+
+    eval_every = p.get("eval_every")
     limits_g = guards.GuardConfig(cfg.min_free_gb, cfg.max_gpu_temp, 10.0)
-    last_save = backend.now()
+    last_save = t_run = backend.now()
     while state["step"] < end:
         step = state["step"]
         _seed_step(cfg, backend, step)
@@ -315,10 +349,22 @@ def train_part(cfg: RunConfig, store_root: Path, k: int, stop: guards.StopFlag |
             release(backend)
             return STOPPED
         if state["step"] % 5 == 0:
+            state.setdefault("losses", []).append([state["step"], round(loss, 4)])
             print(f"[partie {k}] pas {state['step']}/{end}  perte {loss:.4f}", flush=True)
+        if eval_every and state["step"] % eval_every == 0 and state["step"] < end and measure(state["step"]):
+            state["stopped_early"] = True
+            state["seconds"] = state.get("seconds", 0) + (backend.now() - t_run)
+            save(cfg, backend, store, state, mark)
+            release(backend)
+            _write_json(store_root / f"bilan-partie-{k}.json", {"part": k, **state})
+            print(f"ARRÊT ANTICIPÉ au pas {state['step']} : l'erreur de validation remonte. "
+                  f"L'export prendra la meilleure sauvegarde (pas {state['best']['step']}).")
+            return OK
 
     save(cfg, backend, store, state, mark)
-    state["evals"].append({"step": end, "val_loss": backend.evaluate(end)})
+    if measure(end):
+        state["stopped_early"] = True
+    state["seconds"] = state.get("seconds", 0) + (backend.now() - t_run)
     save(cfg, backend, store, state, mark)
     release(backend)
     _write_json(store_root / f"bilan-partie-{k}.json", {"part": k, **state})
@@ -342,33 +388,72 @@ def status(cfg: RunConfig, store_root: Path) -> int:
     return OK
 
 
-def export_latest(cfg: RunConfig, store_root: Path) -> int:
+def summary(cfg: RunConfig, store_root: Path) -> int:
+    """Dernière cellule : pas, pertes, durée, fichiers à télécharger."""
+    proof = _read_json(store_root / "preuve.json")
+    last = Store(store_root).latest()
+    if not proof or not last:
+        print("Rien à résumer : la partie 0 ou l'entraînement n'a pas eu lieu.")
+        return OK
+    state = last[1]["state"]
+    best = state.get("best", {})
+    print(f"Pas faits : {state['step']} sur {proof['steps']}"
+          + ("  (ARRÊT ANTICIPÉ : l'erreur de validation remontait)" if state.get("stopped_early") else ""))
+    print("Erreur de validation (pas -> perte) : "
+          + ", ".join(f"{e['step']} -> {e['val_loss']:.3f}" for e in state["evals"]))
+    if state.get("losses"):
+        print("Perte d'entraînement (tous les 5 pas) : "
+              + ", ".join(f"{s} -> {v:.3f}" for s, v in state["losses"]))
+    if best:
+        print(f"Meilleure erreur de validation : {best['val_loss']:.3f} au pas {best['step']} (c'est elle qui est exportée)")
+        if best["step"] == 0:
+            print("ATTENTION : aucun progrès sur la validation. Le modèle exporté vaut la base : n'en conclus rien.")
+    print(f"Durée d'entraînement : {state.get('seconds', 0) / 60:.0f} min")
+    for tag in ("cadrage-4b-lora", "cadrage-4b-base"):
+        d = store_root / "modeles" / tag
+        if (d / "model.gguf").is_file():
+            sha = (d / "model.gguf.sha256").read_text("utf-8").split()[0]
+            print(f"À télécharger : {d / 'model.gguf'}  ({(d / 'model.gguf').stat().st_size / 1e9:.2f} Go)  SHA-256 {sha}")
+        else:
+            print(f"Pas encore exporté : {tag}")
+    print(f"Et le fichier {store_root / 'modeles' / 'SHA256SUMS.txt'}")
+    return OK
+
+
+def export_latest(cfg: RunConfig, store_root: Path, what: str = "lora") -> int:
     _checked(cfg, store_root)
     local = cfg.run_dir / "a-exporter"
     manifest = Store(store_root).restore(local)
     if not manifest or not manifest["state"]["step"]:
         raise Refused("rien à exporter : aucune partie entraînée")
     base_dir = None if cfg.simulate else Path(cfg.profile["base_model"])
-    jobs = ((f"lora-pas-{manifest['state']['step']}", local / "adapter", cfg.ollama_tag),
-            ("base-meme-chaine", None, "cadrage-base-q8"))
-    for name, adapter, tag in jobs:
-        out = cfg.run_dir / name
-        try:
-            export_gguf.export(adapter, out, cfg.base_tag, cfg.simulate, base_dir,
-                               None if cfg.simulate else tag)
-        except export_gguf.ExportError as e:
-            raise Refused(f"export : {e}", EXPORT_FAILED) from e
-        dest = store_root / "modeles" / name
-        dest.mkdir(parents=True, exist_ok=True)
-        for f in ("model.gguf", "Modelfile"):
-            shutil.copyfile(out / f, dest / f)
-        print(f"Exporté et testé : {dest}")
+    adapter, step = local / "adapter", manifest["state"]["step"]
+    best = Store(store_root / "meilleur").restore(cfg.run_dir / "a-exporter-meilleur")
+    if best:  # la meilleure erreur de validation, pas forcément la dernière sauvegarde
+        adapter, step = cfg.run_dir / "a-exporter-meilleur" / "adapter", best["state"]["step"]
+    jobs = {"lora": (adapter, "cadrage-4b-lora", f"LoRA au pas {step}"),
+            "base": (None, "cadrage-4b-base", "base Qwen3-4B, même chaîne")}
+    adapter_dir, tag, label = jobs[what]
+    out = cfg.run_dir / f"export-{what}"
+    try:
+        export_gguf.export(adapter_dir, out, cfg.base_tag, cfg.simulate, base_dir,
+                           None if cfg.simulate else tag)
+    except export_gguf.ExportError as e:
+        raise Refused(f"export : {e}", EXPORT_FAILED) from e
+    dest = store_root / "modeles" / tag
+    dest.mkdir(parents=True, exist_ok=True)
+    for f in ("model.gguf", "Modelfile", "model.gguf.sha256"):
+        shutil.copyfile(out / f, dest / f)
+    sums = {t: (store_root / "modeles" / t / "model.gguf.sha256") for _, t, _ in jobs.values()}
+    lines = [f"{p.read_text('utf-8').split()[0]}  {t}/model.gguf" for t, p in sorted(sums.items()) if p.is_file()]
+    (store_root / "modeles" / "SHA256SUMS.txt").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    print(f"Exporté et testé ({label}) : {dest}")
     return OK
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    ap.add_argument("action", choices=["preuve", "partie", "etat", "exporter"])
+    ap.add_argument("action", choices=["preuve", "partie", "etat", "exporter", "exporter-base", "resume"])
     ap.add_argument("k", type=int, nargs="?")
     ap.add_argument("--store", type=Path, required=True, help="stockage persistant (Drive)")
     ap.add_argument("--work", type=Path, default=Path("training/runs"))
@@ -382,11 +467,12 @@ def main(argv: list[str] | None = None) -> int:
     p = load_profile(a.profile)
     if a.base_dir:
         p["base_model"] = a.base_dir
-    elif not a.simulate and a.action != "etat":
+    elif not a.simulate and a.action not in ("etat", "resume"):
         ap.error("--base-dir est requis")
     cfg = RunConfig(profile=p, run_id=p["name"], runs_dir=a.work, train_path=a.data / "train.jsonl",
                     val_path=a.data / "val.jsonl", save_every_min=p["save_every_min"],
-                    min_free_gb=p["min_free_gb"], max_gpu_temp=p["max_gpu_temp"], simulate=a.simulate)
+                    min_free_gb=p["min_free_gb"], max_gpu_temp=p["max_gpu_temp"], simulate=a.simulate,
+                    base_tag=p.get("base_tag", "qwen3:4b"), ollama_tag="cadrage-4b-lora")
     stop = guards.StopFlag()
     stop.install()
     try:
@@ -396,7 +482,9 @@ def main(argv: list[str] | None = None) -> int:
             return train_part(cfg, a.store, a.k, stop)
         if a.action == "etat":
             return status(cfg, a.store)
-        return export_latest(cfg, a.store)
+        if a.action == "resume":
+            return summary(cfg, a.store)
+        return export_latest(cfg, a.store, "base" if a.action == "exporter-base" else "lora")
     except Refused as e:
         print(f"REFUS : {e}")
         return e.code

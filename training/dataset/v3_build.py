@@ -20,12 +20,11 @@ import re
 import statistics
 from pathlib import Path
 
-import yaml
 from app.domain.documents import Chunk
 from app.domain.retrieval import Passage
 from app.generation import prompting
 from app.generation.llm_schemas import LLMFindings, LLMSection
-from app.generation.template_loader import TEMPLATES_DIR, SectionSpec
+from app.generation.template_loader import SectionSpec, load_template
 from app.verification import resolve_labels, verify_section
 
 from training.dataset import v3_curation
@@ -51,11 +50,11 @@ def section_spec(section: tuple) -> SectionSpec:
         return SectionSpec(key="divergences", title=title, instructions=instructions,
                            queries=[title, "points de désaccord"], max_sentences=6, min_sources=2)
     kind, key = section
-    data = yaml.safe_load((TEMPLATES_DIR / LANG / f"{TPL_FILES[kind]}.yaml").read_text("utf-8"))
-    for s in data["sections"]:
-        if s["key"] == key:
-            return SectionSpec(**{k: s[k] for k in ("key", "title", "instructions", "queries", "min_sources",
-                                                    "max_sentences", "uses_findings", "referentiels") if k in s})
+    for s_ in load_template(kind, LANG).sections:
+        if s_.key == key:
+            if s_.requires_decisions:  # l'application la rend depuis les décisions humaines, sans modèle
+                raise CurationError(f"{section} exige des décisions : l'application n'envoie pas cette section au modèle")
+            return s_
     raise CurationError(f"section inconnue : {section}")
 
 
@@ -166,6 +165,8 @@ def build_example(ex: dict, texts: dict[str, str], rng: random.Random) -> dict:
         "tpv": rep.tpv, "bloquants": blocking,
         "rendu": {"nonce": nonce, "tache": "constats" if findings else "section",
                   "spec": spec.model_dump() if spec else None,
+                  "spec_origine": ("constats" if findings else "libre" if ex["section"][0] == "custom"
+                                   else f"gabarit:{ex['section'][0]}/{ex['section'][1]}"),
                   "passages": [{"label": p.label, "texte": p.chunk.text, "titre": title} for p in passages]},
     }
     messages = [{"role": "system", "content": prompting.system_prompt(LANG)},
@@ -176,6 +177,23 @@ def build_example(ex: dict, texts: dict[str, str], rng: random.Random) -> dict:
               "passages": [(f"P{j}", ptexts[old]) for j, old in enumerate(order, 1)],
               "phrases": [{**s, "label": label[s["src"]]} for s in sents], "src": src, "meta": meta}
     return {"messages": messages, "meta": meta, "review": review}
+
+
+def verify_example(example: dict) -> tuple[float, list[str]]:
+    """Repasse le vérificateur de l'application sur un exemple fini (passages et réponse du fichier)."""
+    r = example["meta"]["rendu"]
+    ps = [Passage(label=p["label"], chunk=_chunk(example["meta"]["source"], example["meta"]["id"], i, p["texte"], p["titre"]),
+                  score=1.0 / (i + 1), ranks={"bm25": i + 1}) for i, p in enumerate(r["passages"])]
+    answer = json.loads(example["messages"][2]["content"])
+    if "findings" in answer:
+        LLMFindings.model_validate(answer)
+        draft = LLMSection.model_validate({"status": "ok", "sentences": [
+            {"text": f["text"], "kind": "fact", "sources": f["sources"], "findings": []} for f in answer["findings"]]})
+    else:
+        draft = LLMSection.model_validate(answer)
+    rep = verify_section(resolve_labels(draft, ps, section_key="verif"), {p.chunk.id: p.chunk for p in ps},
+                         dossier_id=example["meta"]["id"])
+    return rep.tpv, [i.code for i in rep.issues if i.severity == "blocking"]
 
 
 def rerender(example: dict) -> str:

@@ -48,7 +48,7 @@ class RunConfig:
     min_free_gb: float = 5.0
     max_gpu_temp: float = 83.0
     simulate: bool = False
-    base_tag: str = "qwen3:1.7b"
+    base_tag: str = "qwen3:4b"
     ollama_tag: str = "cadrage-lora"
     stop_after_trial: bool = False
     sim: dict = field(default_factory=dict)
@@ -81,14 +81,16 @@ def check_data_policy(profile: dict, examples: list[dict]) -> str | None:
 
 
 def render_prompt(system: str, user: str) -> str:
-    """Invite identique, caractère pour caractère, à celle d'Ollama (qwen3:1.7b, think: false).
+    """Invite identique, caractère pour caractère, à celle d'Ollama (qwen3:4b, think: false).
 
-    Le gabarit Hugging Face diffère : ni « /no_think », ni double saut de ligne après « system ».
-    L'égalité est revérifiée contre Ollama à la partie 0 (training/parts.py).
+    Relevé sur Ollama 0.40.17 (`/api/chat`, `_debug_render_only`, le 23/11/2026) : le gabarit de qwen3:4b
+    met une ligne vide APRÈS le texte système, n'ajoute aucun « /no_think » et laisse la balise ouverte :
+    la réponse commence donc juste après « <think> ». L'égalité est revérifiée contre Ollama à la partie 0
+    (training/parts.py) et contre un relevé figé dans les tests.
     """
-    return (f"<|im_start|>system\n\n{system}<|im_end|>\n"
-            f"<|im_start|>user\n{user} /no_think<|im_end|>\n"
-            f"<|im_start|>assistant\n<think>\n\n</think>\n\n")
+    return (f"<|im_start|>system\n{system}\n\n<|im_end|>\n"
+            f"<|im_start|>user\n{user}<|im_end|>\n"
+            f"<|im_start|>assistant\n<think>\n")
 
 
 def total_steps(n_examples: int, profile: dict) -> int:
@@ -511,7 +513,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--save-every-min", type=float)
     ap.add_argument("--min-free-gb", type=float)
     ap.add_argument("--max-gpu-temp", type=float)
-    ap.add_argument("--base-tag", default="qwen3:1.7b")
+    ap.add_argument("--base-tag", default="qwen3:4b")
     ap.add_argument("--measure-steps", type=int, help="pas de la mesure (défaut : profil ou 50)")
     ap.add_argument("--ollama-tag", default="cadrage-lora")
     ap.add_argument("--stop-after-trial", action="store_true", help="s'arrête après l'essai 1 % et l'export test")

@@ -100,25 +100,26 @@ EXAMPLES: list[dict] = [
          ("v", 0, "Documentation des actions entreprises et notamment scénarisation d’interfaces et parcours utilisateurs (storyboards, user journeys, personas, etc.).")],
      "doute": "C'est un CCTP, pas des termes de référence : la section « Livrables attendus » d'une unité d'œuvre joue le rôle du « livrables » d'un TdR. "
               "Aucun vrai TdR à licence vérifiée n'a été trouvé."},
-    {"id": "tdr1", "type": "termes de référence", "doc": C25, "section": ("tor", "profil"),
+    {"id": "tdr1", "type": "termes de référence", "doc": C25, "section": ("tor", "contexte"),
      "passages": [
-         P(C25, "Compétences attendues", "(respect du RGAA, sobriété, etc.).", after="5.2 UO Design"),
-         P(C25, "4.5.1 Capacité à travailler en équipe produit avec l’administration Les experts", "mode produit »."),
-         ],
+         P(C25, "Cet accord-cadre interministériel s’inscrit dans le contexte", "créer des services qui répondent mieux aux besoins des utilisateurs."),
+         P(C25, "3.1 Objet L’accord-cadre a pour objet", "l’approche produit agile piloté par l’impact.")],
      "phrases": [
-         ("a", 0, "Les experts mobilisés:", "maîtrisent les méthodes de recherche utilisateur (entretiens, observations, tests)"),
-         ("a", 0, "Les experts mobilisés:", "savent traduire les enseignements des recherches en parcours et interfaces efficaces"),
-         ("a", 0, "Les experts mobilisés:", "connaissent les standards de conception d’un service numérique public (respect du RGAA, sobriété, etc.)"),
-         ("v", 1, "Les experts ont la capacité de travailler en équipe avec l’administration et sont mobilisés à toutes les étapes du service, y compris aux interactions avec les utilisateurs.")],
-     "doute": "Profil d'une unité d'œuvre de design, pas d'une mission de conseil. Assemblage amorce + puce pour 3 phrases sur 4."},
-    {"id": "tdr2", "type": "termes de référence", "doc": C25, "section": ("tor", "calendrier"),
+         ("v", 0, "Cet accord-cadre interministériel s’inscrit dans le contexte de la priorité de la feuille de route du numérique de l’État et vise à faciliter l’adoption de « l’approche produit » au sein des administrations publiques."),
+         ("v", 0, "L’objectif de l’approche produit est simple : créer des services qui répondent mieux aux besoins des utilisateurs."),
+         ("v", 1, "L’accord-cadre a pour objet la réalisation de prestations de conception, de déploiement et d’amélioration continue de services numériques conçus selon l’approche produit agile piloté par l’impact.")],
+     "doute": "Contexte d'un accord-cadre (priorité de la feuille de route du numérique), pas contexte et justification d'une mission : "
+              "aucun « constat du diagnostic » dans le passage. La 3e phrase est un objet, pas du contexte."},
+    {"id": "tdr2", "type": "termes de référence", "doc": C25, "section": ("tor", "objectifs"),
      "passages": [
-         P(C25, "Lorsqu’une prestation concerne un produit répertorié", "par le titulaire, sans coût supplémentaire pour le bénéficiaire.", after="4.5.2"),
-         P(C25, "Le titulaire s’engage à fournir le P.A.Q.", "suivant la notification du marché.")],
+         P(C25, "3.1 Objet L’accord-cadre a pour objet", "du dispositif interministériel."),
+         P(C25, "Cet accord-cadre interministériel s’inscrit dans le contexte", "créer des services qui répondent mieux aux besoins des utilisateurs.")],
      "phrases": [
-         ("v", 0, "Lorsqu’une prestation concerne un produit répertorié sur le site beta.gouv.fr, les experts mobilisés par le titulaire doivent obligatoirement suivre une séquence d’embarquement organisée par la DINUM sous un délai maximum de 40 jours ouvrés."),
-         ("v", 1, "Le titulaire s’engage à fournir le P.A.Q. dans un délai d’un mois suivant la notification du marché.")],
-     "doute": "Les deux délais sont des obligations du titulaire, pas un calendrier de mission au sens d'un TdR (pas de jalons)."},
+         ("v", 0, "L’accord-cadre a pour objet la réalisation de prestations de conception, de déploiement et d’amélioration continue de services numériques conçus selon l’approche produit agile piloté par l’impact."),
+         ("v", 0, "D’une part, la conception, le développement et l’exploitation des produits numériques opérés par la DINUM (hors OPI) et par les incubateurs de services numériques des ministères, ainsi que les missions d’accompagnement de produits réalisées par la DINUM."),
+         ("v", 0, "D’autre part, la réalisation des produits numériques des autres entités bénéficiaire, destiné à la conception, au développement et à l’exploitation des produits numériques des administrations, opérateurs et autres entités bénéficiaires du dispositif interministériel.")],
+     "doute": "Objet et besoin d'un marché, pas objectif général et objectifs spécifiques d'une mission. Les 2e et 3e phrases sont les deux puces « d'une part / d'autre part » "
+              "prises séparément : la phrase de liaison « Le besoin concerne » est perdue. Faute de la source conservée (« bénéficiaire, destiné »)."},
     {"id": "tdr3", "type": "termes de référence", "doc": C21, "section": ("tor", "livrables"),
      "passages": [
          P(C21, "2.5. UO Réversibilité : transfert portant sur un produit numérique à la fin du marché Prestation", "un bilan de transfert de compétences.")],

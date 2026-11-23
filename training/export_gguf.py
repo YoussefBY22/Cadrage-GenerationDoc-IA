@@ -1,15 +1,17 @@
-"""Export d'une LoRA vers Ollama : fusion dans la base -> GGUF complet -> Modelfile -> essai réel.
+"""Export d'une LoRA vers Ollama : fusion dans la base -> GGUF f16 -> quantification Q4_K_M -> Modelfile.
 
-Ollama 0.40 refuse les adaptateurs (« LoRA adapters are no longer supported ») : on fusionne donc
-la LoRA dans le modèle, puis llama.cpp convertit le tout (q8_0, sans compilation). L'export est
-testé **avant** tout entraînement long. En simulation, un faux GGUF passe la même vérification.
+Ollama 0.40 refuse les adaptateurs (« LoRA adapters are no longer supported ») : on fusionne donc la LoRA
+dans le modèle, puis llama.cpp convertit le tout. Le gabarit et les paramètres sont ceux de qwen3:4b, figés
+dans `training/ollama/qwen3-4b.Modelfile` (et revérifiés contre Ollama quand il est là).
 
-Pour une comparaison honnête, la base doit passer par la même chaîne (`adapter_dir=None`).
+Pour une comparaison honnête, la base passe par la MÊME chaîne (`adapter_dir=None`) : même conversion, même
+quantification, même Modelfile. Chaque GGUF reçoit son SHA-256.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import shutil
@@ -20,6 +22,9 @@ import urllib.request
 from pathlib import Path
 
 GGUF_MAGIC = b"GGUF"
+QUANT = "Q4_K_M"
+MODELFILE = Path(__file__).parent / "ollama" / "qwen3-4b.Modelfile"
+LICENCE_BASE = "Apache-2.0 (Qwen3-4B)"
 OLLAMA = "http://127.0.0.1:11434"
 
 
@@ -27,21 +32,37 @@ class ExportError(RuntimeError):
     pass
 
 
-def modelfile_text(base_modelfile: str, gguf_name: str) -> str:
-    """Modelfile du modèle de base (gabarit, paramètres), avec FROM vers le GGUF fusionné."""
+def template_body(modelfile: str) -> str:
+    """Gabarit + paramètres d'un Modelfile, sans FROM, commentaires ni licence."""
     kept = []
-    for line in base_modelfile.splitlines():
+    for line in modelfile.replace("\r\n", "\n").splitlines():
         if line.startswith("LICENSE"):
             break  # texte de licence multi-lignes, toujours en fin de fichier
         if line.startswith(("FROM ", "# ")):
             continue
         kept.append(line)
-    body = "\n".join(kept).strip()
-    return f'FROM ./{gguf_name}\n{body}\nLICENSE "Apache-2.0 (Qwen3-1.7B)"\n'
+    return "\n".join(kept).strip() + "\n"
+
+
+def modelfile_text(base_modelfile: str, gguf_name: str, licence: str = LICENCE_BASE) -> str:
+    """Modelfile du modèle de base (gabarit, paramètres), avec FROM vers le GGUF fusionné."""
+    return f'FROM ./{gguf_name}\n{template_body(base_modelfile).strip()}\nLICENSE "{licence}"\n'
+
+
+def base_modelfile_text() -> str:
+    return MODELFILE.read_text(encoding="utf-8")
+
+
+def file_sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()
 
 
 def verify_export(out_dir: Path) -> None:
-    """Lève ExportError si le GGUF ou le Modelfile manquent ou sont invalides."""
+    """Lève ExportError si le GGUF, son empreinte ou le Modelfile manquent ou sont invalides."""
     gguf = out_dir / "model.gguf"
     modelfile = out_dir / "Modelfile"
     if not gguf.is_file() or gguf.stat().st_size < len(GGUF_MAGIC):
@@ -51,6 +72,9 @@ def verify_export(out_dir: Path) -> None:
             raise ExportError("fichier GGUF invalide (en-tête incorrect)")
     if not modelfile.is_file() or "FROM ./model.gguf" not in modelfile.read_text("utf-8"):
         raise ExportError("Modelfile absent ou sans ligne FROM vers le GGUF")
+    sha = out_dir / "model.gguf.sha256"
+    if not sha.is_file() or sha.read_text("utf-8").split()[0] != file_sha256(gguf):
+        raise ExportError("empreinte SHA-256 absente ou différente du GGUF")
 
 
 def _run(cmd: list[str], what: str, cwd: Path | None = None) -> str:
@@ -64,6 +88,33 @@ def _run(cmd: list[str], what: str, cwd: Path | None = None) -> str:
     return res.stdout
 
 
+def check_template(base_tag: str = "qwen3:4b") -> None:
+    """Le gabarit figé dans le dépôt doit être celui que cet Ollama donne à `base_tag` (lecture seule)."""
+    live = template_body(_run(["ollama", "show", "--modelfile", base_tag], "lecture du gabarit Ollama"))
+    if live != template_body(base_modelfile_text()):
+        raise ExportError(f"le gabarit de {base_tag} dans Ollama diffère de training/ollama/qwen3-4b.Modelfile")
+
+
+def quantize_tool(llama: Path) -> Path:
+    for rel in ("build/bin/llama-quantize", "build/bin/llama-quantize.exe", "build/bin/Release/llama-quantize.exe"):
+        if (llama / rel).is_file():
+            return llama / rel
+    raise ExportError("llama-quantize n'est pas compilé : lance la cellule « Compiler llama.cpp »")
+
+
+def build_quantize(llama: Path) -> Path:
+    """Compile seulement llama-quantize (CPU, sans CUDA : quelques minutes)."""
+    try:
+        return quantize_tool(llama)
+    except ExportError:
+        pass
+    _run(["cmake", "-S", str(llama), "-B", str(llama / "build"), "-DGGML_CUDA=OFF", "-DLLAMA_CURL=OFF",
+          "-DCMAKE_BUILD_TYPE=Release"], "cmake llama.cpp")
+    _run(["cmake", "--build", str(llama / "build"), "--target", "llama-quantize", "-j", str(os.cpu_count() or 2)],
+         "compilation de llama-quantize")
+    return quantize_tool(llama)
+
+
 def _merge(adapter_dir: Path | None, base_model_dir: Path, merged: Path) -> Path:
     """Dossier safetensors à convertir (la base elle-même s'il n'y a pas d'adaptateur)."""
     if adapter_dir is None:
@@ -72,22 +123,21 @@ def _merge(adapter_dir: Path | None, base_model_dir: Path, merged: Path) -> Path
     from peft import PeftModel
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    model = AutoModelForCausalLM.from_pretrained(base_model_dir, dtype=torch.float16)
+    model = AutoModelForCausalLM.from_pretrained(base_model_dir, dtype=torch.float16, low_cpu_mem_usage=True)
     model = PeftModel.from_pretrained(model, adapter_dir).merge_and_unload()
     model.save_pretrained(merged, safe_serialization=True)
     AutoTokenizer.from_pretrained(base_model_dir).save_pretrained(merged)
     return merged
 
 
-def export(adapter_dir: Path | None, out_dir: Path, base_tag: str = "qwen3:1.7b",
+def export(adapter_dir: Path | None, out_dir: Path, base_tag: str = "qwen3:4b",
            simulate: bool = False, base_model_dir: Path | None = None,
            ollama_tag: str | None = None) -> Path:
-    """Écrit `model.gguf` et `Modelfile` ; avec `ollama_tag`, les importe et les fait répondre."""
+    """Écrit `model.gguf` (Q4_K_M), `model.gguf.sha256`, `Modelfile` ; avec `ollama_tag`, les importe et les fait répondre."""
     out_dir.mkdir(parents=True, exist_ok=True)
     gguf = out_dir / "model.gguf"
     if simulate:
-        gguf.write_bytes(GGUF_MAGIC + b"\x00simulation")
-        base_modelfile = ""
+        gguf.write_bytes(GGUF_MAGIC + bytes([0]) + b"simulation")
     else:
         llama = os.environ.get("LLAMA_CPP_DIR")
         script = Path(llama or ".") / "convert_hf_to_gguf.py"
@@ -95,17 +145,23 @@ def export(adapter_dir: Path | None, out_dir: Path, base_tag: str = "qwen3:1.7b"
             raise ExportError("LLAMA_CPP_DIR doit pointer vers un dépôt llama.cpp local")
         if base_model_dir is None:
             raise ExportError("base_model_dir est requis pour fusionner la LoRA")
-        base_modelfile = _run(["ollama", "show", "--modelfile", base_tag], "lecture du gabarit Ollama")
+        quantize = quantize_tool(Path(llama))
+        check_template(base_tag)
         merged = out_dir / "merged"
+        f16 = out_dir / "model-f16.gguf"
         try:
             source = _merge(adapter_dir, base_model_dir, merged)
-            _run([sys.executable, str(script), str(source), "--outfile", str(gguf), "--outtype", "q8_0"],
-                 "conversion GGUF")
+            _run([sys.executable, str(script), str(source), "--outfile", str(f16), "--outtype", "f16"],
+                 "conversion GGUF f16")
+            shutil.rmtree(merged, ignore_errors=True)
+            _run([str(quantize), str(f16), str(gguf), QUANT], f"quantification {QUANT}")
         finally:
             shutil.rmtree(merged, ignore_errors=True)
+            f16.unlink(missing_ok=True)
     # LF obligatoire : en CRLF, le gabarit change les jetons envoyés au modèle (constaté le 22/11).
-    (out_dir / "Modelfile").write_text(modelfile_text(base_modelfile, "model.gguf"),
+    (out_dir / "Modelfile").write_text(modelfile_text(base_modelfile_text(), "model.gguf"),
                                        encoding="utf-8", newline="\n")
+    (out_dir / "model.gguf.sha256").write_text(f"{file_sha256(gguf)}  model.gguf\n", encoding="utf-8", newline="\n")
     verify_export(out_dir)
     if ollama_tag and not simulate:
         ollama_check(ollama_tag, out_dir / "Modelfile")
@@ -140,7 +196,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--adapter", type=Path, help="absent : exporte la base seule")
     ap.add_argument("--out", type=Path, required=True)
-    ap.add_argument("--base-tag", default="qwen3:1.7b")
+    ap.add_argument("--base-tag", default="qwen3:4b")
     ap.add_argument("--base-model-dir", type=Path)
     ap.add_argument("--ollama-tag")
     ap.add_argument("--simulate", action="store_true")

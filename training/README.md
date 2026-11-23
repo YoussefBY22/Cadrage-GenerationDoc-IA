@@ -39,18 +39,33 @@ valider sur le GPU (essai 1 % d'abord). Export réel : cloner llama.cpp, `set LL
 dans `export_gguf.py`, puis `ollama create cadrage-lora -f <export>/Modelfile`.
 Tests : `backend\.venv\Scripts\python -m pytest training/tests -q`.
 
-## Entraîner en parties sur Colab (`training/colab/cadrage_entrainement.ipynb`)
-C'est **un seul** entraînement, coupé en morceaux qui reprennent l'un après l'autre depuis Google Drive.
-Colab est un cloud : `training/parts.py` refuse tout exemple qui n'est pas public sous licence ouverte.
+## Entraîner Qwen3-4B sur Colab (`training/colab/cadrage_entrainement.ipynb`)
+C'est **un seul** entraînement QLoRA 4 bits, en 2 parties qui reprennent depuis ton Google Drive. Colab est un cloud :
+`training/parts.py` refuse tout exemple qui n'est pas public sous licence ouverte (CC BY, Licence Ouverte, décision 2011/833/UE).
 
-1. Cellule « Préparer » : à relancer à chaque nouvelle session Colab.
-2. Partie 0 (obligatoire) : 2 pas, sauvegarde, reprise, export, réponse d'Ollama, invite et jetons identiques.
-   Tant qu'elle échoue, aucune partie ne démarre.
-3. Parties 1 à 4 : 50 pas chacune (profil `colab-parties`), sauvegarde toutes les 5 min. Après une coupure,
-   relancer la même cellule. Ne changer ni les données ni le profil entre deux parties.
-4. Export : modèle fusionné **et** base passée par la même chaîne (q8_0), pour comparer C à B honnêtement.
+**Données** : `training/colab/cadrage-donnees-publiques.zip` (SHA-256 écrit dans le carnet et vérifié avant tout calcul) =
+pilote v2 relu (28 exemples) + pilote v3 (25), soit 53 : 33 en entraînement, 7 en validation, 13 en test, séparés
+PAR DOCUMENT SOURCE. Les invites v2 sont refaites avec les fonctions actuelles de l'application ; deux exemples v2 (sections
+« Profil » et « Calendrier » des TdR, que l'application rend sans modèle depuis les décisions humaines) sont écartés.
+Reconstruire : `python -m training.dataset.assemble --v2 pilote-30-relu.jsonl --sources-dir DOSSIER --out-dir SORTIE`.
+
+**Réglages** (`profiles/colab-parties.yaml`) : base `Qwen/Qwen3-4B` (révision épinglée), r = 16, 3 époques, taux 1e-4,
+validation toutes les 4 pas, arrêt après 2 mesures de suite au-dessus de la meilleure ; l'export prend la MEILLEURE sauvegarde.
+
+**Invite** : celle d'Ollama pour `qwen3:4b` (`render_prompt`) : pas de « /no_think », une ligne vide APRÈS le texte système, la
+balise `<think>` reste ouverte et la réponse (JSON) commence juste après. Relevé sur Ollama 0.40.17 (`_debug_render_only`) ;
+revérifié à la partie 0.
+
+**Export** (même chaîne pour la base et la base + LoRA) : fusion → GGUF f16 → `llama-quantize` **Q4_K_M** (compilé dans Colab) →
+Modelfile (gabarit et paramètres de qwen3:4b, `training/ollama/qwen3-4b.Modelfile`) → SHA-256. Sur Drive :
+`cadrage-entrainement/etat-4b/modeles/{cadrage-4b-lora,cadrage-4b-base}/model.gguf` + `SHA256SUMS.txt`.
+
+**Côté PC** : `python -m training.import_ollama --lora <dossier>/cadrage-4b-lora --base <dossier>/cadrage-4b-base --sums SHA256SUMS.txt`
+vérifie les empreintes et le gabarit, crée `cadrage-4b-base` et `cadrage-4b-lora`, relit leur empreinte dans Ollama et fait une
+réponse de contrôle. Puis, dans `backend/` : `python -m eval.harness.run --config eval/configs/B-4b-base.yaml` et `C-4b-lora.yaml`
+(porte de pertinence à 0,45, mêmes graines).
 
 À savoir :
 - Ollama 0.40 refuse les adaptateurs LoRA : on livre un GGUF complet.
 - Le gabarit Hugging Face de Qwen3 n'est pas celui d'Ollama : l'invite vient de `render_prompt`.
-- Sous Windows, ne pas masquer le GPU (`CUDA_VISIBLE_DEVICES=-1`) pendant une fusion : bitsandbytes plante.
+- Rien n'a encore tourné sur Colab : le carnet est testé en simulation seulement (`pytest training`).
