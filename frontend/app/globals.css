@@ -263,6 +263,27 @@ i.dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; ma
 .bar-row b { text-align: right; font-variant-numeric: tabular-nums; }
 .drop.compact { flex-direction: row; justify-content: center; gap: 12px; padding: 14px; }
 .drop.compact .drop-ico { width: 32px; height: 32px; }
+.mini-select { padding: 4px 8px; border: 1px solid var(--grey-2); border-radius: 4px; background: #fff; font: inherit; font-size: 13px; }
+.mini-select.st-validated { background: var(--ok-bg); color: var(--ok); }
+.mini-select.st-rejected { background: var(--bad-bg); color: var(--bad); }
+.form-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.form-row label { display: grid; gap: 4px; font-size: 12.5px; color: var(--grey); font-weight: 600; }
+.form-row label.grow { flex: 1; min-width: 220px; }
+.picker { font-size: 13px; }
+.picker[open] { min-width: 220px; }
+.picker small { display: block; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.03em; font-size: 11px; }
+.picker summary { cursor: pointer; }
+.picker label { display: flex; gap: 6px; align-items: center; padding: 2px 0; }
+.coh-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.coh-item { display: flex; gap: 8px; align-items: baseline; font-size: 13.5px; }
+.coh-item .badge { flex: none; }
+.chain { display: grid; gap: 6px; font-size: 13.5px; }
+.chain-row { display: grid; grid-template-columns: 110px 1fr; gap: 10px; align-items: baseline; }
+.chain-row > span:first-child { color: var(--grey); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; }
+.chain-flow { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; color: var(--grey); }
+.coh-group summary { cursor: pointer; display: flex; gap: 10px; align-items: center; }
+.coh-group .count { font-variant-numeric: tabular-nums; }
+.coh-group .coh-item { padding-left: 4px; }
 
 /* --- Page Modèles et jauge de contexte (C1) --- */
 .small { font-size: 12px; margin: 8px 0 0; }

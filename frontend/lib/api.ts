@@ -1,7 +1,10 @@
 import type {
   ChunkDetail,
   DocumentInfo,
+  DocumentRole,
+  Coverage,
   Dossier,
+  ExistingProject,
   Finding,
   FindingPatch,
   ContextBudget,
@@ -9,6 +12,9 @@ import type {
   ModelsOverview,
   TestReport,
   Passage,
+  Role,
+  Priority,
+  ProjectState,
   RoadmapGenerated,
   UploadResult,
 } from "./api-types";
@@ -118,20 +124,42 @@ export const api = {
     request<Dossier>("/dossiers", json("POST", { name, client_name, language })),
   listDocuments: (dossierId: string) =>
     request<DocumentInfo[]>(`/dossiers/${dossierId}/documents`),
-  uploadDocument(dossierId: string, file: File): Promise<UploadResult> {
+  uploadDocument(dossierId: string, file: File, role: DocumentRole = "other"): Promise<UploadResult> {
     const form = new FormData();
     form.append("file", file);
+    form.append("role", role);
     return request<UploadResult>(`/dossiers/${dossierId}/documents`, {
       method: "POST",
       body: form,
     });
   },
+  setDocumentRole: (id: string, role: DocumentRole) =>
+    request<DocumentInfo>(`/documents/${id}`, json("PATCH", { role })),
+  listPriorities: (dossierId: string) => request<Priority[]>(`/dossiers/${dossierId}/priorities`),
+  createPriority: (dossierId: string, body: { title: string; description?: string }) =>
+    request<Priority>(`/dossiers/${dossierId}/priorities`, json("POST", body)),
+  patchPriority: (id: string, body: Partial<Pick<Priority, "title" | "description" | "rank">> & { status?: "proposed" }) =>
+    request<Priority>(`/priorities/${id}`, json("PATCH", body)),
+  validatePriority: (id: string) => request<Priority>(`/priorities/${id}:validate`, { method: "POST" }),
+  rejectPriority: (id: string) => request<Priority>(`/priorities/${id}:reject`, { method: "POST" }),
+  deletePriority: (id: string) => request<void>(`/priorities/${id}`, { method: "DELETE" }),
+  listProjects: (dossierId: string) => request<ExistingProject[]>(`/dossiers/${dossierId}/projects`),
+  createProject: (
+    dossierId: string,
+    body: { title: string; state?: ProjectState; duration_weeks?: number | null; depends_on?: string[] },
+  ) => request<ExistingProject>(`/dossiers/${dossierId}/projects`, json("POST", body)),
+  patchProject: (
+    id: string,
+    body: { title?: string; state?: ProjectState; duration_weeks?: number | null; depends_on?: string[] },
+  ) => request<ExistingProject>(`/projects/${id}`, json("PATCH", body)),
+  deleteProject: (id: string) => request<void>(`/projects/${id}`, { method: "DELETE" }),
   getChunk: (id: string) => request<ChunkDetail>(`/chunks/${id}`),
   search: (dossierId: string, texts: string[], k = 10) =>
     request<Passage[]>(`/dossiers/${dossierId}/search`, json("POST", { texts, k })),
   listFindings: (dossierId: string) => request<Finding[]>(`/dossiers/${dossierId}/findings`),
   extractFindings: (dossierId: string) =>
-    request<unknown>(`/dossiers/${dossierId}/findings:extract`, { method: "POST" }),
+    request<{ coverage?: Coverage }>(`/dossiers/${dossierId}/findings:extract`, { method: "POST" }),
+  me: () => request<{ id: string; role: Role }>("/auth/me"),
   patchFinding: (id: string, patch: FindingPatch) =>
     request<Finding>(`/findings/${id}`, json("PATCH", patch)),
   generateRoadmap: (dossierId: string) =>

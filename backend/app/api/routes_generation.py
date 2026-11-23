@@ -32,6 +32,12 @@ class InitiativePatch(BaseModel):
     scores: list[ScorePatch] | None = None
     duration_weeks: int | None = Field(default=None, ge=1, le=520)
     depends_on: list[str] | None = None
+    objective: str | None = Field(default=None, max_length=2000)
+    expected_result: str | None = Field(default=None, max_length=2000)
+    indicator: str | None = Field(default=None, max_length=2000)
+    priority_ids: list[str] | None = None
+    accept_proposal: bool | None = None
+    depends_on_projects: list[str] | None = None
 
 
 class RoadmapPatch(BaseModel):
