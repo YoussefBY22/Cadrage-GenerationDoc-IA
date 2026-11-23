@@ -3,6 +3,9 @@ version: '1.0'
 type: tor
 language: fr
 title: Termes de référence
+referentiels:
+- 'Banque mondiale : guide de rédaction des termes de référence'
+- 'Commission européenne : PM² et gestion du cycle de projet'
 sections:
 - key: contexte
   title: Contexte et justification
@@ -14,6 +17,9 @@ sections:
   min_sources: 2
   max_sentences: 10
   uses_findings: true
+  referentiels:
+  - 'Banque mondiale (ToR : contexte et justification)'
+  - PM² (phase d'initiation, dossier d'affaires)
 - key: objectifs
   title: Objectifs de la mission
   instructions: Formule les objectifs général et spécifiques de la mission, en lien avec les constats.
@@ -24,6 +30,9 @@ sections:
   min_sources: 2
   max_sentences: 8
   uses_findings: true
+  referentiels:
+  - 'Banque mondiale (ToR : objectifs et résultats attendus)'
+  - UE, gestion du cycle de projet (logique d'intervention)
 - key: livrables
   title: Livrables attendus
   instructions: Liste les livrables attendus avec leur contenu, uniquement ceux appuyés par les sources.
@@ -34,6 +43,9 @@ sections:
   min_sources: 2
   max_sentences: 10
   uses_findings: false
+  referentiels:
+  - 'Banque mondiale (ToR : livrables et calendrier de remise)'
+  - PM² (livrables et critères d'acceptation)
 - key: calendrier
   title: Calendrier de la mission
   instructions: Décris la durée et les jalons de la mission tels qu'ils ressortent des passages.
@@ -44,6 +56,9 @@ sections:
   min_sources: 1
   max_sentences: 8
   uses_findings: false
+  referentiels:
+  - 'Banque mondiale (ToR : durée et jalons)'
+  - PM² (planification)
 - key: profil
   title: Profil des experts
   instructions: Décris les profils et qualifications requis des experts d'après les sources.
@@ -54,6 +69,8 @@ sections:
   min_sources: 1
   max_sentences: 8
   uses_findings: false
+  referentiels:
+  - 'Banque mondiale (ToR : qualifications et expérience du consultant)'
 - key: evaluation
   title: Critères d'évaluation
   instructions: Présente les critères d'évaluation des offres ou des livrables mentionnés dans les sources.
@@ -64,3 +81,6 @@ sections:
   min_sources: 1
   max_sentences: 8
   uses_findings: false
+  referentiels:
+  - Banque mondiale (critères d'évaluation des propositions, pondérés)
+  - 'OCDE-CAD (critères d''évaluation : pertinence, efficacité, efficience, durabilité)'

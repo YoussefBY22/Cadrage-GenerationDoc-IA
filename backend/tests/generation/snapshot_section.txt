@@ -7,6 +7,7 @@ Le portail des services est indisponible deux jours par mois.
 Budget de 120 000 euros.
 <<FIN nonce=a91f00112233beef>>
 SECTION : Contexte et justification
+RÉFÉRENTIELS (cadre de structure uniquement : jamais une source, ne les cite pas en « sources » ; toute affirmation factuelle vient des passages) : Banque mondiale (ToR : contexte et justification); PM2 (phase d'initiation, dossier d'affaires)
 CONSIGNE : Résume le contexte institutionnel et les constats qui motivent la mission.
 Au plus 10 phrases ; au moins 2 passage(s) cité(s) sinon status = insufficient_evidence.
 RÈGLES (à appliquer maintenant) : tu peux citer UNIQUEMENT P1, P2 ; n'invente aucune autre étiquette. Refuse (status = insufficient_evidence, sentences = []) SEULEMENT si aucun passage ne traite le sujet de la section ; si au moins un passage en parle, réponds avec ce qu'il dit, sans rien ajouter. Chaque phrase factuelle recopie ou reformule fidèlement un passage et cite son étiquette.

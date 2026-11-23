@@ -3,6 +3,9 @@ version: '1.0'
 type: findings
 language: fr
 title: Constats du diagnostic
+referentiels:
+- ISO/IEC 23894 (cadre d'analyse du risque IA)
+- COBIT 2019 (domaines)
 sections:
 - key: constats
   title: Constats du diagnostic
@@ -14,3 +17,6 @@ sections:
   min_sources: 2
   max_sentences: 12
   uses_findings: false
+  referentiels:
+  - 'COBIT 2019 : rattacher le thème à un domaine EDM/APO/BAI/DSS/MEA seulement si le passage le dit'
+  - 'ITIL 4 : pratique concernée si le passage la nomme'

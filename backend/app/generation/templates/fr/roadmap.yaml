@@ -3,10 +3,15 @@ version: '1.0'
 type: roadmap
 language: fr
 title: Feuille de route
+referentiels:
+- ISO 31000:2018 (risques)
+- COBIT 2019 et ITIL 4 (étiquetage optionnel des initiatives)
+- ISO 21502 / PM² (gestion de projet)
 sections:
 - key: synthese
   title: Synthèse
-  instructions: Résume en quelques phrases la situation et l'ambition de la feuille de route à partir des constats validés.
+  instructions: Résume en quelques phrases la situation et l'ambition de la feuille de route à partir des constats
+    validés.
   queries:
   - synthèse du diagnostic
   - ambition et objectifs
@@ -14,6 +19,8 @@ sections:
   min_sources: 2
   max_sentences: 6
   uses_findings: true
+  referentiels:
+  - ISO 21502 (cadrage des objectifs du projet)
 - key: axes
   title: Axes stratégiques
   instructions: Présente les axes stratégiques qui regroupent les initiatives, chacun rattaché à des constats.
@@ -24,6 +31,9 @@ sections:
   min_sources: 2
   max_sentences: 10
   uses_findings: true
+  referentiels:
+  - COBIT 2019 (domaines de gouvernance et de gestion)
+  - TOGAF (alignement stratégie-architecture)
 - key: initiatives
   title: Initiatives
   instructions: 'Décris chaque initiative retenue : objet, constats traités, ordre de réalisation et dépendances.'
@@ -34,10 +44,13 @@ sections:
   min_sources: 2
   max_sentences: 12
   uses_findings: true
+  referentiels:
+  - COBIT 2019 (objectifs EDM/APO/BAI/DSS/MEA)
+  - ITIL 4 (pratiques de gestion)
 - key: calendrier
   title: Calendrier
-  instructions: Propose un séquencement par vagues à partir des priorités et dépendances, sans inventer de dates absentes
-    des sources.
+  instructions: Propose un séquencement par vagues à partir des priorités et dépendances, sans inventer de dates
+    absentes des sources.
   queries:
   - calendrier et échéances
   - phasage
@@ -45,9 +58,13 @@ sections:
   min_sources: 2
   max_sentences: 8
   uses_findings: true
+  referentiels:
+  - ISO 21502 / PM² (phasage, jalons)
 - key: risques
   title: Risques
-  instructions: Énumère les risques de mise en œuvre mentionnés ou déduits des passages, avec leur source.
+  instructions: 'Énumère les risques de mise en œuvre mentionnés ou déduits des passages, avec leur source ; pour
+    chacun : vraisemblance et conséquence si les passages les indiquent, et traitement (éviter, réduire, transférer,
+    accepter) seulement s''il est sourcé.'
   queries:
   - risques
   - contraintes et obstacles
@@ -55,3 +72,6 @@ sections:
   min_sources: 2
   max_sentences: 8
   uses_findings: true
+  referentiels:
+  - ISO 31000:2018 (identifier, analyser vraisemblance et conséquence, évaluer, traiter)
+  - ISO/IEC 23894 (risques propres à l'IA)

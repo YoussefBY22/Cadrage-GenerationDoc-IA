@@ -3,6 +3,9 @@ version: '1.0'
 type: tor
 language: en
 title: Terms of Reference
+referentiels:
+- 'World Bank: guide to writing terms of reference'
+- 'European Commission: PM² and project cycle management'
 sections:
 - key: contexte
   title: Background and rationale
@@ -14,6 +17,9 @@ sections:
   min_sources: 2
   max_sentences: 10
   uses_findings: true
+  referentiels:
+  - 'World Bank (ToR: background and rationale)'
+  - PM² (initiation phase, business case)
 - key: objectifs
   title: Objectives of the assignment
   instructions: State the overall and specific objectives of the assignment, linked to the findings.
@@ -24,6 +30,9 @@ sections:
   min_sources: 2
   max_sentences: 8
   uses_findings: true
+  referentiels:
+  - 'World Bank (ToR: objectives and expected results)'
+  - EU project cycle management (intervention logic)
 - key: livrables
   title: Expected deliverables
   instructions: List the expected deliverables with their content, only those supported by the sources.
@@ -34,6 +43,9 @@ sections:
   min_sources: 2
   max_sentences: 10
   uses_findings: false
+  referentiels:
+  - 'World Bank (ToR: deliverables and reporting schedule)'
+  - PM² (deliverables and acceptance criteria)
 - key: calendrier
   title: Assignment schedule
   instructions: Describe the duration and milestones of the assignment as they appear in the passages.
@@ -44,6 +56,9 @@ sections:
   min_sources: 1
   max_sentences: 8
   uses_findings: false
+  referentiels:
+  - 'World Bank (ToR: duration and milestones)'
+  - PM² (planning)
 - key: profil
   title: Expert profiles
   instructions: Describe the required profiles and qualifications of the experts according to the sources.
@@ -54,6 +69,8 @@ sections:
   min_sources: 1
   max_sentences: 8
   uses_findings: false
+  referentiels:
+  - 'World Bank (ToR: consultant qualifications and experience)'
 - key: evaluation
   title: Evaluation criteria
   instructions: Present the evaluation criteria for proposals or deliverables mentioned in the sources.
@@ -64,3 +81,6 @@ sections:
   min_sources: 1
   max_sentences: 8
   uses_findings: false
+  referentiels:
+  - World Bank (weighted proposal evaluation criteria)
+  - 'OECD-DAC (evaluation criteria: relevance, effectiveness, efficiency, sustainability)'

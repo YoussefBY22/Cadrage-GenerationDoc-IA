@@ -41,6 +41,7 @@ class Initiative(BaseModel):
     # objectif, résultat, indicateur : proposition IA tant qu'un humain ne l'a pas acceptée
     proposal_status: Literal["proposed", "accepted"] = "proposed"
     proposal_flags: list[str] = []  # nombres de la proposition absents des sources
+    domain: str | None = None  # domaine COBIT 2019 / pratique ITIL 4 (étiquette facultative)
 
 
 class ScoredInitiative(BaseModel):

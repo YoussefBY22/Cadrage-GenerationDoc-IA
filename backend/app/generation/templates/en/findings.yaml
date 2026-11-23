@@ -3,10 +3,14 @@ version: '1.0'
 type: findings
 language: en
 title: Diagnostic findings
+referentiels:
+- ISO/IEC 23894 (AI risk framework)
+- COBIT 2019 (domains)
 sections:
 - key: constats
   title: Diagnostic findings
-  instructions: 'Extract the observable findings from the documents: problem, theme, severity, with the source of each.'
+  instructions: 'Extract the observable findings from the documents: problem, theme, severity, with the source of
+    each.'
   queries:
   - diagnostic findings
   - identified problems
@@ -14,3 +18,6 @@ sections:
   min_sources: 2
   max_sentences: 12
   uses_findings: false
+  referentiels:
+  - 'COBIT 2019 : tie the theme to an EDM/APO/BAI/DSS/MEA domain only if the passage says so'
+  - 'ITIL 4 : relevant practice only if the passage names it'
