@@ -126,7 +126,9 @@ def test_ci_has_frontend_and_training_jobs():
     ci = yaml.safe_load((ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8"))
     assert {"backend", "frontend", "training", "compose-config"} <= set(ci["jobs"])
     steps = " ".join(str(s.get("run", "")) for s in ci["jobs"]["frontend"]["steps"])
-    assert all(w in steps for w in ("npm ci", "npm run lint", "npm test", "npm run build"))
+    # « npm install » : npm ci échoue sur un lockfile généré sous Windows (paquets optionnels Linux absents)
+    assert "npm ci" in steps or "npm install" in steps
+    assert all(w in steps for w in ("npm run lint", "npm test", "npm run build"))
     assert "pytest training/tests" in " ".join(
         str(s.get("run", "")) for s in ci["jobs"]["training"]["steps"])
 

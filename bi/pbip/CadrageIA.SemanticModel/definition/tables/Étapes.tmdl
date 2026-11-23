@@ -1,0 +1,22 @@
+table 'Étapes'
+	isHidden
+
+	column 'Étape'
+		dataType: string
+		sourceColumn: libelle
+		sortByColumn: Ordre
+		summarizeBy: none
+
+	column Ordre
+		dataType: int64
+		isHidden
+		sourceColumn: ordre
+		summarizeBy: none
+
+	partition 'Étapes' = m
+		mode: import
+		source =
+				let
+				    Resultat = #table(type table [#"libelle" = text, #"ordre" = Int64.Type], {{"Demandées", 1}, {"Rédigées", 2}, {"Approuvées", 3}, {"Sans retouche", 4}})
+				in
+				    Resultat

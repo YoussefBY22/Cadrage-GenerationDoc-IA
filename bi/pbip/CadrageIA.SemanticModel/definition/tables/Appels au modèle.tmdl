@@ -1,0 +1,49 @@
+table 'Appels au modèle'
+	isHidden
+
+	column 'Clé de date'
+		dataType: int64
+		isHidden
+		sourceColumn: date_key
+		summarizeBy: none
+
+	column 'Clé de mission'
+		dataType: int64
+		isHidden
+		sourceColumn: mission_key
+		summarizeBy: none
+
+	column 'Code de configuration'
+		dataType: string
+		isHidden
+		sourceColumn: config_label
+		summarizeBy: none
+
+	column 'Clé de configuration'
+		dataType: string
+		isHidden
+		sourceColumn: config
+		summarizeBy: none
+
+	column Nature
+		dataType: string
+		isHidden
+		sourceColumn: call_kind
+		summarizeBy: none
+
+	column 'Latence en ms'
+		dataType: int64
+		isHidden
+		sourceColumn: latency_ms
+		summarizeBy: none
+
+	partition 'Appels au modèle' = m
+		mode: import
+		source =
+				let
+				    Brut = Vue("v_llm_calls"),
+				    Choix = Table.SelectColumns(Brut, {"date_key", "mission_key", "config_label", "call_kind", "latency_ms"}, MissingField.UseNull),
+				    Typage = Table.TransformColumnTypes(Choix, {{"date_key", Int64.Type}, {"mission_key", Int64.Type}, {"config_label", type text}, {"call_kind", type text}, {"latency_ms", Int64.Type}}, CultureCsv),
+				    AvecConfiguration = Table.AddColumn(Typage, "config", each if [config_label] = null or [config_label] = "" then "Non étiquetée" else [config_label], type text)
+				in
+				    AvecConfiguration

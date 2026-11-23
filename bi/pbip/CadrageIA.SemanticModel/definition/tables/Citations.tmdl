@@ -1,0 +1,41 @@
+table Citations
+
+	column 'Clé de génération'
+		dataType: int64
+		isHidden
+		sourceColumn: generation_key
+		summarizeBy: none
+
+	column 'Code de contrôle'
+		dataType: string
+		isHidden
+		sourceColumn: issue_code
+		summarizeBy: none
+
+	column Anomalie
+		dataType: string
+		sourceColumn: anomalie
+		summarizeBy: none
+
+	column 'Code de gravité'
+		dataType: string
+		isHidden
+		sourceColumn: severity
+		summarizeBy: none
+
+	column 'Gravité'
+		dataType: string
+		sourceColumn: gravite
+		summarizeBy: none
+
+	partition Citations = m
+		mode: import
+		source =
+				let
+				    Brut = Vue("v_citations"),
+				    Choix = Table.SelectColumns(Brut, {"generation_key", "issue_code", "severity"}, MissingField.UseNull),
+				    Typage = Table.TransformColumnTypes(Choix, {{"generation_key", Int64.Type}, {"issue_code", type text}, {"severity", type text}}, CultureCsv),
+				    AvecAnomalie = Table.AddColumn(Typage, "anomalie", each Record.FieldOrDefault([#"NONE" = "Aucune anomalie", #"LOW_SUPPORT" = "Preuve trop faible", #"NUMBER_NOT_FOUND" = "Chiffre introuvable", #"FACT_WITHOUT_SOURCE" = "Fait non sourcé", #"UNKNOWN_SOURCE" = "Source inexistante", #"FOREIGN_SOURCE" = "Source d'un autre dossier", #"INSTRUCTION_ECHO" = "Consigne recopiée", #"UNKNOWN_FINDING" = "Constat inexistant", #"TRANSITION_WITH_NUMBER" = "Chiffre dans une transition"], [issue_code], "Autre anomalie"), type text),
+				    AvecGravite = Table.AddColumn(AvecAnomalie, "gravite", each Record.FieldOrDefault([#"blocking" = "Bloquante", #"warning" = "À vérifier", #"none" = "Aucune"], [severity], "Autre"), type text)
+				in
+				    AvecGravite
