@@ -102,14 +102,14 @@ export default function ContextView({ dossierId }: { dossierId: string }) {
       </div>
       {error && <Alert>{error}</Alert>}
 
-      <div className="split with-panel" style={{ gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)" }}>
+      <div className="split" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))" }}>
         <form className="card stack-form" data-testid="context-form" onSubmit={(e) => { e.preventDefault(); void save(false); }}>
           <div className="row" style={{ justifyContent: "space-between" }}>
             <span className={`badge ${sheet?.confirmed ? "approved" : "draft"}`}>
               {sheet?.confirmed ? t.context.confirmedBy(sheet.confirmed_by_name ?? "–", (sheet.confirmed_at ?? "").slice(0, 10)) : t.context.draft}
             </span>
           </div>
-          <div className="form-row" style={{ marginTop: 12 }}>
+          <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }} className="form-row">
             {SHORT.map((k) => (
               <label key={k} className="grow">
                 <span>{t.context.fields[k]}</span>
@@ -165,27 +165,29 @@ export default function ContextView({ dossierId }: { dossierId: string }) {
             <p key={q} className="muted" style={{ margin: "4px 0" }}>? {q}</p>
           ))}
           {last?.proposals.fields.map((p) => (
-            <div key={p.field} className="row" style={{ margin: "6px 0" }} data-testid={`proposal-field-${p.field}`}>
+            <div key={p.field} className="proposal" data-testid={`proposal-field-${p.field}`}>
               <span className="tag">{t.context.proposal}</span>
-              <span className="grow">
+              <p>
                 <b>{t.context.fields[p.field]}</b> : {Array.isArray(p.value) ? p.value.map((v) => t.context.types[v]).join(", ") : p.value}
-              </span>
+              </p>
               <button className="btn btn-sm" type="button" onClick={() => acceptField(p.field, p.value)}>
                 {t.context.accept}
               </button>
             </div>
           ))}
           {last?.proposals.decisions.map((d) => (
-            <div key={d.text} className="row" style={{ margin: "6px 0" }} data-testid="proposal-decision">
+            <div key={d.text} className="proposal" data-testid="proposal-decision">
               <span className="tag">{d.label}</span>
-              <span className="grow">{d.text}</span>
-              <button className="btn btn-sm" type="button" onClick={() => void confirmDecision(d)}>
-                <Check size={13} />
-                {t.context.confirmDecision}
-              </button>
-              <button className="btn btn-ghost btn-icon" type="button" aria-label={t.context.ignore} onClick={() => ignoreDecision(d.text)}>
-                <X size={14} />
-              </button>
+              <p>{d.text}</p>
+              <div className="row">
+                <button className="btn btn-sm" type="button" onClick={() => void confirmDecision(d)}>
+                  <Check size={13} />
+                  {t.context.confirmDecision}
+                </button>
+                <button className="btn btn-ghost btn-icon" type="button" aria-label={t.context.ignore} onClick={() => ignoreDecision(d.text)}>
+                  <X size={14} />
+                </button>
+              </div>
             </div>
           ))}
           {last && last.dropped.length > 0 && <p className="muted" style={{ fontSize: 12.5 }}>{t.context.dropped(last.dropped.length)}</p>}

@@ -333,3 +333,10 @@ details > summary { cursor: pointer; color: var(--grey); font-size: 12.5px; marg
 .btn:disabled { cursor: not-allowed; }
 .btn-primary:disabled { background: #ececf1; border-color: var(--line); color: var(--grey); opacity: 1; }
 .toast.warn { background: var(--warn-bg); color: var(--warn); }
+
+/* Propositions du chat : une carte par proposition, texte entier, actions dessous */
+.proposal { display: grid; gap: 6px; justify-items: start; margin: 8px 0; padding: 10px 12px; border: 1px solid var(--grey-2); border-radius: 6px; }
+.proposal p { margin: 0; font-size: 13.5px; }
+.form-row label input, .form-row label select { width: 100%; }
+.section-card > header a.tag { color: #fff; background: rgba(255, 255, 255, 0.14); border-color: transparent; text-decoration: none; font-size: 12px; }
+.section-card > header a.tag:hover { background: rgba(255, 255, 255, 0.24); }

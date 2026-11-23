@@ -111,13 +111,13 @@ export default function DecisionsView({ dossierId }: { dossierId: string }) {
                 {items.map((d) => (
                   <tr key={d.id} data-testid={`decision-${d.id}`}>
                     <td>{t.decisions.categories[d.category]}</td>
-                    <td style={{ minWidth: 240 }}>{d.text}</td>
+                    <td style={{ minWidth: 140, whiteSpace: "normal" }}>{d.text}</td>
                     <td>
                       <span className={`badge ${d.status === "confirmed" ? "approved" : "draft"}`}>
                         {t.decisions.status[d.status]}
                       </span>
                       {d.status === "confirmed" && (
-                        <div className="muted">{t.decisions.by(d.author_name ?? "–", date(d.confirmed_at))}</div>
+                        <div className="muted" style={{ whiteSpace: "normal", maxWidth: 190 }}>{t.decisions.by(d.author_name ?? "–", date(d.confirmed_at))}</div>
                       )}
                     </td>
                     <td className="num">
