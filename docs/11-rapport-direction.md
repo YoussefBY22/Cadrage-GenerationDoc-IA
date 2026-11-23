@@ -1,5 +1,15 @@
 # 11 — Rapport à la direction : une nuit de construction assistée
 
+> **Mise à jour du 23/11/2026, pour un manager.**
+> - **Fait** : les trois éléments du sujet sont désormais reliés dans l'outil : constats d'audit, priorités de la
+>   société validées par un relecteur, projets existants. Sur un audit fictif, le modèle local relie chaque action
+>   à la bonne priorité. Un livrable sans preuve valide ne peut plus être approuvé ni exporté.
+> - **Mesuré** : 0 % de réponses sans preuve grâce au filtre de pertinence (seuil à recalibrer sur données réelles) ;
+>   une tentative de manipulation sur cinq suivie par le modèle, bloquée à l'approbation.
+> - **Pas encore** : saisie des décisions humaines (budget, profils, calendrier), modèle spécialisé (entraînement),
+>   lecture des images, espace client.
+
+
 *Projet PFE « Assistant IA local de cadrage » · nuit du 21 au 22/11/2026 · sources : journal d'orchestration (`docs/12`), `docs/STATUS.md`, comptes rendus `docs/lots/`. Tout chiffre non mesuré est signalé.*
 
 ## 1. Le projet en trois lignes

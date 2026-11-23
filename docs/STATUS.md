@@ -1,5 +1,28 @@
 # STATUS — Phases A à G1 hors ligne (nuit 1), puis passage au réel (nuit 2, 22/11/2026)
 
+> **État au 23/11/2026.** Les sections ci-dessous décrivent les nuits 1 et 2 ; ce bloc les met à jour.
+>
+> | Fait et vérifié | Preuve |
+> |---|---|
+> | Plus de coupe silencieuse de la fenêtre de contexte (Ollama coupait le début des invites au-delà de 4 096 jetons) | #7 |
+> | Registre de modèles : choix, test automatique, activation, retour arrière, limites affichées | #11, testé sur Ollama réel |
+> | Rôles de documents, priorités institutionnelles, projets existants, 8 contrôles de cohérence | #12 ; réel : 5 initiatives sur 5 reliées à la bonne priorité |
+> | Verrou d'approbation : un défaut de preuve ne s'acquitte plus, l'export refuse au lieu d'effacer | #14 |
+> | Nombres en lettres et fourchettes contrôlés | #9 |
+> | Power BI par acteur, mesures absentes affichées « Non mesuré » | #6 |
+> | Cahier des charges v0.2 et architecture cible ; proposition de tableau de bord client | #8, #13 |
+> | Référentiels dans les gabarits (étiquette COBIT retirée des consignes après mesure) | #2 |
+> | Chaîne d'export de l'entraînement (fusion, GGUF, import Ollama 0.40.17, réponse) | rejouée le 23/11 sur la base |
+>
+> | Constaté, à traiter | |
+> |---|---|
+> | Sans porte de pertinence, 70 % de refus manqués ; avec elle 0 % (seuil calibré sur le même corpus) | `lots/R2.md` |
+> | 1 attaque par consigne cachée sur 5 suivie par le modèle (signalée, non approuvable) | `lots/R2.md` |
+> | Section TdR « Profil » : recopie des constats faute de décision humaine | lot B en cours |
+> | GPU à 89-91 °C pendant les mesures | brider tout calcul long |
+> | Aucun entraînement abouti ; pilote de 30 exemples relu par l'assistant (pas une validation humaine) | jeu par livrable en cours |
+
+
 Branche `main` : 19 lots B0 → G1 (nuit 1, faux modèle) puis T1, T2, UI, EN, T4, T6 (nuit 2, réel). Lots Q (PDF) et Q2 (porte de pertinence) terminés ; ce document : lot V, complété par l'orchestrateur. Les sections 1 à 3 décrivent l'état de la nuit 1 ; la section 1 bis résume la nuit 2. Comptes rendus détaillés : `docs/lots/<ID>.md` (index et « Pour comprendre » : `docs/lots/README.md`).
 
 ## 1. Fait

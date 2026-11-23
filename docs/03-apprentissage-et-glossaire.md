@@ -220,3 +220,24 @@ Je n'ai pas vérifié les liens : cherche les titres.
 **AI Act, ISO/IEC 42001, NIST AI RMF** *(REF)* : règlement européen sur l'IA (classe les usages par niveau de risque), norme certifiable de management de l'IA, cadre volontaire américain (GOVERN, MAP, MEASURE, MANAGE). La matrice de `13-referentiels.md` y relie le code.
 
 **OWASP Top 10 for LLM** *(REF)* : liste des dix risques majeurs des applications à base de modèles de langage (injection de prompt, fuite d'information, sortie non contrôlée…).
+
+**Fenêtre de contexte** : nombre de jetons que le modèle lit en une fois (consignes, passages, réponse). qwen3:4b en
+accepte 262 144 en théorie ; sur un GPU de 4 Go, Ollama en alloue 4 096.
+
+**Troncature silencieuse** : quand l'invite dépasse la fenêtre, Ollama jetait le début sans erreur. Corrigé : le
+moteur refuse désormais, et l'application découpe en lots.
+
+**Porte de pertinence** : refus d'une section avant d'appeler le modèle si aucun passage n'est assez proche
+(cosinus bge-m3 < 0,45).
+
+**Priorité institutionnelle** : objectif de la société (stratégie, plan), proposé puis validé par un relecteur ;
+chaque initiative doit s'y rattacher.
+
+**Décision humaine citable** : information qu'aucun document ne contient (budget, profil, calendrier), saisie et
+confirmée par une personne, puis citée comme une source.
+
+**Verrou d'approbation** : un livrable ne peut être approuvé ni exporté si une source manque, est inconnue ou si
+un constat cité n'est pas validé.
+
+**Registre de modèles** : liste des modèles installés dans le moteur local ; un modèle n'est activé qu'après un test
+réussi, et l'on peut revenir au précédent.

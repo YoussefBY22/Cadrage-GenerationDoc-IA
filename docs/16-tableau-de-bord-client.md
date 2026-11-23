@@ -155,15 +155,12 @@ compte rendu.
 
 ### Conditions préalables
 
-« Approuvé » ne suffit pas pour publier. Constaté le 22/11/2026 sur `main` (`fb2bfeb`), fonctions appelées en mémoire :
+Les failles constatées le 22/11/2026 sont corrigées sur `main` le 23/11 : source inexistante non acquittable et
+export refusé, recommandation sans appui à acquitter avec motif, initiatives et constats validés vérifiés à
+l'approbation (#14) ; plus de durée par défaut dans le Gantt (#12).
 
-- une source inexistante, acquittée, passe l'approbation puis disparaît de l'export ;
-- une recommandation sans source ni constat passe sans signal ;
-- les initiatives de la feuille de route ne sont pas vérifiées à l'approbation ;
-- un constat non validé peut être cité ;
-- une durée vide devient 4 semaines dans le Gantt exporté.
-
-Ces corrections relèvent du lot cœur métier. Elles sont à revérifier avant de construire ce tableau de bord.
+Il reste, avant de construire ce tableau de bord : la publication figée, le `client_id` stable, les décisions et le
+suivi d'avancement (§6). « Approuvé » ne vaut toujours pas « publié au client ».
 
 ## 7. Isolation par client
 

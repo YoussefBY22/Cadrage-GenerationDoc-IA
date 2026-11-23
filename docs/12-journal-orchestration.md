@@ -203,3 +203,16 @@ Source : journal de l'orchestrateur (section NUIT 2) et `docs/lots/` T1, T2, UI,
 |---|---|---|---|
 | ~01 h 30 | 51 % | 82 % | six sessions en cours |
 | ~04 h 05 | 78 % | 87 % | six lots finis (~44 pts 5 h, ~8 pts hebdo) ; Q et V lancés |
+
+# 22-23/11 — cible produit, audits, fusions
+
+- 22/11 soir : demande complète de l'utilisateur (R01-R31). Mesure : 3 892 mots envoyés, 2 050 jetons lus sans
+  erreur. Correctif #7, cahier v0.2 (#8), vérificateur (#9), chiffres publics corrigés (#10).
+- Sessions Sonnet : lot A (#12), registre de modèles (#11), Power BI (#6, #13). Chaque rendu audité sur le vrai modèle
+  par l'orchestrateur : défauts renvoyés deux fois avant fusion (priorités jamais reliées, scores tous égaux, dates
+  inventées, nom de modèle journalisé faux).
+- Faille d'approbation trouvée par la session Power BI, corrigée par l'orchestrateur (#14, 26 tests rouges sur main).
+- 23/11 : fusions autorisées par l'utilisateur, conflits résolus et retestés ; #2 gardée sans étiquette COBIT ;
+  pilote de 30 exemples relu (24 acceptés, 6 corrigés) ; remesure R2 ; export rejoué sur Ollama 0.40.17.
+- Incidents : quota de 5 h épuisé le 22 au soir ; un commit de mise à jour créé par GitHub avec l'adresse principale
+  du compte (ne plus utiliser « Update branch ») ; fusion de #15 refusée par le mode automatique.
