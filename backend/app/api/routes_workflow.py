@@ -21,27 +21,28 @@ class TransitionIn(BaseModel):
 class AckIn(BaseModel):
     section_key: str
     sentence_index: int = -1   # -1 : acquitte le refus (insufficient_evidence) de la section
+    reason: str | None = None  # motif, obligatoire
 
 
 def _not_found():
     return error_response(404, "NOT_FOUND", "Livrable introuvable")
 
 
-def _approval_facts(repo, d, version, content) -> tuple[int, bool]:
-    """(phrases en échec non acquittées, toutes les sections présentes)."""
+def _approval_facts(repo, d, version, content) -> tuple[int, bool, int]:
+    """(phrases en échec non acquittées, toutes les sections présentes, initiatives non fondées)."""
     acked = vs.acknowledgements(repo, d["id"], version)
-    reports = vs.verify_content(repo, d["dossier_id"], content, get_settings().support_threshold)
-    failures = sum(1 for sec, r in zip(content.sections, reports, strict=True)
-                   for ck in r.checks if ck.status == "failed"
-                   and (sec.section_key, ck.index) not in acked)
+    _, hard, soft = vs.evidence_status(repo, d["dossier_id"], content,
+                                       get_settings().support_threshold)
+    failures = len(hard) + len(soft - acked)  # un défaut de preuve ne s'acquitte jamais
     by_key = {sec.section_key: sec for sec in content.sections}
     try:
         required = [x.key for x in load_template(content.type, content.language).sections]
     except TemplateError:
-        required = list(by_key)
-    complete = bool(by_key) and all(
-        k in by_key and (by_key[k].status == "ok" or (k, -1) in acked) for k in required)
-    return failures, complete
+        return failures, False, len(vs.initiative_issues(repo, d["dossier_id"], content))
+    complete = all(
+        k in by_key and ((by_key[k].status == "ok" and by_key[k].sentences) or (k, -1) in acked)
+        for k in required)
+    return failures, complete, len(vs.initiative_issues(repo, d["dossier_id"], content))
 
 
 @router.post("/deliverables/{deliverable_id}/transitions")
@@ -53,16 +54,17 @@ def transition(deliverable_id: str, body: TransitionIn, repo: Repo, user: User):
         return error_response(422, "INVALID_STATE", "État inconnu")
     version, content = repo.get_version(deliverable_id)
     member = repo.member_role(d["dossier_id"], user.id)
-    failures, complete = (0, True)
+    failures, complete, unverified = (0, True, 0)
     if body.to == "approved":
-        failures, complete = _approval_facts(repo, d, version, content)
+        failures, complete, unverified = _approval_facts(repo, d, version, content)
     ctx = TransitionContext(
         current=d["state"], to=body.to, reason=body.reason, actor_id=user.id,
         actor_can_review=member in ("reviewer", "admin") or user.role == "admin",
         version_author_id=vs.version_author(repo, deliverable_id, version) or d["author_id"],
         deliverable_author_id=d["author_id"],
         allow_self_approval=get_settings().allow_self_approval,
-        unacknowledged_failures=failures, sections_complete=complete)
+        unacknowledged_failures=failures, sections_complete=complete,
+        unverified_initiatives=unverified)
     try:
         check_transition(ctx)
     except WorkflowError as exc:
@@ -81,9 +83,18 @@ def acknowledge(deliverable_id: str, body: AckIn, repo: Repo, user: User):
     member = repo.member_role(d["dossier_id"], user.id)
     if member not in ("reviewer", "admin") and user.role != "admin":
         return error_response(403, "FORBIDDEN_ROLE", "Rôle relecteur ou admin requis")
-    version, _ = repo.get_version(deliverable_id)
+    version, content = repo.get_version(deliverable_id)
+    if not (body.reason or "").strip():
+        return error_response(422, "REASON_REQUIRED", "Un motif est obligatoire pour acquitter")
+    authors = {d["author_id"], vs.version_author(repo, deliverable_id, version)}
+    if user.id in authors and not get_settings().allow_self_approval:
+        return error_response(409, "FOUR_EYES", "L'auteur ne peut pas acquitter son propre livrable")
+    _, hard, _ = vs.evidence_status(repo, d["dossier_id"], content, get_settings().support_threshold)
+    if (body.section_key, body.sentence_index) in hard:
+        return error_response(409, "NOT_ACKNOWLEDGEABLE",
+                              "Défaut de preuve : à corriger, pas à acquitter")
     repo.audit(user.id, "sentence.acknowledge", "deliverable", deliverable_id,
                {"version": version, "section_key": body.section_key,
-                "sentence_index": body.sentence_index})
+                "sentence_index": body.sentence_index, "reason": body.reason.strip()})
     return {"version": version, "section_key": body.section_key,
             "sentence_index": body.sentence_index}

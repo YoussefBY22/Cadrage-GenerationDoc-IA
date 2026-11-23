@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from app.domain.coeur import ExistingProject, Priority
 from app.domain.generation import Finding
 from app.domain.ids import Lang
 from app.domain.retrieval import Passage
@@ -72,7 +73,15 @@ _L = {
         "reply_findings": "Réponds par un JSON LLMFindings.",
         "task_ini": ("TÂCHE : proposer des initiatives qui traitent les constats (cite F1..Fn dans « findings »), "
                      "notées de 1 à 5 sur chaque critère : {crit}. Chaque note cite ses sources et une justification. "
-                     "depends_on_titles : titres d'autres initiatives dont celle-ci dépend."),
+                     "depends_on_titles : titres d'autres initiatives dont celle-ci dépend. "
+                     "Pour chaque initiative donne aussi objective, expected_result et indicator. "
+                     "priorities : UNIQUEMENT des étiquettes PR1..PRn fournies ci-dessous ; "
+                     "depends_on_projects : UNIQUEMENT des étiquettes PJ1..PJn fournies. "
+                     "Toute autre étiquette sera rejetée. N'invente aucune durée. "
+                     "Pour CHAQUE initiative, examine CHAQUE priorité PR1..PRn et cite celles qu'elle "
+                     "sert (liste vide seulement si aucune). Donne une note pour CHAQUE critère."),
+        "priorities_hdr": "PRIORITÉS INSTITUTIONNELLES VALIDÉES (rang 1 = plus haute ; cite PR1..PRn) :",
+        "projects_hdr": "PROJETS EXISTANTS (cite PJ1..PJn dans depends_on_projects) :",
         "validated_short": "CONSTATS VALIDÉS :",
         "reply_ini": "Réponds par un JSON LLMInitiatives.",
     },
@@ -100,7 +109,15 @@ _L = {
         "reply_findings": "Reply with a JSON LLMFindings.",
         "task_ini": ('TASK: propose initiatives that address the findings (cite F1..Fn in "findings"), '
                      "scored 1 to 5 on each criterion: {crit}. Each score cites its sources and a rationale. "
-                     "depends_on_titles: titles of other initiatives this one depends on."),
+                     "depends_on_titles: titles of other initiatives this one depends on. "
+                     "For each initiative also give objective, expected_result and indicator. "
+                     "priorities: ONLY labels PR1..PRn provided below; "
+                     "depends_on_projects: ONLY labels PJ1..PJn provided. "
+                     "Any other label will be rejected. Do not invent any duration. "
+                     "For EACH initiative, consider EACH priority PR1..PRn and cite those it serves "
+                     "(empty list only if none). Give a score for EACH criterion."),
+        "priorities_hdr": "VALIDATED INSTITUTIONAL PRIORITIES (rank 1 = highest; cite PR1..PRn):",
+        "projects_hdr": "EXISTING PROJECTS (cite PJ1..PJn in depends_on_projects):",
         "validated_short": "VALIDATED FINDINGS:",
         "reply_ini": "Reply with a JSON LLMInitiatives.",
     },
@@ -114,11 +131,43 @@ def _t(lang: Lang) -> dict[str, str]:
 # Budget de contexte (08 §4.3) : passages 10 x 350 = 3 500 jetons sur un modèle de 4 k.
 DEFAULT_PASSAGE_BUDGET = 3500
 _WORD_FACTOR = 1.3
+# Mesuré sur qwen3 en français : 1 190 mots = 1 998 jetons, soit 1,68. Marge pour chiffres et sigles.
+_SAFE_WORD_FACTOR = 1.9
+_CHARS_PER_TOKEN = 3.2
 
 
 def estimate_tokens(text: str) -> int:
     """Estimation grossière : mots × 1,3."""
     return int(len(text.split()) * _WORD_FACTOR) + 1
+
+
+def safe_tokens(text: str) -> int:
+    """Majorant prudent des jetons, pour tenir dans la fenêtre (le découpage garde `estimate_tokens`)."""
+    return int(max(len(text.split()) * _SAFE_WORD_FACTOR, len(text) / _CHARS_PER_TOKEN)) + 1
+
+
+def passage_budget(context_tokens: int | None, fixed_text: str, reply_tokens: int) -> int:
+    """Place restante pour les passages : fenêtre - partie fixe - réponse attendue."""
+    if not context_tokens:
+        return DEFAULT_PASSAGE_BUDGET
+    return max(0, context_tokens - safe_tokens(fixed_text) - reply_tokens - 64)
+
+
+def fit_passages(passages: Sequence[Passage], nonce: str, budget: int) -> list[Passage]:
+    """Passages qui seront RÉELLEMENT envoyés : les seuls que le modèle a le droit de citer."""
+    return _select(passages, nonce, budget)[0]
+
+
+def batch_passages(passages: Sequence[Passage], nonce: str, budget: int,
+                   size: int) -> list[list[Passage]]:
+    """Découpe TOUS les passages en lots qui tiennent : aucun n'est abandonné."""
+    batches: list[list[Passage]] = []
+    rest = list(passages)
+    while rest:
+        kept = fit_passages(rest[:size], nonce, budget)
+        batches.append(kept)
+        rest = rest[len(kept):]
+    return batches
 
 
 def _render_passage(p: Passage, nonce: str) -> str:
@@ -134,7 +183,7 @@ def _select(passages: Sequence[Passage], nonce: str,
     used = 0
     for p in passages:
         block = _render_passage(p, nonce)
-        cost = estimate_tokens(block)
+        cost = safe_tokens(block)
         if parts and used + cost > budget:
             break
         kept.append(p)
@@ -150,16 +199,7 @@ def render_passages(
 
     Le premier passage est toujours conservé (le refus se décide avant l'appel, pas ici).
     """
-    parts: list[str] = []
-    used = 0
-    for p in passages:
-        block = _render_passage(p, nonce)
-        cost = estimate_tokens(block)
-        if parts and used + cost > budget:
-            break
-        parts.append(block)
-        used += cost
-    return "\n".join(parts)
+    return "\n".join(_select(passages, nonce, budget)[1])
 
 
 def _render_findings(findings: Sequence[Finding], nonce: str) -> str:
@@ -210,6 +250,21 @@ def build_findings_prompt(
     )
 
 
+def _render_priorities(priorities: Sequence[Priority], nonce: str) -> str:
+    return "\n".join(
+        f"PR{i}: [rang {p.rank}] {neutralize(p.title, nonce)}"
+        + (f" — {neutralize(p.description, nonce)}" if p.description else "")
+        for i, p in enumerate(priorities, 1))
+
+
+def _render_projects(projects: Sequence[ExistingProject], nonce: str) -> str:
+    out = []
+    for i, p in enumerate(projects, 1):
+        dur = f", {p.duration_weeks} sem." if p.duration_weeks else ""
+        out.append(f"PJ{i}: {neutralize(p.title, nonce)} [{p.state}{dur}]")
+    return "\n".join(out)
+
+
 def build_initiatives_prompt(
     findings: Sequence[Finding],
     passages: Sequence[Passage],
@@ -218,15 +273,26 @@ def build_initiatives_prompt(
     nonce: str,
     budget: int = DEFAULT_PASSAGE_BUDGET,
     lang: Lang = "fr",
+    priorities: Sequence[Priority] = (),
+    projects: Sequence[ExistingProject] = (),
 ) -> str:
-    """Message utilisateur pour proposer des initiatives notées (JSON ``LLMInitiatives``)."""
+    """Message utilisateur pour proposer des initiatives notées (JSON ``LLMInitiatives``).
+
+    Priorités validées et projets font partie de la partie FIXE : ils sont comptés avant les passages.
+    """
     t = _t(lang)
     crit = ", ".join(f"{c.key} ({neutralize(c.label, nonce)})" for c in criteria)
+    extra = []
+    if priorities:
+        extra += [t["priorities_hdr"], _render_priorities(priorities, nonce)]
+    if projects:
+        extra += [t["projects_hdr"], _render_projects(projects, nonce)]
     return "\n".join(
         [
             t["task_ini"].format(crit=crit),
             t["validated_short"],
             _render_findings(findings, nonce),
+            *extra,
             t["passages"],
             render_passages(passages, nonce, budget),
             t["reply_ini"],

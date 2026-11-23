@@ -42,18 +42,30 @@ def _contributions(
 
 
 def score_with_warnings(
-    initiatives: list[Initiative], criteria: list[Criterion], waves: int = 3
+    initiatives: list[Initiative], criteria: list[Criterion], waves: int = 3,
+    tiebreak: dict[str, tuple] | None = None,
 ) -> tuple[list[ScoredInitiative], list[str]]:
-    """Comme `score`, mais renvoie aussi les avertissements (critères manquants)."""
+    """Comme `score`, mais renvoie aussi les avertissements (critères manquants).
+
+    `tiebreak` : clé explicite (coherence.tiebreak_keys) qui départage les scores égaux ;
+    sans elle, l'identifiant.
+    """
     if waves < 1:
         raise ValueError("waves doit être >= 1")
     warnings: list[str] = []
     values = {}
+    missing: dict[str, list[str]] = {}
     for ini in initiatives:
         contribs = _contributions(ini, criteria, warnings)
         values[ini.id] = round(sum(w * n for _, w, _, n in contribs), 4)
-    order = sorted(initiatives, key=lambda i: (-values[i.id], i.id))
+        have = {s.key for s in ini.scores}
+        missing[ini.id] = [c.key for c in criteria if c.key not in have]
+    tb = tiebreak or {}
+    # une initiative non évaluée passe après les évaluées : son score n'est pas comparable
+    order = sorted(initiatives, key=lambda i: (bool(missing[i.id]), -values[i.id],
+                                               tb.get(i.id, ()), i.id))
     n = len(order)
+    waves = max(1, min(waves, n))  # les vagues commencent à 1 et ne dépassent pas le nombre d'initiatives
     wave = {ini.id: math.ceil((r + 1) * waves / n) for r, ini in enumerate(order)}
     # Une initiative n'est jamais dans une vague antérieure à ses prérequis.
     # Itération à point fixe, bornée (les cycles saturent à `waves`).
@@ -68,7 +80,8 @@ def score_with_warnings(
         if not changed:
             break
     items = [
-        ScoredInitiative(initiative=ini, score=values[ini.id], rank=r + 1, wave=wave[ini.id])
+        ScoredInitiative(initiative=ini, score=values[ini.id], rank=r + 1, wave=wave[ini.id],
+                        unscored=missing[ini.id])
         for r, ini in enumerate(order)
     ]
     return items, warnings

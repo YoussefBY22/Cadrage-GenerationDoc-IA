@@ -7,7 +7,7 @@ import SourcePanel from "@/components/SourcePanel";
 import { Alert } from "@/components/ui";
 import { ApiError } from "@/lib/api";
 import { sectionTitle, t } from "@/lib/i18n";
-import { ExportBar, TransitionBar } from "./ActionBars";
+import { AckBar, ExportBar, TransitionBar } from "./ActionBars";
 import { deliverables, type ExportFormat } from "./client";
 import { m } from "./i18n";
 import SectionEditor from "./SectionEditor";
@@ -21,7 +21,10 @@ import {
 } from "./types";
 import VersionsPanel from "./VersionsPanel";
 
-const TYPE_LABEL: Record<string, string> = { tor: "ToR", cdc: "CdC" };
+const TYPE_LABEL: Record<string, string> = { tor: "TdR", cdc: "CdC" };
+
+/** Défauts de preuve : à corriger, jamais acquittables (même liste que le serveur). */
+const HARD = new Set(["UNKNOWN_SOURCE", "FOREIGN_SOURCE", "FACT_WITHOUT_SOURCE", "UNKNOWN_FINDING", "INSTRUCTION_ECHO"]);
 
 const errText = (e: unknown) => (e instanceof ApiError ? e.message : t.common.error);
 
@@ -147,7 +150,14 @@ export default function DeliverableView({ id }: { id: string }) {
           {specs.map(({ key }) => {
             const section = byKey.get(key);
             const report = reportOf(key);
-            const failed = report?.report.checks.filter((c) => c.status === "failed") ?? [];
+            const hard = new Set(
+              (report?.report.issues ?? []).filter((i) => HARD.has(i.code)).map((i) => i.sentence_index),
+            );
+            const failed = (report?.report.checks ?? []).filter((c) => c.status === "failed" && !hard.has(c.index));
+            const ackItems = [
+              ...failed.map((c) => ({ index: c.index, label: `${m.ack} #${c.index + 1}` })),
+              ...(section?.status === "insufficient_evidence" ? [{ index: -1, label: m.ackRefusal }] : []),
+            ];
             const sectionComments = comments.filter((c) => c.section_key === key);
             const title = sectionTitle(d.type, key);
             return (
@@ -180,17 +190,14 @@ export default function DeliverableView({ id }: { id: string }) {
                     />
                   )}
                 </div>
-                {role !== "consultant" && failed.length > 0 && (
+                {role !== "consultant" && d.state === "in_review" && ackItems.length > 0 && (
                   <div className="section-foot">
-                    {failed.map((c) => (
-                      <button
-                        key={c.index}
-                        className="btn btn-sm"
-                        onClick={() => run("ack", () => deliverables.acknowledge(id, key, c.index).then(() => {}))}
-                      >
-                        {m.ack} #{c.index + 1}
-                      </button>
-                    ))}
+                    <AckBar
+                      items={ackItems}
+                      onAck={(index, reason) =>
+                        run("ack", () => deliverables.acknowledge(id, key, index, reason).then(() => {}))
+                      }
+                    />
                   </div>
                 )}
                 <details className="comments" open={sectionComments.length > 0}>

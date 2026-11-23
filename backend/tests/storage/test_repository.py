@@ -246,6 +246,20 @@ def test_protocol_fully_exercised(repo, world):
     spy.record_verification(run, VerificationReport(section_key="k", checks=[], issues=[]))
     spy.audit(uid, "a", "o", "1", {})
     spy.record_alert("chk_s", [])
+    spy.set_document_role(doc2, "diagnostic")
+    spy.document_roles(d2)
+    pr = spy.create_priority(d2, title="p", description="", rank=1, status="proposed",
+                             source_ids=[], author_id=uid)
+    spy.get_priority(pr.id)
+    spy.list_priorities(d2)
+    spy.update_priority(pr.id, status="validated")
+    spy.delete_priority(pr.id)
+    pj = spy.create_project(d2, title="j", state="existing", duration_weeks=None, depends_on=[],
+                            source_ids=[], author_id=uid)
+    spy.get_project(pj.id)
+    spy.list_projects(d2)
+    spy.update_project(pj.id, state="done")
+    spy.delete_project(pj.id)
     protocol_methods = {n for n, v in vars(Repository).items()
                         if callable(v) and not n.startswith("_")}
     assert protocol_methods - called == set()

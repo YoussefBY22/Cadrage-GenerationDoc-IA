@@ -1,5 +1,7 @@
 # Lot Q — qualité réelle (Ollama) et export PDF
 
+> **Correction du 22/11/2026, mesures non fiables.** La fenêtre de contexte était de 4 096 jetons et Ollama coupait le début des invites trop longues sans erreur. Les chiffres de refus, de qualité et de latence ci-dessous ont pu être mesurés sur des invites tronquées : ils sont à refaire.
+
 ## 1. Refus excessifs : trois itérations de prompt, aucune retenue
 Évaluation B réduite réelle (qwen3:4b + bge-m3, `eval/configs/B-gpu.yaml`, 1 institution, 31 sections dont
 10 « preuve » et 10 « sans preuve », 1 passe). **Une section = 10 points** sur les taux de refus manqués/faux :

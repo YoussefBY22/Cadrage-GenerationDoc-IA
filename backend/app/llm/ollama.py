@@ -10,12 +10,16 @@ par `format` = schéma JSON (décodage contraint).
 """
 
 import json
+import threading
+from collections.abc import Callable
 from urllib.parse import urlparse
 
 import httpx
 from pydantic import ValidationError
 
 from .base import LLMError, LLMProvider, T
+
+DEFAULT_NUM_CTX = 4096  # ce que tient un GPU de 4 Go (mesuré le 22/11/2026)
 
 
 class OllamaProvider(LLMProvider):
@@ -24,7 +28,8 @@ class OllamaProvider(LLMProvider):
                  client: httpx.Client | None = None, *, think: bool = False,
                  options: dict | None = None, keep_alive: str | None = "30m",
                  query_prefix: str = "", passage_prefix: str = "",
-                 embed_batch: int = 32, temperature: float | None = None) -> None:
+                 embed_batch: int = 32, temperature: float | None = None,
+                 model_resolver: Callable[[], str | None] | None = None) -> None:
         host = urlparse(base_url).hostname or ""
         if host not in allowed_hosts:
             raise LLMError(
@@ -34,9 +39,10 @@ class OllamaProvider(LLMProvider):
         if not generation_model or not embedding_model:
             raise LLMError("OLLAMA_GENERATION_MODEL et OLLAMA_EMBEDDING_MODEL doivent être définis.")
         self.base_url = base_url.rstrip("/")
-        self.generation_model = generation_model
+        self.base_generation_model = generation_model
+        # Modèle actif choisi dans le registre : relu à chaque appel, donc pris en compte sans redémarrage.
+        self.model_resolver = model_resolver
         self.embedding_model = embedding_model
-        self.name = f"ollama:{generation_model}"
         # connexion courte (serveur local absent = échec rapide), lecture longue (génération)
         self._client = client or httpx.Client(
             timeout=httpx.Timeout(timeout, connect=min(10.0, timeout)), trust_env=False)
@@ -48,7 +54,39 @@ class OllamaProvider(LLMProvider):
         self.passage_prefix = passage_prefix
         self.embed_batch = max(1, embed_batch)
         self._dim: int | None = None
-        self.last_usage: dict = {}
+        self._local = threading.local()   # dernier appel, PAR FIL : pas de mélange entre requêtes concurrentes
+        self.context_tokens = int(self.extra_options.get("num_ctx") or DEFAULT_NUM_CTX)
+        self.extra_options["num_ctx"] = self.context_tokens  # explicite : le défaut d'Ollama varie selon la VRAM
+
+    @property
+    def generation_model(self) -> str:
+        if self.model_resolver is not None:
+            try:
+                chosen = self.model_resolver()
+            except Exception:  # noqa: BLE001 — un registre illisible ne doit pas arrêter la génération
+                chosen = None
+            if chosen:
+                return chosen
+        return self.base_generation_model
+
+    @property
+    def name(self) -> str:
+        """Nom exact du modèle en service, tracé dans chaque exécution (NFR-07)."""
+        return f"ollama:{self.generation_model}"
+
+    @property
+    def last_usage(self) -> dict:
+        return getattr(self._local, "usage", {})
+
+    @property
+    def served_model(self) -> str:
+        """Modèle réellement envoyé au dernier appel de ce fil (un changement d'actif pendant l'appel n'y change rien)."""
+        model = getattr(self._local, "model", None)
+        return f"ollama:{model}" if model else self.name
+
+    @property
+    def embedding_name(self) -> str:
+        return f"ollama:{self.embedding_model}"
 
     def _post(self, path: str, payload: dict) -> dict:
         try:
@@ -70,16 +108,21 @@ class OllamaProvider(LLMProvider):
             options["seed"] = seed
         if max_tokens is not None:
             options["num_predict"] = max_tokens
-        payload = {"model": self.generation_model, "messages": self._messages(prompt, system),
-                   "stream": False, "think": self.think, "options": options}
+        model = self.generation_model   # lu UNE fois : c'est ce nom qui part et qui sera journalisé
+        payload = {"model": model, "messages": self._messages(prompt, system),
+                   "stream": False, "think": self.think, "options": options,
+                   # jamais de coupe silencieuse : par défaut Ollama jette le DÉBUT (règles, premiers passages)
+                   "truncate": False, "shift": False}
         if self.keep_alive:
             payload["keep_alive"] = self.keep_alive
         if fmt is not None:
             payload["format"] = fmt
         data = self._post("/api/chat", payload)
-        self.last_usage = {"prompt_tokens": data.get("prompt_eval_count"),
-                           "output_tokens": data.get("eval_count"),
-                           "total_ms": (data.get("total_duration") or 0) // 1_000_000}
+        self._local.model = model
+        self._local.usage = {"prompt_tokens": data.get("prompt_eval_count"),
+                             "output_tokens": data.get("eval_count"),
+                             "total_ms": (data.get("total_duration") or 0) // 1_000_000,
+                             "eval_ms": (data.get("eval_duration") or 0) // 1_000_000}
         try:
             return data["message"]["content"]
         except (KeyError, TypeError) as exc:
