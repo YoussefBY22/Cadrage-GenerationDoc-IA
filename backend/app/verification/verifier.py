@@ -22,20 +22,34 @@ def _label(raw: str) -> str:
     return re.sub(r"[\[\]\s]", "", raw).upper()
 
 
-def resolve_labels(llm: Any, passages: list[Passage], *, section_key: str = "") -> SectionDraft:
+_DEC_LABEL = re.compile(r"^D\d+$")
+
+
+def resolve_labels(llm: Any, passages: list[Passage], *, section_key: str = "",
+                   decisions: dict[str, str] | None = None) -> SectionDraft:
     """Traduit les étiquettes P1..Pn du modèle en identifiants de chunks.
 
     ``llm`` est un ``LLMSection`` (status, sentences[text, kind, sources, findings],
     missing_evidence). Étiquette inconnue : conservée telle quelle (le vérificateur la rejettera).
     """
     mapping = {p.label.upper(): p.chunk.id for p in passages}
+    dmap = {k.upper(): v for k, v in (decisions or {}).items()}  # D1 -> identifiant de décision
     sentences = []
     for s in llm.sentences:
         ids: list[str] = []
+        dids: list[str] = []
+        # Un petit modèle met parfois « D1 » dans « sources » : on l'y reconnaît.
         for raw in s.sources:
-            cid = mapping.get(_label(raw), raw)
-            if cid not in ids:
-                ids.append(cid)
+            lab = _label(raw)
+            if _DEC_LABEL.match(lab):
+                dids.append(dmap.get(lab, raw))
+            else:
+                cid = mapping.get(lab, raw)
+                if cid not in ids:
+                    ids.append(cid)
+        for raw in getattr(s, "decisions", None) or []:
+            dids.append(dmap.get(_label(raw), raw))  # inconnue : conservée, le vérificateur rejette
+        dids = list(dict.fromkeys(dids))
         sentences.append(
             Sentence(
                 text=s.text,
@@ -43,6 +57,7 @@ def resolve_labels(llm: Any, passages: list[Passage], *, section_key: str = "") 
                 source_labels=list(s.sources),
                 source_ids=ids,
                 finding_ids=list(getattr(s, "findings", None) or []),
+                decision_ids=dids,
             )
         )
     return SectionDraft(
@@ -72,9 +87,35 @@ def _lost_ranges(mentions: list, sources: list[Chunk], lang: Lang, other: Lang) 
     ]
 
 
+def _misattribution(s: Sentence, valid: list[Chunk], decisions: dict[str, str], pool: set,
+                    mentions: list, lang: Lang, other: Lang, add) -> None:
+    """Contenu d'une décision cité comme un passage du diagnostic : fausse attribution, bloquante.
+
+    Vaut pour les décisions que la phrase NE cite PAS. Un nombre (même en lettres) ou une phrase qui
+    vient d'une décision et que le passage cité ne contient pas ne peut pas être sourcé par lui.
+    """
+    chunk_texts = [c.text for c in valid]
+    for did, text in decisions.items():
+        if did in s.decision_ids:
+            continue
+        dnums = {(n.value, n.is_percent) for lg in (lang, other) for n in extract_numbers(text, lg)}
+        stray = [n.raw for n in mentions if (n.value, n.is_percent) in dnums
+                 and (n.value, n.is_percent) not in pool]
+        words = len(s.text.split())
+        sup_dec = lexical_support(s.text, [text], lang)
+        sup_src = lexical_support(s.text, chunk_texts, lang)
+        copied = words >= 4 and sup_dec >= 0.8 and sup_dec - sup_src >= 0.2
+        if stray or copied:
+            what = f"nombre {stray[0]}" if stray else "texte"
+            add("FOREIGN_SOURCE",
+                f"faux ancrage : {what} issu d'une décision humaine, cité comme un passage")
+            return
+
+
 def _check(
     i: int, s: Sentence, passages: dict[str, Chunk], dossier_id: str,
     known: set[str], threshold: float, lang: Lang,
+    decisions: dict[str, str] | None = None, decision_required: bool = False,
 ) -> tuple[SentenceCheck, list[Issue]]:
     issues: list[Issue] = []
 
@@ -92,8 +133,18 @@ def _check(
             add("FOREIGN_SOURCE", f"source d'un autre dossier : {sid}")
         else:
             valid.append(chunk)
-    if s.kind == "fact" and not s.source_ids:
+    decisions = decisions or {}
+    dtexts: list[str] = []
+    for did in s.decision_ids:
+        if did not in decisions:  # absente, non confirmée ou d'un autre dossier
+            add("UNKNOWN_SOURCE", f"décision inconnue ou non confirmée : {did}")
+        else:
+            dtexts.append(decisions[did])
+    if s.kind == "fact" and not s.source_ids and not s.decision_ids:
         add("FACT_WITHOUT_SOURCE", "fait sans source")
+    if decision_required and s.kind != "transition" and not s.decision_ids:
+        add("FACT_WITHOUT_SOURCE",
+            "section de décision : la phrase ne cite aucune décision humaine confirmée")
     for fid in s.finding_ids:
         if fid not in known:
             add("UNKNOWN_FINDING", f"constat inconnu : {fid}")
@@ -107,19 +158,22 @@ def _check(
             add("TRANSITION_WITH_NUMBER", "transition contenant un nombre")
     else:
         other: Lang = "en" if lang == "fr" else "fr"  # dossier mixte : source dans l'autre langue
-        pool = {(n.value, n.is_percent) for c in valid
-                for lg in (lang, other) for n in extract_numbers(c.text, lg)}
+        texts = [c.text for c in valid] + dtexts
+        pool = {(n.value, n.is_percent) for x in texts
+                for lg in (lang, other) for n in extract_numbers(x, lg)}
         for n in mentions:
             if (n.value, n.is_percent) in pool:
                 found += 1
             else:
                 small = n.in_words and not n.is_percent and n.value <= SMALL_COUNT
                 add("NUMBER_NOT_FOUND", f"nombre absent des sources citées : {n.raw}", blocking=not small)
+        if valid:
+            _misattribution(s, valid, decisions, pool, mentions, lang, other, add)
         for raw in _lost_ranges(mentions, valid, lang, other):
             add("RANGE_LOST", f"la source donne une fourchette, la phrase une seule borne : {raw}", False)
 
-    if valid:
-        support = lexical_support(s.text, [c.text for c in valid], lang)
+    if valid or dtexts:
+        support = lexical_support(s.text, [c.text for c in valid] + dtexts, lang)
         if support < threshold:
             add("LOW_SUPPORT", f"appui lexical {support:.2f} < {threshold}", blocking=False)
     else:
@@ -142,12 +196,19 @@ def verify_section(
     known_finding_ids: set[str] = frozenset(),
     support_threshold: float = 0.3,
     lang: Lang = "fr",
+    decisions: dict[str, str] | None = None,
+    decision_required: bool = False,
 ) -> VerificationReport:
-    """Vérifie chaque phrase ; ``passages`` : chunk id -> chunk fournis au modèle."""
+    """Vérifie chaque phrase ; ``passages`` : chunk id -> chunk fournis au modèle.
+
+    ``decisions`` : id -> texte des décisions CONFIRMÉES du dossier (les seules citables).
+    ``decision_required`` : la section exige une décision ; toute phrase doit en citer une.
+    """
     checks: list[SentenceCheck] = []
     issues: list[Issue] = []
     for i, s in enumerate(draft.sentences):
-        c, iss = _check(i, s, passages, dossier_id, set(known_finding_ids), support_threshold, lang)
+        c, iss = _check(i, s, passages, dossier_id, set(known_finding_ids), support_threshold, lang,
+                        decisions, decision_required)
         checks.append(c)
         issues.extend(iss)
     return VerificationReport(section_key=draft.section_key, checks=checks, issues=issues)

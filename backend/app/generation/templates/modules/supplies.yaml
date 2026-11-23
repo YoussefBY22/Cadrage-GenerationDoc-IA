@@ -1,0 +1,111 @@
+id: supplies
+version: '1.0'
+fr:
+  label: Fournitures
+  referentiels:
+  - Incoterms (répartition des risques de livraison)
+  - ISO 9001 (management de la qualité)
+  tor:
+    sections: []
+    adapt:
+    - key: livrables
+      instructions_append: Liste les fournitures, quantités et conditions de livraison.
+  cdc:
+    sections:
+    - key: sup_specs
+      title: Spécifications des fournitures
+      instructions: Décris les caractéristiques et quantités des fournitures, d'après les passages.
+      queries:
+      - caractéristiques techniques
+      - quantités
+      - références et normes
+      min_sources: 2
+      max_sentences: 8
+      uses_findings: true
+      after: non_fonctionnelles
+    - key: sup_livraison
+      title: Livraison, installation et réception
+      instructions: Décris la livraison et la réception telles que les décisions confirmées les fixent.
+      queries:
+      - délai de livraison
+      - installation
+      - réception quantitative et qualitative
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - Incoterms (lieu et transfert des risques)
+      requires_decisions:
+      - schedule
+      after: non_fonctionnelles
+    - key: sup_garantie
+      title: Garantie et service après-vente
+      instructions: Décris la garantie et le service après-vente tels que les décisions confirmées les
+        fixent.
+      queries:
+      - durée de garantie
+      - service après-vente
+      - pièces de rechange
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      requires_decisions:
+      - duration
+      after: non_fonctionnelles
+    adapt:
+    - key: recette
+      instructions_append: Prévois un contrôle à la livraison (conformité, quantité, état).
+en:
+  label: Supplies
+  referentiels:
+  - Incoterms (delivery risk allocation)
+  - ISO 9001 (quality management)
+  tor:
+    sections: []
+    adapt:
+    - key: livrables
+      instructions_append: List the supplies, quantities and delivery conditions.
+  cdc:
+    sections:
+    - key: sup_specs
+      title: Supply specifications
+      instructions: Describe the characteristics and quantities of the supplies, from the passages.
+      queries:
+      - technical characteristics
+      - quantities
+      - references and standards
+      min_sources: 2
+      max_sentences: 8
+      uses_findings: true
+      after: non_fonctionnelles
+    - key: sup_livraison
+      title: Delivery, installation and acceptance
+      instructions: Describe delivery and acceptance as set by the confirmed decisions.
+      queries:
+      - delivery lead time
+      - installation
+      - quantitative and qualitative acceptance
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - Incoterms (place and transfer of risk)
+      requires_decisions:
+      - schedule
+      after: non_fonctionnelles
+    - key: sup_garantie
+      title: Warranty and after-sales service
+      instructions: Describe the warranty and after-sales service as set by the confirmed decisions.
+      queries:
+      - warranty period
+      - after-sales service
+      - spare parts
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      requires_decisions:
+      - duration
+      after: non_fonctionnelles
+    adapt:
+    - key: recette
+      instructions_append: Plan a delivery inspection (conformity, quantity, condition).

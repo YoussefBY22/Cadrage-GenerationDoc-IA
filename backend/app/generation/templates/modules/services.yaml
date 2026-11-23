@@ -1,0 +1,128 @@
+id: services
+version: '1.0'
+fr:
+  label: Services et externalisation
+  referentiels:
+  - ITIL (gestion des services)
+  - ISO/IEC 20000-1 (management des services)
+  tor:
+    sections:
+    - key: srv_pilotage
+      title: Pilotage du contrat
+      instructions: Décris la gouvernance et le pilotage du contrat, d'après les passages.
+      queries:
+      - gouvernance du contrat
+      - comités de pilotage
+      - reporting
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - ITIL (gouvernance et amélioration continue)
+      after: calendrier
+    adapt: []
+  cdc:
+    sections:
+    - key: srv_perimetre
+      title: Périmètre du service
+      instructions: Décris les services attendus et leur périmètre, d'après les passages.
+      queries:
+      - services attendus
+      - périmètre du service
+      - volumes d'activité
+      min_sources: 2
+      max_sentences: 8
+      uses_findings: true
+      after: non_fonctionnelles
+    - key: srv_niveaux
+      title: Niveaux de service et pénalités
+      instructions: Décris les niveaux de service et pénalités tels que les décisions confirmées les fixent.
+      queries:
+      - niveaux de service
+      - indicateurs de qualité
+      - pénalités
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - ISO/IEC 20000-1 (niveaux de service)
+      requires_decisions:
+      - criterion
+      after: non_fonctionnelles
+    - key: srv_reversibilite
+      title: Transfert et réversibilité
+      instructions: Décris le transfert de service et la réversibilité, d'après les passages.
+      queries:
+      - réversibilité
+      - transfert de connaissances
+      - fin de contrat
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      after: non_fonctionnelles
+    adapt:
+    - key: contraintes
+      instructions_append: Précise les contraintes de continuité de service.
+en:
+  label: Services and outsourcing
+  referentiels:
+  - ITIL (service management)
+  - ISO/IEC 20000-1 (service management)
+  tor:
+    sections:
+    - key: srv_pilotage
+      title: Contract management
+      instructions: Describe the governance and management of the contract, from the passages.
+      queries:
+      - contract governance
+      - steering committees
+      - reporting
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - ITIL (governance and continual improvement)
+      after: calendrier
+    adapt: []
+  cdc:
+    sections:
+    - key: srv_perimetre
+      title: Service scope
+      instructions: Describe the expected services and their scope, from the passages.
+      queries:
+      - expected services
+      - service scope
+      - activity volumes
+      min_sources: 2
+      max_sentences: 8
+      uses_findings: true
+      after: non_fonctionnelles
+    - key: srv_niveaux
+      title: Service levels and penalties
+      instructions: Describe the service levels and penalties as set by the confirmed decisions.
+      queries:
+      - service levels
+      - quality indicators
+      - penalties
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - ISO/IEC 20000-1 (service levels)
+      requires_decisions:
+      - criterion
+      after: non_fonctionnelles
+    - key: srv_reversibilite
+      title: Transfer and reversibility
+      instructions: Describe the service transfer and reversibility, from the passages.
+      queries:
+      - reversibility
+      - knowledge transfer
+      - end of contract
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      after: non_fonctionnelles
+    adapt:
+    - key: contraintes
+      instructions_append: State the service continuity constraints.

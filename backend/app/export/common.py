@@ -30,6 +30,7 @@ LABELS: dict[str, dict[str, str]] = {
         "gantt": "Calendrier (Gantt, semaines)", "weeks": "sem.",
         "gantt_order": "Ordre d'exécution", "no_dates": "Durées non saisies : ordre seulement, aucune date.",
         "priority_matrix": "Matrice de priorité ({x} × {y})", "unknown": "inconnu",
+        "decision_by": "Décision de {author}, {date}",
     },
     "en": {
         "footer": "Version {version} · SHA-256 {sha} · Approved by {approver} on {date}",
@@ -42,6 +43,7 @@ LABELS: dict[str, dict[str, str]] = {
         "gantt": "Timeline (Gantt, weeks)", "weeks": "wk.",
         "gantt_order": "Execution order", "no_dates": "Durations not entered: order only, no dates.",
         "priority_matrix": "Priority matrix ({x} × {y})", "unknown": "unknown",
+        "decision_by": "Decision by {author}, {date}",
     },
 }
 
@@ -127,6 +129,16 @@ def _pages(c: Chunk) -> str:
     return f"{c.page_start}-{c.page_end}"
 
 
+@dataclass(frozen=True)
+class ExportDecision:
+    """Décision confirmée citée : l'export la montre comme « décision de <auteur>, <date> »."""
+
+    text: str
+    category: str
+    author: str
+    date: str
+
+
 def build_export_data(
     content: DeliverableContent,
     chunks: dict[str, Chunk],
@@ -138,6 +150,7 @@ def build_export_data(
     approved_at: str,
     titles: dict[str, str] | None = None,
     title: str = "",
+    decisions: dict[str, ExportDecision] | None = None,
 ) -> ExportData:
     """Numérote les citations par ordre d'apparition et construit la table des sources."""
     titles = titles or {}
@@ -167,6 +180,22 @@ def build_export_data(
                     )
                 if numbers[cid] not in nums:
                     nums.append(numbers[cid])
+            for did in sent.decision_ids:
+                dec = (decisions or {}).get(did)
+                if dec is None:
+                    raise ExportForbidden(
+                        f"citation invalide dans « {sec.section_key} » : décision {did} "
+                        "introuvable ou non confirmée ; corrigez la section avant d'exporter")
+                key = "decision:" + did
+                if key not in numbers:
+                    numbers[key] = len(numbers) + 1
+                    sources.append(SourceEntry(
+                        n=numbers[key],
+                        document=labels(content.language)["decision_by"].format(
+                            author=dec.author, date=dec.date),
+                        page="—", section=dec.category, excerpt=_excerpt(dec.text)))
+                if numbers[key] not in nums:
+                    nums.append(numbers[key])
             sents.append(ExportSentence(sent.text, nums))
         sections.append(
             ExportSection(sec.section_key, titles.get(sec.section_key, sec.section_key), sec.status, sents,
@@ -187,7 +216,7 @@ def build_export_data(
 
 def load_export_data(repo, deliverable_id: str) -> ExportData:
     """Charge le livrable ; lève ExportForbidden si l'état n'est pas « approved » (garde du service)."""
-    from app.generation.template_loader import TemplateError, load_template
+    from app.generation.template_loader import TemplateError, template_for
 
     with repo.engine.connect() as c:
         row = c.execute(
@@ -219,8 +248,19 @@ def load_export_data(repo, deliverable_id: str) -> ExportData:
         raise ExportForbidden("export refusé, preuves invalides : " + " ; ".join(problems[:5]))
     ids = [cid for sec in content.sections for sn in sec.sentences for cid in sn.source_ids]
     chunks = repo.get_chunks(row.dossier_id, list(dict.fromkeys(ids))) if ids else {}
+    from app.domain.decisions import category_label
+    from app.services.coeur import names
+
+    confirmed = repo.list_decisions(row.dossier_id, status="confirmed")
+    who = names(repo, [d.author_id for d in confirmed])
+    decisions = {
+        d.id: ExportDecision(
+            text=d.text, category=category_label(d.category, content.language),
+            author=who.get(d.author_id or "", labels(content.language)["unknown"]),
+            date=d.confirmed_at.strftime("%Y-%m-%d") if d.confirmed_at else "—")
+        for d in confirmed}
     try:
-        tpl = load_template(content.type, content.language)
+        tpl = template_for(content)
         titles, title = {x.key: x.title for x in tpl.sections}, tpl.title
     except TemplateError:
         titles, title = {}, content.template_id
@@ -230,7 +270,7 @@ def load_export_data(repo, deliverable_id: str) -> ExportData:
         approved_at = tr.at.strftime("%Y-%m-%d") if isinstance(tr.at, datetime) else str(tr.at)[:10]
     return build_export_data(
         content, chunks, doc_names, deliverable_id=deliverable_id, version=version, approver=approver,
-        approved_at=approved_at, titles=titles, title=title,
+        approved_at=approved_at, titles=titles, title=title, decisions=decisions,
     )
 
 

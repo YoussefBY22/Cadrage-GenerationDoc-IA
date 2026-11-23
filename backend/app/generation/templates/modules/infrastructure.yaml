@@ -1,0 +1,138 @@
+id: infrastructure
+version: '1.0'
+fr:
+  label: Infrastructure et travaux
+  referentiels:
+  - FIDIC (conditions de contrat de travaux)
+  - ISO 9001 (management de la qualité)
+  tor:
+    sections:
+    - key: inf_competences
+      title: Compétences et habilitations
+      instructions: Décris les compétences et habilitations exigées telles que les décisions confirmées
+        les fixent.
+      queries:
+      - qualifications techniques
+      - habilitations
+      - expérience de chantiers
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      requires_decisions:
+      - profile
+      after: profil
+    adapt:
+    - key: calendrier
+      instructions_append: Indique les contraintes de site et les périodes d'intervention.
+  cdc:
+    sections:
+    - key: inf_site
+      title: Site, accès et existant
+      instructions: Décris le site, ses accès et l'existant, d'après les passages.
+      queries:
+      - description du site
+      - accès et contraintes d'intervention
+      - installations existantes
+      min_sources: 2
+      max_sentences: 8
+      uses_findings: true
+      after: non_fonctionnelles
+    - key: inf_normes
+      title: Normes et conformité techniques
+      instructions: Décris les normes et exigences réglementaires applicables, d'après les passages.
+      queries:
+      - normes applicables
+      - hygiène, sécurité et environnement
+      - autorisations
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - ISO 9001 (maîtrise de la qualité)
+      after: non_fonctionnelles
+    - key: inf_garantie
+      title: Réception et garanties
+      instructions: Décris les modalités de réception et les garanties telles que les décisions confirmées
+        les fixent.
+      queries:
+      - réception des ouvrages
+      - garantie
+      - période de maintenance
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - FIDIC (réception, période de garantie)
+      requires_decisions:
+      - duration
+      after: non_fonctionnelles
+    adapt:
+    - key: recette
+      instructions_append: Distingue réception provisoire et réception définitive.
+en:
+  label: Infrastructure and works
+  referentiels:
+  - FIDIC (works contract conditions)
+  - ISO 9001 (quality management)
+  tor:
+    sections:
+    - key: inf_competences
+      title: Skills and accreditations
+      instructions: Describe the skills and accreditations required as set by the confirmed decisions.
+      queries:
+      - technical qualifications
+      - accreditations
+      - site experience
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      requires_decisions:
+      - profile
+      after: profil
+    adapt:
+    - key: calendrier
+      instructions_append: State the site constraints and the intervention periods.
+  cdc:
+    sections:
+    - key: inf_site
+      title: Site, access and existing facilities
+      instructions: Describe the site, its access and the existing facilities, from the passages.
+      queries:
+      - site description
+      - access and intervention constraints
+      - existing installations
+      min_sources: 2
+      max_sentences: 8
+      uses_findings: true
+      after: non_fonctionnelles
+    - key: inf_normes
+      title: Technical standards and compliance
+      instructions: Describe the applicable standards and regulatory requirements, from the passages.
+      queries:
+      - applicable standards
+      - health, safety and environment
+      - permits
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - ISO 9001 (quality control)
+      after: non_fonctionnelles
+    - key: inf_garantie
+      title: Acceptance and warranties
+      instructions: Describe acceptance and warranties as set by the confirmed decisions.
+      queries:
+      - works acceptance
+      - warranty
+      - maintenance period
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - FIDIC (taking over, defects liability period)
+      requires_decisions:
+      - duration
+      after: non_fonctionnelles
+    adapt:
+    - key: recette
+      instructions_append: Distinguish provisional and final acceptance.

@@ -36,6 +36,17 @@ def version_author(repo, deliverable_id: str, version: int) -> str | None:
             t.c.deliverable_id == deliverable_id, t.c.version == version)).scalar()
 
 
+def _decision_sections(content: DeliverableContent) -> set[str]:
+    """Clés des sections dont le gabarit exige une décision (leurs phrases doivent en citer une)."""
+    from app.generation.template_loader import TemplateError, template_for
+
+    try:
+        tpl = template_for(content)
+    except TemplateError:
+        return set()
+    return {x.key for x in tpl.sections if x.requires_decisions}
+
+
 def verify_content(repo, dossier_id: str, content: DeliverableContent,
                    support_threshold: float = 0.3) -> list[VerificationReport]:
     """Re-vérifie chaque section contre les passages du dossier (jamais d'autre dossier).
@@ -43,6 +54,8 @@ def verify_content(repo, dossier_id: str, content: DeliverableContent,
     Seuls les constats VALIDÉS sont connus : citer un constat non validé est un défaut de preuve.
     """
     known = {f.id for f in repo.list_findings(dossier_id, validated_only=True)}
+    decisions = {d.id: d.text for d in repo.list_decisions(dossier_id, status="confirmed")}
+    required = _decision_sections(content)
     reports = []
     for sec in content.sections:
         ids = sorted({i for sent in sec.sentences for i in sent.source_ids})
@@ -50,7 +63,8 @@ def verify_content(repo, dossier_id: str, content: DeliverableContent,
         reports.append(verify_section(sec, passages, dossier_id=dossier_id,
                                       known_finding_ids=known,
                                       support_threshold=support_threshold,
-                                      lang=content.language))
+                                      lang=content.language, decisions=decisions,
+                                      decision_required=sec.section_key in required))
     return reports
 
 
@@ -130,7 +144,8 @@ NON_ACKNOWLEDGEABLE = frozenset({"UNKNOWN_SOURCE", "FOREIGN_SOURCE", "FACT_WITHO
 def unsupported_recommendations(content: DeliverableContent) -> set[tuple[str, int]]:
     """Recommandations sans source ni constat : à acquitter avec motif avant approbation."""
     return {(sec.section_key, i) for sec in content.sections for i, sn in enumerate(sec.sentences)
-            if sn.kind == "recommendation" and not sn.source_ids and not sn.finding_ids}
+            if sn.kind == "recommendation" and not sn.source_ids and not sn.finding_ids
+            and not sn.decision_ids}
 
 
 def evidence_status(repo, dossier_id: str, content: DeliverableContent,

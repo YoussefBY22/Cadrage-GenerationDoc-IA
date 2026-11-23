@@ -1,0 +1,103 @@
+id: study
+version: '1.0'
+fr:
+  label: Étude et conseil
+  referentiels:
+  - OCDE-CAD (critères d'évaluation)
+  - Banque mondiale (termes de référence d'études)
+  tor:
+    sections:
+    - key: etu_methodologie
+      title: Méthodologie attendue
+      instructions: Décris la démarche et les méthodes attendues, d'après les passages.
+      queries:
+      - méthodologie
+      - collecte de données
+      - démarche d'analyse
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: true
+      referentiels:
+      - 'Banque mondiale (ToR : approche méthodologique)'
+      after: objectifs
+    adapt:
+    - key: livrables
+      instructions_append: Prévois rapport de démarrage, rapport provisoire et rapport final.
+  cdc:
+    sections:
+    - key: etu_questions
+      title: Questions à traiter
+      instructions: Liste les questions auxquelles l'étude doit répondre, d'après les passages.
+      queries:
+      - questions d'étude
+      - problématique
+      - hypothèses
+      min_sources: 2
+      max_sentences: 8
+      uses_findings: true
+      after: non_fonctionnelles
+    - key: etu_restitution
+      title: Restitution et validation
+      instructions: Décris la restitution et la validation de l'étude telles que les décisions confirmées
+        les fixent.
+      queries:
+      - restitution
+      - validation des livrables
+      - présentation aux parties prenantes
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      requires_decisions:
+      - schedule
+      after: non_fonctionnelles
+    adapt: []
+en:
+  label: Study and advisory
+  referentiels:
+  - OECD-DAC (evaluation criteria)
+  - World Bank (study terms of reference)
+  tor:
+    sections:
+    - key: etu_methodologie
+      title: Expected methodology
+      instructions: Describe the expected approach and methods, from the passages.
+      queries:
+      - methodology
+      - data collection
+      - analysis approach
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: true
+      referentiels:
+      - 'World Bank (ToR: methodological approach)'
+      after: objectifs
+    adapt:
+    - key: livrables
+      instructions_append: Plan an inception report, a draft report and a final report.
+  cdc:
+    sections:
+    - key: etu_questions
+      title: Questions to address
+      instructions: List the questions the study must answer, from the passages.
+      queries:
+      - study questions
+      - problem statement
+      - hypotheses
+      min_sources: 2
+      max_sentences: 8
+      uses_findings: true
+      after: non_fonctionnelles
+    - key: etu_restitution
+      title: Presentation and validation
+      instructions: Describe the presentation and validation of the study as set by the confirmed decisions.
+      queries:
+      - presentation of results
+      - validation of deliverables
+      - stakeholder briefing
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      requires_decisions:
+      - schedule
+      after: non_fonctionnelles
+    adapt: []

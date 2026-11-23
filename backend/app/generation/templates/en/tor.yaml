@@ -48,7 +48,7 @@ sections:
   - PM² (deliverables and acceptance criteria)
 - key: calendrier
   title: Assignment schedule
-  instructions: Describe the duration and milestones of the assignment as they appear in the passages.
+  instructions: Describe the duration and milestones of the assignment as set by the confirmed decisions.
   queries:
   - assignment schedule
   - duration and milestones
@@ -56,12 +56,14 @@ sections:
   min_sources: 1
   max_sentences: 8
   uses_findings: false
+  requires_decisions:
+  - schedule
   referentiels:
   - 'World Bank (ToR: duration and milestones)'
   - PM² (planning)
 - key: profil
   title: Expert profiles
-  instructions: Describe the required profiles and qualifications of the experts according to the sources.
+  instructions: Describe the expert profiles and qualifications as set by the confirmed decisions.
   queries:
   - expert profiles
   - required qualifications
@@ -69,11 +71,13 @@ sections:
   min_sources: 1
   max_sentences: 8
   uses_findings: false
+  requires_decisions:
+  - profile
   referentiels:
   - 'World Bank (ToR: consultant qualifications and experience)'
 - key: evaluation
   title: Evaluation criteria
-  instructions: Present the evaluation criteria for proposals or deliverables mentioned in the sources.
+  instructions: Present the evaluation criteria as set by the confirmed decisions.
   queries:
   - evaluation criteria
   - scoring grid
@@ -81,6 +85,8 @@ sections:
   min_sources: 1
   max_sentences: 8
   uses_findings: false
+  requires_decisions:
+  - criterion
   referentiels:
   - World Bank (weighted proposal evaluation criteria)
   - 'OECD-DAC (evaluation criteria: relevance, effectiveness, efficiency, sustainability)'

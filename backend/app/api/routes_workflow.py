@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from app.api.routes_deliverables import load_deliverable
 from app.config import get_settings
-from app.generation.template_loader import TemplateError, load_template
+from app.generation.template_loader import TemplateError, template_for
 from app.services import Repo, User, error_response
 from app.workflow import versions as vs
 from app.workflow.state_machine import TransitionContext, WorkflowError, check_transition
@@ -36,7 +36,7 @@ def _approval_facts(repo, d, version, content) -> tuple[int, bool, int]:
     failures = len(hard) + len(soft - acked)  # un défaut de preuve ne s'acquitte jamais
     by_key = {sec.section_key: sec for sec in content.sections}
     try:
-        required = [x.key for x in load_template(content.type, content.language).sections]
+        required = [x.key for x in template_for(content).sections]
     except TemplateError:
         return failures, False, len(vs.initiative_issues(repo, d["dossier_id"], content))
     complete = all(

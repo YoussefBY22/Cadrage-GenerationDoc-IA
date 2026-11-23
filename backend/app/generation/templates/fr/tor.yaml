@@ -48,7 +48,7 @@ sections:
   - PM² (livrables et critères d'acceptation)
 - key: calendrier
   title: Calendrier de la mission
-  instructions: Décris la durée et les jalons de la mission tels qu'ils ressortent des passages.
+  instructions: Décris la durée et les jalons de la mission tels qu'ils ressortent des décisions confirmées.
   queries:
   - calendrier de la mission
   - durée et jalons
@@ -56,12 +56,14 @@ sections:
   min_sources: 1
   max_sentences: 8
   uses_findings: false
+  requires_decisions:
+  - schedule
   referentiels:
   - 'Banque mondiale (ToR : durée et jalons)'
   - PM² (planification)
 - key: profil
   title: Profil des experts
-  instructions: Décris les profils et qualifications requis des experts d'après les sources.
+  instructions: Décris les profils et qualifications requis des experts tels que les décisions confirmées les fixent.
   queries:
   - profil des experts
   - qualifications requises
@@ -69,11 +71,13 @@ sections:
   min_sources: 1
   max_sentences: 8
   uses_findings: false
+  requires_decisions:
+  - profile
   referentiels:
   - 'Banque mondiale (ToR : qualifications et expérience du consultant)'
 - key: evaluation
   title: Critères d'évaluation
-  instructions: Présente les critères d'évaluation des offres ou des livrables mentionnés dans les sources.
+  instructions: Présente les critères d'évaluation tels que les décisions confirmées les fixent.
   queries:
   - critères d'évaluation
   - grille de notation
@@ -81,6 +85,8 @@ sections:
   min_sources: 1
   max_sentences: 8
   uses_findings: false
+  requires_decisions:
+  - criterion
   referentiels:
   - Banque mondiale (critères d'évaluation des propositions, pondérés)
   - 'OCDE-CAD (critères d''évaluation : pertinence, efficacité, efficience, durabilité)'

@@ -6,6 +6,7 @@ export interface SentenceAttrs {
   sourceLabels: string[];
   sources: string[];
   findings: string[];
+  decisions: string[];
   status: SentenceStatus | null;
 }
 
@@ -37,6 +38,7 @@ export function sectionToDoc(section: SectionDraft, report?: SectionReport): Tip
       sourceLabels: s.source_labels,
       sources: s.source_ids,
       findings: s.finding_ids,
+      decisions: s.decision_ids ?? [],
       status: statuses[i],
     } satisfies SentenceAttrs,
     // un texte vide n'a pas de nœud texte (ProseMirror l'interdit)
@@ -49,7 +51,7 @@ export function sectionToDoc(section: SectionDraft, report?: SectionReport): Tip
 function emptySentence(): TipTapNode {
   return {
     type: "sentence",
-    attrs: { kind: "fact", sourceLabels: [], sources: [], findings: [], status: null },
+    attrs: { kind: "fact", sourceLabels: [], sources: [], findings: [], decisions: [], status: null },
     content: [],
   };
 }
@@ -69,10 +71,12 @@ export function docToSection(base: SectionDraft, doc: TipTapDoc): SectionDraft {
         source_labels: a.sourceLabels ?? [],
         source_ids: a.sources ?? [],
         finding_ids: a.findings ?? [],
+        // absent = aucune décision citée (le serveur complète par une liste vide)
+        ...((a.decisions ?? []).length ? { decision_ids: a.decisions } : {}),
       };
     })
     // une phrase vide n'est pas une phrase (cas de la section vide)
-    .filter((s) => s.text.trim() !== "" || s.source_ids.length > 0);
+    .filter((s) => s.text.trim() !== "" || s.source_ids.length > 0 || (s.decision_ids ?? []).length > 0);
   return { ...base, sentences };
 }
 

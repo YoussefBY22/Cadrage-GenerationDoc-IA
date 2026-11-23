@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronRight, FileSpreadsheet, FileText, FileType2, FolderKanban, Presentation, Scale, Search, TriangleAlert, Upload } from "lucide-react";
+import { Check, ChevronRight, FileSpreadsheet, FileText, FileType2, FolderKanban, Gavel, MessageSquare, Presentation, Scale, Search, TriangleAlert, Upload } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type DragEvent } from "react";
@@ -258,6 +258,14 @@ export default function DossierPage() {
           <Link href={`/dossiers/${id}/priorities`} className="btn" data-testid="link-priorities">
             <Scale size={16} />
             {t.coeur.priorities}
+          </Link>
+          <Link href={`/dossiers/${id}/context`} className="btn" data-testid="link-context">
+            <MessageSquare size={16} />
+            {t.context.title}
+          </Link>
+          <Link href={`/dossiers/${id}/decisions`} className="btn" data-testid="link-decisions">
+            <Gavel size={16} />
+            {t.decisions.title}
           </Link>
           <Link href={`/dossiers/${id}/projects`} className="btn" data-testid="link-projects">
             <FolderKanban size={16} />

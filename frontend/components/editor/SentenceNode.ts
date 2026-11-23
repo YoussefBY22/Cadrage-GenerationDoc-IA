@@ -24,6 +24,7 @@ export const SentenceNode = Node.create<SentenceOptions>({
       sourceLabels: { default: [] },
       sources: { default: [] },
       findings: { default: [] },
+      decisions: { default: [] },
       status: { default: null },
     };
   },
@@ -62,6 +63,14 @@ export const SentenceNode = Node.create<SentenceOptions>({
           b.setAttribute("data-source", id);
           b.addEventListener("click", () => onClick(id));
           refs.append(b);
+        });
+        ((node.attrs.decisions as string[] | undefined) ?? []).forEach((id) => {
+          const tag = document.createElement("span");
+          tag.className = "tag";
+          tag.textContent = "D"; // décision humaine citée ; le détail est dans l'écran Décisions
+          tag.title = m.decisionCited;
+          tag.setAttribute("data-decision", id);
+          refs.append(tag);
         });
       };
       paint();
