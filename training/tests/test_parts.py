@@ -38,10 +38,15 @@ def env(tmp_path):
     _write(val, _rows(8))
 
     def cfg(machine="vm1", **sim):
-        return RunConfig(profile=load_profile("colab-parties"), run_id="r", runs_dir=tmp_path / machine,
+        return RunConfig(profile=_small_profile(), run_id="r", runs_dir=tmp_path / machine,
                          train_path=train, val_path=val, save_every_min=5, min_free_gb=0.001,
                          simulate=True, sim=sim)
     return cfg, tmp_path / "drive", train
+
+
+def _small_profile() -> dict:
+    """Le vrai profil, avec 2 parties et une mesure tous les 4 pas : adapté au jeu de 40 exemples de ces tests."""
+    return {**load_profile("colab-parties"), "parts": 2, "eval_every": 4}
 
 
 def _step(store):
@@ -57,7 +62,7 @@ def test_profil_qwen3_4b_epingle_et_prudent():
     assert p["base_model"] == "Qwen/Qwen3-4B" and len(p["base_revision"]) == 40
     assert p["quant"] == "nf4_double" and p["epochs"] <= 3 and p["lr"] <= 1e-4
     assert p["eval_every"] and p["early_stop_patience"] == 2 and p["base_tag"] == "qwen3:4b"
-    assert total_steps(N_TRAIN, p) == 30 and parts.bounds(30, p["parts"]) == [0, 15, 30]
+    assert p["parts"] == 3 and p["eval_every"] == 20 and parts.bounds(30, p["parts"]) == [0, 10, 20, 30]
 
 
 def test_refus_sans_partie_0(env):
