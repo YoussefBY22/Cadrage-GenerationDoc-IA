@@ -1,7 +1,7 @@
 # UN entraînement en 2 parties qui se suivent, sur GPU gratuit Colab T4 (voir training/parts.py).
 # DONNÉES PUBLIQUES SOUS LICENCE OUVERTE UNIQUEMENT : jamais de document client.
 # Ne change rien ici entre deux parties : la reprise serait refusée.
-# Très peu d'exemples (une cinquantaine) : la LoRA apprend le FORMAT, la citation et le refus, jamais des faits.
+# Environ 340 exemples d entraînement : la LoRA apprend le FORMAT, la citation, le refus, la position et le conflit, jamais des faits.
 # Réglages prudents : peu d'époques, taux d'apprentissage bas, arrêt si l'erreur de validation remonte.
 name: colab-parties
 public_data_only: true
@@ -22,8 +22,8 @@ batch_size: 1
 grad_accum: 4
 gradient_checkpointing: true
 optimizer: paged_adamw_8bit
-parts: 2
-eval_every: 4            # pas entre deux mesures de l'erreur de validation
+parts: 3
+eval_every: 20           # pas entre deux mesures de l erreur de validation (~13 mesures)
 early_stop_patience: 2   # arrêt après 2 mesures de suite au-dessus de la meilleure
 save_every_min: 5
 keep_checkpoints: 2

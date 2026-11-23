@@ -30,9 +30,9 @@ from training.dataset.v3_sources import SOURCES, source_text
 TEST_V2 = {"ue-52022SC0349", "ue-52020SC0544"}
 FORCED_TEST = {"eca-sr-2024-26", "eca-sr-2026-13"}
 FORCED_VAL = {"ue-52021SC0379", "eca-sr-2024-27"}
-MIN_TEST = {"total": 70, "conflit": 18, "refus": 12}
+MIN_TEST = {"total": 70, "conflit": 18, "etq:conflict": 16, "refus": 12}
 VAL_SIZE = 24
-CAPS = {"feuille_de_route": 1, "extraction": 2, "position": 2, "conflit": 1, "refus": 1}
+CAPS = {"feuille_de_route": 1, "extraction": 1, "position": 2, "conflit": 1, "refus": 1}
 ZIP_NAME = "cadrage-donnees-publiques.zip"
 OPEN = ("CC BY", "Décision 2011/833/UE", "Licence Ouverte")
 TASK_OF_KIND = {"feuille de route": "feuille_de_route", "extraction de constats": "extraction",
@@ -71,8 +71,8 @@ def assign_splits(rows: list[dict]) -> None:
     for r in rows:
         groups[group_of(r["meta"]["source"])].append(r)
     split = {g: "train" for g in groups}
-    for g in groups:
-        if g in FORCED_TEST or g in TEST_V2 or any(SOURCES.get(r["meta"]["source"], {}).get("test") for r in groups[g]):
+    for g, members in groups.items():
+        if g in FORCED_TEST or g in TEST_V2 or any(SOURCES.get(r["meta"]["source"], {}).get("test") for r in members):
             split[g] = "test"
         elif g in FORCED_VAL:
             split[g] = "val"
@@ -84,14 +84,19 @@ def assign_splits(rows: list[dict]) -> None:
                 for r in groups[g]:
                     c["total"] += 1
                     c[task_of(r["meta"])] += 1
+                    c["etq:" + str(r["meta"].get("etiquette"))] += 1
         return c
 
     order = sorted((g for g in groups if split[g] == "train"), key=lambda g: hashlib.sha256(g.encode()).hexdigest())
-    for g in order:
+    for g in order:  # un groupe ne passe en test que s'il comble un minimum encore manquant
         t = tally("test")
-        if all(t[k] >= v for k, v in MIN_TEST.items()):
+        short = [k for k, v in MIN_TEST.items() if t[k] < v]
+        if not short:
             break
-        split[g] = "test"
+        gain = Counter(["total"] + [task_of(r["meta"]) for r in groups[g]]
+                       + ["etq:" + str(r["meta"].get("etiquette")) for r in groups[g]])
+        if any(gain[k] for k in short):
+            split[g] = "test"
     for g in order:
         if split[g] != "train":
             continue
@@ -100,6 +105,15 @@ def assign_splits(rows: list[dict]) -> None:
         split[g] = "val"
     for r in rows:
         r["meta"]["split"] = split[group_of(r["meta"]["source"])]
+    drop_shared_passages(rows)
+
+
+def drop_shared_passages(rows: list[dict]) -> None:
+    """Un passage identique des deux côtés (ex. « La Commission accepte la recommandation n° 1. » dans deux rapports)
+    est retiré de la validation / du test : rien de ce que le modèle a vu à l'entraînement ne doit s'y retrouver."""
+    seen = {p["texte"] for r in rows if r["meta"]["split"] == "train" for p in r["meta"]["rendu"]["passages"]}
+    rows[:] = [r for r in rows if r["meta"]["split"] == "train"
+               or not any(p["texte"] in seen for p in r["meta"]["rendu"]["passages"])]
 
 
 def build(v2_path: Path, sources_dir: Path, eca_dir: Path | None = None, skipped: list[str] | None = None) -> list[dict]:

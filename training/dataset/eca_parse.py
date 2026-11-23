@@ -62,6 +62,19 @@ def blocks(text: str) -> list[tuple[str, bool]]:
             tabular = tabular or bool(re.search(r"\S {3,}\S", line))
             cur.append(line)
     flush()
+    return _merge_split_paragraphs(out)
+
+
+def _merge_split_paragraphs(items: list[tuple[str, bool]]) -> list[tuple[str, bool]]:
+    """Certains PDF laissent une ligne vide dans un paragraphe : la suite commence par une minuscule et le bloc
+    précédent n'est pas fini (pas de ponctuation finale). On les recolle ; les alinéas « a) » ne sont jamais recollés."""
+    out: list[tuple[str, bool]] = []
+    for text, tab in items:
+        if (out and re.match(r"^[a-zà-ÿ]", text) and not re.match(r"^[a-z]\)", text)
+                and not re.search(r"[.:;!?»]$", out[-1][0])):
+            out[-1] = (out[-1][0] + " " + text, out[-1][1] or tab)
+        else:
+            out.append((text, tab))
     return out
 
 

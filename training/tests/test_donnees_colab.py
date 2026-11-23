@@ -42,9 +42,23 @@ def _all(rows):
 
 # ---------------------------------------------------------------- effectifs et séparation par document
 def test_effectifs(rows):
-    assert {p: len(v) for p, v in rows.items()} == {"train": 33, "val": 7, "test": 13}
-    assert Counter(r["meta"]["lot"] for r in _all(rows)) == {"pilote-v2": 28, "pilote-v3": 25}
+    assert {p: len(v) for p, v in rows.items()} == {"train": 341, "val": 25, "test": 169}
+    lots = Counter(r["meta"]["lot"] for r in _all(rows))
+    assert lots == {"eca-2023-2026": 482, "pilote-v2": 28, "pilote-v3": 25}
     assert {r["meta"]["split"] for r in rows["train"]} == {"train"}
+
+
+def test_le_test_est_dur_et_assez_grand(rows):
+    tasks = Counter(r["meta"]["task_type"] for r in rows["test"])
+    assert len(rows["test"]) >= 60 and tasks["conflit"] >= 15 and tasks["refus"] >= 10
+    assert {"extraction", "position", "conflit", "feuille_de_route", "refus"} <= set(tasks)
+    labels = Counter(r["meta"]["etiquette"] for r in rows["test"] if r["meta"].get("etiquette"))
+    assert {"accept", "partial", "reject", "conflict", "aligned"} <= set(labels)
+
+
+def test_chaque_exemple_a_un_type_de_tache(rows):
+    assert all(r["meta"].get("task_type") for r in _all(rows))
+    assert len(rows["train"]) >= 300
 
 
 def test_aucun_document_des_deux_cotes(rows):
@@ -63,8 +77,8 @@ def test_aucune_phrase_ni_passage_commun_entre_entrainement_et_test(rows):
 
 def test_tous_les_types_en_test(rows):
     kinds = {r["meta"]["kind"] for r in rows["test"]}
-    assert {"feuille de route", "termes de référence", "cahier des charges",
-            "divergence entre deux sources", "extraction de constats"} <= kinds
+    assert {"feuille de route", "extraction de constats", "refus", "conflit avec une contrainte",
+            "position sur une recommandation"} <= kinds
 
 
 # ---------------------------------------------------------------- licence, public seulement
@@ -83,7 +97,8 @@ def test_le_paquet_ne_contient_que_du_public(rows):
             assert hashlib.sha256(z.read(name)).hexdigest() == sha
     assert "aucun document client" in manifest["contenu"]
     assert all(d["licence"].startswith(assemble.OPEN) for d in manifest["documents"].values())
-    assert manifest["effectifs"]["total"] == 53
+    assert manifest["effectifs"]["total"] == 535
+    assert len(manifest["rapports_cour"]) >= 90 and all(r["url"].startswith("https://www.eca.europa.eu/") for r in manifest["rapports_cour"])
 
 
 # ---------------------------------------------------------------- invites identiques à l'application d'aujourd'hui
@@ -109,7 +124,7 @@ def test_les_consignes_de_gabarit_sont_celles_des_gabarits_actuels(rows):
 
 def test_les_constats_utilisent_la_tache_constats_de_l_application(rows):
     findings = [r for r in _all(rows) if r["meta"]["rendu"]["tache"] == "constats"]
-    assert len(findings) == 5
+    assert len(findings) >= 100
     for r in findings:
         assert r["messages"][1]["content"].startswith(prompting._t("fr")["task_findings"])
         LLMFindings.model_validate(json.loads(r["messages"][2]["content"]))
@@ -171,13 +186,13 @@ def test_carnet_pin_base_revision_et_ollama(notebook):
 def test_carnet_une_cellule_par_etape_avec_titre_et_duree(notebook):
     titles = [re.search(r"#@title (.*?) \{display-mode", _src(c)).group(1)
               for c in notebook["cells"] if c["cell_type"] == "code"]
-    assert len(titles) == 14
-    for t in titles[:-1]:
+    assert len(titles) == 16
+    for t in titles:
         assert re.search(r"\d", t) or "instantané" in t, t
     steps = [t for t in titles if t.startswith("Étape")]
     assert len(steps) == 7 and titles[7].startswith("Partie 0")
     assert any("Exporter le modèle entraîné" in t for t in titles) and any("MÊME chaîne" in t for t in titles)
-    assert titles[-1].startswith("Résumé")
+    assert titles[-2].startswith("Résumé") and titles[-1].startswith("Test avant téléchargement")
 
 
 def test_carnet_sans_secret_ni_chemin_personnel(notebook):
@@ -189,9 +204,10 @@ def test_carnet_sans_secret_ni_chemin_personnel(notebook):
 
 def test_carnet_enchaine_les_bonnes_actions(notebook):
     code = "\n".join(_src(c) for c in notebook["cells"] if c["cell_type"] == "code")
-    for action in ('cadrage("preuve")', 'cadrage("partie", 1)', 'cadrage("partie", 2)', 'cadrage("etat")',
+    for action in ('cadrage("preuve")', 'cadrage("partie", 1)', 'cadrage("partie", 2)', 'cadrage("partie", 3)', 'cadrage("etat")',
                    'cadrage("exporter")', 'cadrage("exporter-base")', 'cadrage("resume")'):
         assert action in code
+    assert "task_type" in code and "LLMStance" in code and "etiquette_juste" in code  # test par tâche, position notée
     assert "build_quantize" in code and "check_template" in code and "cadrage-4b-lora" in code
 
 

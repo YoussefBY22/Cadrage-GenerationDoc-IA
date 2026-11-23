@@ -33,21 +33,24 @@ def reply_url(year: int, number: int) -> str:
 
 def _curl(url: str, dest: Path | None) -> bool:
     cmd = ["curl", "-sSf", "-L", "-A", UA, "-o", str(dest) if dest else "NUL", url]
-    ok = subprocess.run(cmd, capture_output=True).returncode == 0
+    ok = subprocess.run(cmd, check=False, capture_output=True).returncode == 0
     time.sleep(PAUSE)
     return ok
 
 
 def fetch_one(out_dir: Path, doc_id: str, url: str) -> dict | None:
     pdf = out_dir / f"{doc_id}.pdf"
-    if not pdf.exists() and not _curl(url, pdf):
-        pdf.unlink(missing_ok=True)
-        return None
+    if not pdf.exists():
+        part = pdf.with_suffix(".part")  # jamais de PDF à moitié écrit sous le nom final
+        if not _curl(url, part):
+            part.unlink(missing_ok=True)
+            return None
+        part.replace(pdf)
     subprocess.run(["pdftotext", "-enc", "UTF-8", "-layout", str(pdf), str(out_dir / f"{doc_id}.txt")], check=True)
     return {"id": doc_id, "url": url, "sha256": hashlib.sha256(pdf.read_bytes()).hexdigest()}
 
 
-def fetch(out_dir: Path, years: list[int], numbers: range = range(1, 33)) -> list[dict]:
+def fetch(out_dir: Path, years: list[int], numbers: range = range(1, 33), manifest_name: str = "eca-manifest.json") -> list[dict]:
     out_dir.mkdir(parents=True, exist_ok=True)
     manifest = []
     for y in years:
@@ -61,7 +64,7 @@ def fetch(out_dir: Path, years: list[int], numbers: range = range(1, 33)) -> lis
                               if ans else None)
             manifest.append(row)
             print(row["id"], "réponse" if ans else "sans réponse", flush=True)
-    (out_dir / "eca-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8")
+    (out_dir / manifest_name).write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8")
     return manifest
 
 
@@ -69,8 +72,9 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out-dir", type=Path, required=True)
     ap.add_argument("--years", type=int, nargs="+", default=[2023, 2024, 2025, 2026])
+    ap.add_argument("--manifest", default="eca-manifest.json")
     a = ap.parse_args()
-    fetch(a.out_dir, a.years)
+    fetch(a.out_dir, a.years, manifest_name=a.manifest)
 
 
 if __name__ == "__main__":

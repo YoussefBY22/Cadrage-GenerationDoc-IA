@@ -59,6 +59,12 @@ MISSING = {
 }
 
 
+def _findings_in(paragraph: str) -> list[str]:
+    """Phrases du paragraphe qui énoncent un constat (8 à 55 mots, sans citation)."""
+    body = P._PARA.sub("", paragraph)
+    return [x for x in P.sentences(body) if 8 <= P.words(x) <= 55 and _FIND.search(x) and "«" not in x]
+
+
 def theme_of(text: str) -> str:
     low = text.lower()
     for pat, theme in _THEMES:
@@ -106,7 +112,7 @@ class Builder:
     def make(self, task: str, label: str, passages: list[str], build_answer, *, spec=None, mode: str | None = None,
              origine: str, extra_meta: dict | None = None) -> dict | None:
         """``build_answer(labels)`` -> dict de réponse, ``labels[i]`` étant l'étiquette du passage ``i`` (avant mélange)."""
-        if sum(P.words(p) for p in passages) > MAX_PASSAGE_WORDS:
+        if sum(P.words(p) for p in passages) > MAX_PASSAGE_WORDS or any("�" in p for p in passages):
             return None
         rid = self.report["id"]
         self.counter[task] += 1
@@ -135,7 +141,7 @@ class Builder:
             "consigne_ecrite_par": "application", "sortie_ecrite_par": origine, "valide_par_humain": False,
             "rendu": {"nonce": nonce, "tache": "constats" if "findings" in answer else (mode or "section"),
                       "spec": spec.model_dump() if spec else None,
-                      "spec_origine": f"gabarit:{spec.key}" if spec else ("constats" if "findings" in answer else mode),
+                      "spec_origine": f"gabarit:roadmap/{spec.key}" if spec else ("constats" if "findings" in answer else mode),
                       "passages": [{"label": p.label, "texte": p.chunk.text, "titre": title} for p in pas]},
             **(extra_meta or {}),
         }
@@ -167,8 +173,8 @@ class Builder:
                                      ("des échéances" if by_year else "du rapport")), texts)
 
     def extraction(self, paras: list[str], rec: P.Rec | None) -> dict | None:
-        cands = [p for p in paras if _FIND.search(p) and "«" not in p]
-        if len(cands) < 2:
+        cands = [p for p in paras if _findings_in(p)]
+        if not cands:
             return None
         k = self.rng.choice([2, 3]) if rec is None else 2
         chosen = self.rng.sample(cands, min(k, len(cands)))
@@ -177,9 +183,7 @@ class Builder:
             texts.append(rec_passage(rec, None, True))
         found: list[tuple[int, str]] = []
         for i, p in enumerate(chosen):
-            body = P._PARA.sub("", p)
-            ss = [s for s in P.sentences(body) if 8 <= P.words(s) <= 55 and _FIND.search(s) and "«" not in s]
-            found += [(i, s) for s in ss[:2]]
+            found += [(i, s) for s in _findings_in(p)[:2]]
         if len(found) < 2:
             return None
         found = found[:5]
@@ -318,10 +322,10 @@ def load_reports(src_dir: Path) -> list[dict]:
     manifest = json.loads((Path(src_dir) / "eca-manifest.json").read_text("utf-8"))
     out = []
     for row in manifest:
-        text = (Path(src_dir) / f"{row['id']}.txt").read_text("utf-8")
+        text = (Path(src_dir) / f"{row['id']}.txt").read_text("utf-8", errors="replace")
         rep = None
         if row.get("reponse"):
-            rep = (Path(src_dir) / f"{row['reponse']['id']}.txt").read_text("utf-8")
+            rep = (Path(src_dir) / f"{row['reponse']['id']}.txt").read_text("utf-8", errors="replace")
         title = next((ln.strip() for ln in text.splitlines()[:60] if len(ln.strip()) > 25), row["id"])
         out.append({**row, "text": text, "reply_text": rep, "titre": f"Rapport spécial {row['number']:02d}/{row['year']} : {title}",
                     "reponse": row.get("reponse")})

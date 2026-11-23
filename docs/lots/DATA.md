@@ -49,3 +49,29 @@ Les invites v2 sont refaites avec `app.generation.prompting` et les gabarits act
 Les 2 exemples v3 qui pointaient sur des sections de décision (profil, calendrier) ont été remplacés par des sections « contexte » et « objectifs ».
 Rien n'a été relu par un humain : décision de l'utilisateur, à garder en tête pour toute conclusion.
 Les invites d'entraînement n'ont pas de fiche de contexte (« CONTEXTE … ») ni de décisions D1..Dn : l'application peut en ajouter à l'inférence.
+
+## Mise à jour 23/11 (soir) : rapports spéciaux de la Cour 2023-2026, cinq tâches
+
+Cause du premier échec sur Colab : les réponses d'entraînement écrivaient `missing_evidence` avant `sentences`, alors que la grammaire d'Ollama impose
+l'ordre du schéma (`status`, `sentences`, `missing_evidence`). Chaque réponse est maintenant sérialisée dans l'ordre du schéma (`training/dataset/schema_order.py`, test et contrôle du paquet).
+
+Source principale : 103 rapports spéciaux de la Cour des comptes européenne en français (2023 : 19, 2024 : 28, 2025 : 26, 2026 : 30), CC BY 4.0 (mentions légales de la Cour), avec les réponses de la Commission quand elles existent
+(décision 2011/833/UE, CC BY 4.0). Adresses et SHA-256 de chaque PDF : `MANIFEST.json` du paquet (`rapports_cour`). Seuls les PDF publics sont lus ; User-Agent générique, pause entre les requêtes.
+**Limite** : 2018 à 2022 non couverts. Seul le schéma d'adresse 2023-2026 (`ECAPublications/SR-AAAA-NN/…_FR.pdf`) est prévisible ; avant, le nom de fichier contient un titre. L'API interne du site n'a pas été utilisée.
+
+Tâches (`meta.task_type`, invites de l'application ; `position` et `conflit` : nouvel appel `app/services/stance.py`, schéma `LLMStance`) :
+- `extraction` : paragraphes du rapport (+ recommandation et échéance) -> constats, phrases recopiées ; **thème et gravité écrits par des règles de mots-clés de l'assistant** ;
+- `position` : recommandation + réponse de la Commission -> accept / partial / reject ; l'étiquette est la position officielle (« accepte / accepte partiellement / n'accepte pas ») ; variante difficile : toutes les réponses de la recommandation dans le passage ;
+- `conflit` : recommandation + justification d'une acceptation partielle ou d'un rejet (conflict), ou d'une acceptation (aligned) ; ce sont des positions réelles de la Commission, pas une stratégie de client : à lire comme « contrainte exprimée par l'institution » ;
+- `feuille_de_route` : recommandations + « Quand ? » réels -> initiatives (ordre du rapport) ou calendrier (ordre des échéances) ; aucune date inventée ;
+- `refus` : preuve retirée (pas d'échéance ; pas de réponse de la Commission ; pas de contrainte) -> `insufficient_evidence` ; **le texte de `missing_evidence` est écrit par l'assistant** (phrase type).
+
+Séparation par rapport (un rapport et ses réponses = un groupe, jamais des deux côtés ; aucun passage identique entre entraînement et test/validation).
+Effectifs : 535 exemples ; entraînement 341, validation 25, test 169.
+- train par tâche : {'autre': 13, 'conflit': 35, 'extraction': 73, 'feuille_de_route': 47, 'position': 92, 'redaction_cdc': 1, 'redaction_tdr': 4, 'refus': 76} ; par lot : {'eca-2023-2026': 319, 'pilote-v2': 17, 'pilote-v3': 5}
+- val par tâche : {'autre': 3, 'conflit': 1, 'divergence': 3, 'extraction': 4, 'feuille_de_route': 4, 'position': 4, 'redaction_cdc': 3, 'refus': 3} ; par lot : {'eca-2023-2026': 11, 'pilote-v2': 4, 'pilote-v3': 10}
+- test par tâche : {'autre': 4, 'conflit': 24, 'divergence': 2, 'extraction': 31, 'feuille_de_route': 25, 'position': 50, 'redaction_cdc': 1, 'redaction_tdr': 1, 'refus': 31} ; par lot : {'eca-2023-2026': 152, 'pilote-v2': 7, 'pilote-v3': 10}
+- étiquettes de position, entraînement : {'accept': 74, 'aligned': 18, 'conflict': 17, 'partial': 14, 'reject': 4} ; test : {'accept': 28, 'aligned': 8, 'conflict': 16, 'partial': 17, 'reject': 5}
+
+Limites : les acceptations dominent (la Commission accepte la plupart des recommandations) ; les rejets sont rares (peu pour apprendre, peu pour mesurer). Le « conflit » n'oppose pas une recommandation à la stratégie d'un client ;
+il faudra des exemples de ce type (stratégie « 50 recrutements par an » contre « recruter davantage ») que ces sources ne fournissent pas. Aucun exemple n'a été relu par un humain.
