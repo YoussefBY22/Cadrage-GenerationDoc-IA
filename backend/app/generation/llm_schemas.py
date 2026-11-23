@@ -24,6 +24,21 @@ class LLMSection(BaseModel):
     missing_evidence: str | None = None
 
 
+Stance = Literal["accept", "partial", "reject", "conflict", "aligned"]
+
+
+class LLMStance(BaseModel):
+    """Position d'une institution sur une recommandation, ou conflit avec une stratégie / une contrainte.
+
+    L'ordre des propriétés est celui que la grammaire d'Ollama impose : `stance` avant `sentences`.
+    """
+
+    status: Status
+    stance: Stance | None = None
+    sentences: list[LLMSentence] = []
+    missing_evidence: str | None = None
+
+
 class LLMFinding(BaseModel):
     text: str
     theme: str
