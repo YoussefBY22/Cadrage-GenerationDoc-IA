@@ -202,6 +202,8 @@ def rerender(example: dict) -> str:
     spec = SectionSpec(**r["spec"]) if r["spec"] else None
     ps = [Passage(label=p["label"], chunk=_chunk(example["meta"]["source"], example["meta"]["id"], i, p["texte"], p["titre"]),
                   score=1.0 / (i + 1), ranks={"bm25": i + 1}) for i, p in enumerate(r["passages"])]
+    if r["tache"] in ("position", "conflict"):  # tâches position / conflit (``app.generation.prompting.build_stance_prompt``)
+        return prompting.build_stance_prompt(r["tache"], ps, nonce=r["nonce"], lang=LANG)
     return render_user(spec, ps, r["nonce"])
 
 
