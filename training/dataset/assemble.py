@@ -20,7 +20,9 @@ import zipfile
 from collections import Counter
 from pathlib import Path
 
-from training.dataset import v2_rerender, v3_build
+from app.generation.llm_schemas import LLMFindings, LLMSection
+
+from training.dataset import schema_order, v2_rerender, v3_build
 from training.dataset.v3_sources import SOURCES, source_text
 
 # Documents mis de côté (le reste entraîne). Les documents de test v3 viennent du manifeste (`test: True`).
@@ -60,6 +62,9 @@ def check(rows: list[dict]) -> list[str]:
         tpv, blocking = v3_build.verify_example(r)
         if blocking or tpv < 1:
             bad.append(f"{m['id']} : le vérificateur refuse ({blocking}, tpv {tpv})")
+        answer = json.loads(r["messages"][2]["content"])
+        if not schema_order.is_ordered(LLMFindings if "findings" in answer else LLMSection, answer):
+            bad.append(f"{m['id']} : les propriétés de la réponse ne suivent pas l'ordre du schéma")
         if v3_build.rerender(r) != r["messages"][1]["content"]:
             bad.append(f"{m['id']} : l'invite ne se reproduit pas à l'identique")
     sides: dict[str, set[str]] = {}

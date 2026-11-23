@@ -27,7 +27,7 @@ from app.generation.llm_schemas import LLMFindings, LLMSection
 from app.generation.template_loader import SectionSpec, load_template
 from app.verification import resolve_labels, verify_section
 
-from training.dataset import v3_curation
+from training.dataset import schema_order, v3_curation
 from training.dataset.v3_sources import SOURCES, check_manifest, source_text
 from training.dataset.v3_text import between, flat
 
@@ -171,7 +171,7 @@ def build_example(ex: dict, texts: dict[str, str], rng: random.Random) -> dict:
     }
     messages = [{"role": "system", "content": prompting.system_prompt(LANG)},
                 {"role": "user", "content": user},
-                {"role": "assistant", "content": json.dumps(answer, ensure_ascii=False)}]
+                {"role": "assistant", "content": schema_order.dumps(LLMFindings if findings else LLMSection, answer)}]
     review = {"id": ex["id"], "type": ex["type"], "doute": ex.get("doute", ""), "titre": title,
               "consigne": spec.instructions if spec else prompting._t(LANG)["task_findings"],
               "passages": [(f"P{j}", ptexts[old]) for j, old in enumerate(order, 1)],

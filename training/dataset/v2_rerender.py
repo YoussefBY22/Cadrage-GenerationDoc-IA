@@ -22,6 +22,7 @@ from app.generation.llm_schemas import LLMSection
 from app.generation.template_loader import SectionSpec, load_template
 from app.verification import resolve_labels, verify_section
 
+from training.dataset import schema_order
 from training.dataset.v3_build import LANG, _chunk
 
 _PASSAGE = re.compile(r"<<PASSAGE id=(P\d+) nonce=(\w+)>>\n(.*?)\n<<FIN nonce=\2>>", re.DOTALL)
@@ -93,7 +94,8 @@ def rerender(example: dict) -> dict:
                   "passages": [{"label": p.label, "texte": p.chunk.text, "titre": spec.title} for p in passages]},
     }
     messages = [{"role": "system", "content": prompting.system_prompt(LANG)},
-                {"role": "user", "content": user}, old[2]]
+                {"role": "user", "content": user},
+                {"role": "assistant", "content": schema_order.dumps(LLMSection, json.loads(old[2]["content"]))}]
     return {"messages": messages, "meta": new_meta}
 
 
