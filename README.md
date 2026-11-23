@@ -42,17 +42,17 @@ Mesurés sur un PC portable (GTX 1650, 4 Go de VRAM), modèle de génération **
 | Corpus public | **103 documents** sous licence CC BY (Banque mondiale, Commission européenne), 82 EN / 21 FR, licences et SHA-256 tracés | réel |
 | Jeu d'entraînement | 3 105 exemples générés par script : jeu **rejeté** le 22/11/2026 après lecture : réponses presque toutes recopiées des passages (2 061 sur 2 067), questions faites de mots-clés, 83 % en anglais, aucune feuille de route ni TdR ni cahier des charges | **non utilisable**, nouveau jeu à valider |
 | Jeu or | **34 questions** rédigées par une IA, repères contrôlés par script, **non relues par un humain** (29 faits, 5 « sans preuve ») sur des documents jamais utilisés pour l'entraînement | réel |
-| Latence par section | **18,2 s** (p50), 23,1 s (p95) ; débit 40 jetons/s | réel, 31 sections, **à remesurer** (invites possiblement tronquées) |
+| Latence par section | **21,7 s** (p50), 45,3 s (p95) ; modèle seul 20,8 jetons/s (GPU chaud) | réel, 31 sections, 23/11 ([R2](docs/lots/R2.md)) |
 | Mémoire vidéo | **3,1 Go** de pic sur 4 Go | réel |
-| Rappel@10 de la recherche (bge-m3 + BM25) | **1,000** | réel, 1 institution, 31 sections : petit échantillon |
-| Faux refus / refus manqués | **0 % / 0 %** avec la porte de pertinence (seuil cosinus 0,45) ; 10 % / 10 % sans elle | **à remesurer** (invites possiblement tronquées) ; une passe, 10 sections par catégorie ; seuil calibré sur ce même échantillon synthétique : à recalibrer sur corpus réel |
+| Rappel@10 de la recherche (bge-m3 + BM25) | **1,000** | réel, 1 institution, 31 sections, 23/11 : petit échantillon |
+| Faux refus / refus manqués | **0 % / 0 %** avec la porte de pertinence (seuil 0,45) ; 0 % / **70 %** sans elle | réel, 10 sections par catégorie, 23/11 ; seuil calibré sur ce même corpus synthétique : à recalibrer sur corpus réel |
 | PostgreSQL + pgvector, export PDF LibreOffice, parcours navigateur Playwright | exécutés et verts | réel |
-| Tests | 436 backend, 33 entraînement, 22 interface | automatisés |
+| Tests | 654 backend, 34 entraînement, 34 interface (23/11) | automatisés |
 | Rappel@10, 23/23 erreurs détectées, TPV 0,85 du banc d'évaluation | | **simulé** (corpus fictif, faux modèle) : valide la mécanique, pas la qualité |
 | Entraînement LoRA (modèle « C ») | | **à faire** (T5) |
 | Valeurs du tableau de bord Power BI | | **inventées** (démonstration) |
 
-> **Correction du 22/11/2026** : Ollama coupait sans erreur le début des invites de plus de 4 096 jetons. Les mesures de génération ci-dessus ont pu en souffrir et ne valent pas preuve de qualité.
+> **Remesuré le 23/11/2026** après le correctif de contexte ([R2](docs/lots/R2.md)) : 1 attaque par consigne cachée sur 5 a été suivie par le modèle (signalée et non approuvable), et le GPU monte à 91 °C.
 
 Le TPV (taux de phrases vérifiées) mesure l'ancrage dans les sources, pas la vérité : il ne remplace pas la relecture humaine. Détails et limites : [`docs/lots/T2.md`](docs/lots/T2.md), [`docs/lots/T4.md`](docs/lots/T4.md).
 
