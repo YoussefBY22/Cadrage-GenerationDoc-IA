@@ -300,6 +300,8 @@ export const en: Messages = {
     addComment: "Add",
     commentPlaceholder: "Comment",
     ack: "Acknowledge",
+    ackReason: "Reason for acknowledging",
+    ackRefusal: "Acknowledge refusal",
     roadmap: "Roadmap",
     noRoadmap: "No data",
     roadmapCols: {

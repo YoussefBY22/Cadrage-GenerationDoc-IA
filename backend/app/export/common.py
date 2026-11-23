@@ -51,7 +51,7 @@ def labels(lang: str) -> dict[str, str]:
 
 
 class ExportForbidden(Exception):
-    """Le livrable n'est pas à l'état « approved »."""
+    """Le livrable n'est pas approuvé, ou ses preuves ne tiennent plus."""
 
 
 class ExportUnavailable(Exception):
@@ -150,8 +150,10 @@ def build_export_data(
             nums: list[int] = []
             for cid in sent.source_ids:
                 chunk = chunks.get(cid)
-                if chunk is None:
-                    continue
+                if chunk is None:  # jamais d'effacement silencieux d'une citation
+                    raise ExportForbidden(
+                        f"citation invalide dans « {sec.section_key} » : passage {cid} introuvable "
+                        "dans ce dossier ; corrigez la section avant d'exporter")
                 if cid not in numbers:
                     numbers[cid] = len(numbers) + 1
                     sources.append(
@@ -210,6 +212,11 @@ def load_export_data(repo, deliverable_id: str) -> ExportData:
             )
         }
     version, content = repo.get_version(deliverable_id)
+    from app.workflow.versions import evidence_problems
+
+    problems = evidence_problems(repo, row.dossier_id, content)
+    if problems:
+        raise ExportForbidden("export refusé, preuves invalides : " + " ; ".join(problems[:5]))
     ids = [cid for sec in content.sections for sn in sec.sentences for cid in sn.source_ids]
     chunks = repo.get_chunks(row.dossier_id, list(dict.fromkeys(ids))) if ids else {}
     try:

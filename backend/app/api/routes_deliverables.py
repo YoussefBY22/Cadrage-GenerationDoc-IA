@@ -55,7 +55,8 @@ def get_deliverable(deliverable_id: str, repo: Repo, user: User):
     version, content = repo.get_version(deliverable_id)
     return {"id": d["id"], "dossier_id": d["dossier_id"], "type": d["type"], "state": d["state"],
             "template_id": d["template_id"], "version": version,
-            "content": content.model_dump(mode="json"), "reports": _reports(repo, d, content)}
+            "content": content.model_dump(mode="json"), "reports": _reports(repo, d, content),
+            "initiative_issues": vs.initiative_issues(repo, d["dossier_id"], content)}
 
 
 @router.get("/deliverables/{deliverable_id}/versions")
@@ -87,6 +88,13 @@ def put_content(deliverable_id: str, body: dict, repo: Repo, user: User):
         content = DeliverableContent.model_validate(body)
     except ValidationError as exc:
         return error_response(422, "INVALID_CONTENT", f"Contenu invalide : {exc.error_count()} erreur(s)")
+    _, current = repo.get_version(deliverable_id)
+    fields = ("type", "language", "template_id", "template_version")
+    if any(getattr(content, f) != getattr(current, f) for f in fields) or content.type != d["type"]:
+        return error_response(422, "IDENTITY_CHANGED",
+                              "Type, langue et gabarit d'un livrable ne changent pas à l'édition")
+    if content.type == "roadmap" and content.roadmap is None:
+        return error_response(422, "ROADMAP_REQUIRED", "Une feuille de route garde ses initiatives")
     version = repo.add_version(deliverable_id, content, user.id, "edited")
     repo.audit(user.id, "content.edit", "deliverable", deliverable_id, {"version": version})
     _after_edit(repo, d, user, version)

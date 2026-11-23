@@ -53,7 +53,8 @@ def test_failed_sentence_blocks_until_acknowledged(world):
     r = tr(w, w.h_bob, "approved")
     assert r.json()["error"]["code"] == "UNACKNOWLEDGED_FAILURES"
     ack = w.client.post(f"{API}/deliverables/{w.deliverable}/acknowledgements",
-                        json={"section_key": "constats", "sentence_index": 0}, headers=w.h_bob)
+                        json={"section_key": "constats", "sentence_index": 0,
+                              "reason": "chiffre vérifié dans le rapport papier"}, headers=w.h_bob)
     assert ack.status_code == 201
     assert tr(w, w.h_bob, "approved").status_code == 200
     log = w.client.get(f"{API}/audit", params={"object_id": w.deliverable}, headers=w.h_bob).json()
@@ -68,7 +69,10 @@ def test_refusal_needs_acknowledgement_and_missing_section(world):
     tr(w, w.h_alice, "in_review")
     assert tr(w, w.h_bob, "approved").json()["error"]["code"] == "INCOMPLETE_SECTIONS"
     w.client.post(f"{API}/deliverables/{w.deliverable}/acknowledgements",
-                  json={"section_key": "constats"}, headers=w.h_bob)
+                  json={"section_key": "constats"}, headers=w.h_bob)   # sans motif : ne compte pas
+    assert tr(w, w.h_bob, "approved").json()["error"]["code"] == "INCOMPLETE_SECTIONS"
+    w.client.post(f"{API}/deliverables/{w.deliverable}/acknowledgements",
+                  json={"section_key": "constats", "reason": "section hors périmètre"}, headers=w.h_bob)
     assert tr(w, w.h_bob, "approved").status_code == 200
 
 

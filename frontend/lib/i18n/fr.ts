@@ -305,6 +305,8 @@ export const fr = {
     addComment: "Ajouter",
     commentPlaceholder: "Commentaire",
     ack: "Acquitter",
+    ackReason: "Motif de l'acquittement",
+    ackRefusal: "Acquitter le refus",
     roadmap: "Feuille de route",
     noRoadmap: "Aucune donnée",
     roadmapCols: {

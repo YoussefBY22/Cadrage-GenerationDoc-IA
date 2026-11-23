@@ -63,6 +63,9 @@ def world(repo):
                 Sentence(text="Deuxième phrase.", kind="fact", source_ids=["chk_2", "chk_3"])]),
             SectionDraft(section_key="objectifs", status="insufficient_evidence", sentences=[],
                          missing_evidence="rien")])
+    from app.domain.generation import Finding
+    repo.save_findings(dos, [Finding(id=f, dossier_id=dos, text="Constat.", theme="t", severity="high",
+                                     source_ids=["chk_2"], validated=True) for f in ("F1", "F2", "F3", "F9")])
     did = repo.create_deliverable(dos, "tor", "tor-fr-standard", uid)
     repo.add_version(did, content, uid, "generated")
     return {"repo": repo, "uid": uid, "dos": dos, "did": did, "content": content}
@@ -176,8 +179,9 @@ def test_pdf_soffice(world, tmp_path):
     assert path.read_bytes()[:4] == b"%PDF"
 
 
-def test_build_export_data_ignore_source_inconnue():
+def test_build_export_data_refuse_source_inconnue():
+    """Une citation invalide n'est jamais effacée en silence : l'export est refusé."""
     c = DeliverableContent(type="tor", language="fr", template_id="t", template_version="1", sections=[
         SectionDraft(section_key="a", status="ok", sentences=[Sentence(text="x", kind="fact", source_ids=["zzz"])])])
-    d = build_export_data(c, {}, {}, deliverable_id="d", version=1, approver="u", approved_at="2026-01-01")
-    assert d.sources == [] and d.sections[0].sentences[0].rendered == "x"
+    with pytest.raises(ExportForbidden):
+        build_export_data(c, {}, {}, deliverable_id="d", version=1, approver="u", approved_at="2026-01-01")
