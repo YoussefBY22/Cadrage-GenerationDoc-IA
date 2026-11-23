@@ -1,0 +1,56 @@
+table 'Sections courantes'
+
+	column 'Identifiant du livrable'
+		dataType: string
+		isHidden
+		sourceColumn: deliverable_id
+		summarizeBy: none
+
+	column Section
+		dataType: string
+		sourceColumn: section_title
+		summarizeBy: none
+
+	column Bloquantes
+		dataType: int64
+		isHidden
+		sourceColumn: blocking
+		summarizeBy: none
+
+	column 'Sans source'
+		dataType: int64
+		isHidden
+		sourceColumn: citations_invalid
+		summarizeBy: none
+
+	column Refus
+		dataType: int64
+		isHidden
+		sourceColumn: refused
+		summarizeBy: none
+
+	column 'Priorité de section'
+		dataType: int64
+		isHidden
+		sourceColumn: priority
+		summarizeBy: none
+
+	column 'Section à revoir'
+		dataType: string
+		sourceColumn: libelle
+		summarizeBy: none
+
+	partition 'Sections courantes' = m
+		mode: import
+		source =
+				let
+				    Brut = Vue("v_section_current"),
+				    Choix = Table.SelectColumns(Brut, {"deliverable_id", "section_title", "blocking", "citations_invalid", "refused", "priority"}),
+				    Typage = Table.TransformColumnTypes(Choix, {{"deliverable_id", type text}, {"section_title", type text}, {"blocking", Int64.Type}, {"citations_invalid", Int64.Type}, {"refused", Int64.Type}, {"priority", Int64.Type}}, CultureCsv),
+				    Livres = Table.TransformColumnTypes(Table.SelectColumns(Vue("v_deliverable"), {"deliverable_id", "mission_name"}), {{"deliverable_id", type text}, {"mission_name", type text}}, CultureCsv),
+				    Jointure = Table.NestedJoin(Typage, {"deliverable_id"}, Livres, {"deliverable_id"}, "l", JoinKind.LeftOuter),
+				    AvecMission = Table.ExpandTableColumn(Jointure, "l", {"mission_name"}),
+				    AvecLibelle = Table.AddColumn(AvecMission, "libelle", each [section_title] & " · " & [mission_name], type text),
+				    Utiles = Table.RemoveColumns(AvecLibelle, {"mission_name"})
+				in
+				    Utiles

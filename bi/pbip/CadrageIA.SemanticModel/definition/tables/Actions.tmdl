@@ -1,0 +1,24 @@
+table Actions
+	isHidden
+
+	column 'Identifiant du livrable'
+		dataType: string
+		isHidden
+		sourceColumn: deliverable_id
+		summarizeBy: none
+
+	column 'Code de règle signalée'
+		dataType: string
+		isHidden
+		sourceColumn: rule_code
+		summarizeBy: none
+
+	partition Actions = m
+		mode: import
+		source =
+				let
+				    Brut = Vue("v_action"),
+				    Choix = Table.SelectColumns(Brut, {"deliverable_id", "rule_code"}),
+				    Typage = Table.TransformColumnTypes(Choix, {{"deliverable_id", type text}, {"rule_code", type text}}, CultureCsv)
+				in
+				    Typage

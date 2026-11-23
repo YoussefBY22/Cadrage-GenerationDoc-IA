@@ -1,22 +1,25 @@
-# Tableau de bord Power BI
+# Rapport de pilotage Power BI
 
-Le rapport répond à une question : **l'assistant Cadrage tient-il ses promesses ?** Une page d'accueil donne le verdict
-sur les trois critères de réussite du cahier des charges (hypothèse H7), puis quatre pages l'expliquent.
+Le rapport sert les deux acteurs de l'application, le **consultant** qui rédige et le **responsable** qui valide :
+constat, 3 recommandations, prédiction de la charge, et un rapport à imprimer.
+Qui voit quoi, et pourquoi : [docs/14](../docs/14-acteurs-dashboard.md).
 
 > **Valeurs inventées.** Les chiffres du jeu de démonstration (`python -m app.dw.demo --seed 42`) sont fictifs : ils
 > montrent le pilotage possible et ne jugent aucun modèle réel. Le rapport l'affiche sur chaque page.
 
-![Accueil](../docs/img/powerbi-accueil.png)
+![Synthèse](../docs/img/powerbi-synthese.png)
 
-| Page | Question de pilotage | Capture |
+| Page | Pour qui | Capture |
 |---|---|---|
-| Accueil | L'assistant tient-il ses promesses ? | [voir](../docs/img/powerbi-accueil.png) |
-| Qualité et preuves | Peut-on se fier à ce que l'assistant écrit ? | [voir](../docs/img/powerbi-qualite.png) |
-| Productivité et relecture | Fait-il gagner du temps au consultant ? | [voir](../docs/img/powerbi-productivite.png) |
-| Comparaison des modèles | Quelle configuration faut-il retenir ? | [voir](../docs/img/powerbi-modeles.png) |
-| Sécurité et usage | Est-il utilisé, et sans danger ? | [voir](../docs/img/powerbi-securite.png) |
+| Synthèse | les deux acteurs, direction du cabinet | [voir](../docs/img/powerbi-synthese.png) |
+| Production | consultant | [voir](../docs/img/powerbi-production.png) |
+| Validation | responsable | [voir](../docs/img/powerbi-validation.png) |
+| Administration | profil technique | [voir](../docs/img/powerbi-administration.png) |
+| Rapport (masquée, par bouton) | impression | [voir](../docs/img/powerbi-rapport.png) |
 
-Indicateurs (formule, intérêt, cible, limite) : [`KPI.md`](KPI.md). Contenu de chaque page : [`pages.md`](pages.md).
+Indicateurs : [`KPI.md`](KPI.md). Contenu des pages : [`pages.md`](pages.md). Mise en ligne, préparée et non
+faite : [`PUBLICATION.md`](PUBLICATION.md). Fichiers produits :
+[rapport interne](exemples/rapport-pilotage-demo.pdf). Rien ici ne se transmet à un client.
 
 ## Confidentialité (contrainte C1)
 
@@ -26,10 +29,11 @@ Indicateurs (formule, intérêt, cible, limite) : [`KPI.md`](KPI.md). Contenu de
 
 ## Ouvrir le rapport
 
-1. Produire les données :
+1. Produire les données (les 14 CSV : un export antérieur à ce modèle ne se charge pas) :
 
    ```powershell
    cd backend
+   $env:STORAGE_URL = "sqlite:///./data/demo-bi.db"  # une base neuve : la démo ne se régénère pas
    python -m app.dw.demo --seed 42
    python -m app.dw.export_csv --out ../bi/export/
    ```
@@ -50,7 +54,8 @@ Dans Power BI Desktop, les boutons de navigation se suivent avec **Ctrl + clic**
 
 ### Avec de vraies données
 
-- CSV : `python -m app.dw.etl`, puis le même export.
+- CSV : `python -m app.dw.etl`, puis le même export. Sur un entrepôt antérieur à la correction des refus :
+  recharger avec `--full`.
 - PostgreSQL, en lecture seule : `psql -f db/dw/roles.sql` (changer le mot de passe), puis dans les paramètres
   `Source` = `PostgreSQL`, `PgServer`, `PgDatabase`. Importer avec `bi_reader`. **Ce chemin n'a pas été testé dans
   Power BI Desktop** (pilote Npgsql, port 5432 à exposer en local seulement).
@@ -62,7 +67,8 @@ Le projet PBIP est **généré**. Ne pas enregistrer depuis Power BI : la géné
 
 | Pour changer | Fichier |
 |---|---|
-| un indicateur, une formule, un seuil | [`pbip/indicateurs.py`](pbip/indicateurs.py) (génère aussi `KPI.md` et `measures.dax`) |
+| un seuil, une règle, la prédiction | [`pilotage.py`](../backend/app/dw/pilotage.py), puis relancer l'ETL |
+| un indicateur, une formule | [`pbip/indicateurs.py`](pbip/indicateurs.py) (génère aussi `KPI.md` et `measures.dax`) |
 | une table, un libellé, une relation | [`pbip/modele.py`](pbip/modele.py) |
 | une page, un visuel, la barre latérale | [`pbip/rapport.py`](pbip/rapport.py), briques dans [`pbip/pbir.py`](pbip/pbir.py) |
 | les couleurs et polices | [`theme/cadrage-ey.json`](theme/cadrage-ey.json) |
@@ -84,37 +90,35 @@ Pièges rencontrés :
 
 | Table | Vue source | Filtrée par |
 |---|---|---|
-| Générations | `v_generation` | période, client, type, modèle |
-| Citations | `v_citations` | les mêmes, via Générations |
-| Sections approuvées | `v_outcome` | période (date d'approbation), client, type, modèle |
-| Relectures | `v_review_funnel` | période (date d'approbation), client, type |
-| Documents | `v_security` | période (première génération de la mission), client |
-| Appels au modèle | `v_llm_calls` | période, client, modèle |
+| Livrables | `v_deliverable` | client, type, consultant ; la période seulement dans les mesures de flux |
+| Actions | `v_action` | via Livrables |
+| Sections courantes | `v_section_current` | via Livrables |
+| Sections approuvées | `v_outcome` | période (approbation), client, type, consultant |
+| Générations | `v_generation` | période, client, type, consultant |
+| Documents | `v_security` | client |
+| Prévisions, Série de prévision | `v_forecast`, `v_forecast_point` | le périmètre choisi, lu par clé |
+| Banc | `v_bench` | aucun filtre |
+| Accès | `acces.csv` (hors entrepôt) | sert aux rôles RLS |
 
-Dimensions : Calendrier, Missions (client), Types de livrable, Configurations. Les quatre segments de la barre
-latérale sont synchronisés sur les cinq pages. La vue `v_quality_by_model` n'est pas importée : c'est un agrégat que
-les mesures recalculent en respectant les filtres.
-
-`v_outcome.baseline_minutes` sert de dénominateur au temps gagné. Avec un export antérieur à cette colonne, le
-modèle applique la valeur de l'ETL (30 min par section).
+Chaque segment lit une table de choix avec une vraie valeur « Tous », reliée en plusieurs-à-plusieurs : le libellé
+ne suit pas la langue de Power BI et la prévision sait quel périmètre lire. Le banc d'essai se charge à part :
+`python -m app.dw.bench eval/results/<A>.json <B>.json …` (la démo n'en charge aucun ; un résultat simulé ne s'affiche pas).
 
 ## Charte
 
 - Anthracite `#2E2E38`, gris `#747480` et `#C4C4CD`, fond `#F6F6FA`, Segoe UI.
 - Jaune `#FFE600` pour ce qu'il faut regarder : page active, total, meilleure valeur.
-- Rouge et vert réservés aux statuts, toujours doublés d'un signe ou d'un libellé.
+- Texte gris en `#5F5F6B` (le `#747480` ne fait que 4,28:1 sur le fond).
+- Rouge réservé aux alertes, toujours doublé d'un libellé, jamais opposé à un vert.
 - Ni logo ni nom de cabinet : le produit s'appelle « Cadrage ».
 
 ## Sources de conception
 
-1. Microsoft Learn, [Design the analytical report layout](https://learn.microsoft.com/en-us/training/modules/power-bi-effective-reports/2-design-layout) :
-   placement, équilibre, contraste, proximité, répétition. D'où la grille unique et la barre latérale répétée.
-2. Microsoft Learn, [Design visually appealing reports](https://learn.microsoft.com/en-us/training/modules/power-bi-effective-reports/3-design-reports) :
-   espace réservé au titre, à la marque et aux segments, séparé des visuels.
-3. Microsoft Learn, [Enhance Power BI report designs for the user experience](https://learn.microsoft.com/en-us/training/modules/power-bi-effective-user-experience) :
-   navigation pensée dès le départ et placée au même endroit partout.
-4. Microsoft, [PL-300, atelier de conception de rapports](https://microsoftlearning.github.io/PL-300-Microsoft-Power-BI-Data-Analyst/Instructions/Labs/08-design-power-bi-reports.html) :
-   segments synchronisés entre les pages.
-5. Microsoft Learn, [Power BI Desktop project report folder](https://learn.microsoft.com/en-us/power-bi/developer/projects/projects-report)
-   et [semantic model folder](https://learn.microsoft.com/en-us/power-bi/developer/projects/projects-dataset) :
-   format PBIR, ressources enregistrées du thème, fichiers `.pbi/` à versionner ou non.
+Le tableau règle → source → application, avec ce qui n'a pas pu être vérifié, est dans
+[docs/14 §6](../docs/14-acteurs-dashboard.md). Principales sources :
+
+1. Microsoft Learn, [mise en page d'un rapport](https://learn.microsoft.com/en-us/training/modules/power-bi-effective-reports/2-design-layout).
+2. Microsoft Learn, [accessibilité des rapports](https://learn.microsoft.com/en-us/power-bi/create-reports/desktop-accessibility-creating-reports).
+3. Microsoft Learn, [rapport ou tableau de bord](https://learn.microsoft.com/en-us/power-bi/create-reports/service-dashboards).
+4. Microsoft Learn, [sécurité par ligne](https://learn.microsoft.com/en-us/fabric/security/service-admin-row-level-security).
+5. Microsoft Learn, [format PBIR](https://learn.microsoft.com/en-us/power-bi/developer/projects/projects-report).
