@@ -287,3 +287,21 @@ def test_import_refuse_si_le_gabarit_d_ollama_a_change(tmp_path, fake_ollama):
     fake_ollama.bad_template = "qwen3:4b"
     with pytest.raises(export_gguf.ExportError, match="diffère"):
         import_ollama.import_one("lora", d, say=lambda *_: None)
+
+
+# ---------------------------------------------------------------- carnet Kaggle (même contenu, stockage /kaggle/working)
+KAGGLE = Path(__file__).resolve().parents[1] / "kaggle" / "cadrage_entrainement_kaggle.ipynb"
+
+
+def test_carnet_kaggle_meme_chaine_que_colab_sans_drive_ni_secret():
+    kg, colab = json.loads(KAGGLE.read_text("utf-8")), json.loads(NOTEBOOK.read_text("utf-8"))
+    text = "\n".join(_src(c) for c in kg["cells"])
+    for const in ("CODE = ", "DONNEES = ", "LLAMA = ", "OLLAMA = ", "BASE_REVISION = "):
+        line = lambda nb: next(ln for c in nb["cells"] for ln in _src(c).split("\n") if ln.startswith(const))  # noqa: E731
+        assert line(kg).split("#")[0].strip() == line(colab).split("#")[0].strip()  # mêmes versions épinglées
+    assert "/kaggle/working/cadrage-entrainement" in text and "CUDA_VISIBLE_DEVICES" in text
+    assert "drive.mount" not in text and "google.colab" not in text and "/content" not in text
+    assert 'cadrage("partie", 3)' in text and "task_type" in text and "etiquette_juste" in text
+    assert "Quick Save" in text and "Internet" in text and "Persistence" in text and "Save & Run All" in text
+    assert not re.search(r"hf_[A-Za-z0-9]{10,}|ghp_|HF_TOKEN|api[_-]?key|password|mot de passe :", text, re.IGNORECASE)
+    assert len([c for c in kg["cells"] if c["cell_type"] == "code"]) == 16

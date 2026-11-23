@@ -69,3 +69,10 @@ réponse de contrôle. Puis, dans `backend/` : `python -m eval.harness.run --con
 - Ollama 0.40 refuse les adaptateurs LoRA : on livre un GGUF complet.
 - Le gabarit Hugging Face de Qwen3 n'est pas celui d'Ollama : l'invite vient de `render_prompt`.
 - Rien n'a encore tourné sur Colab : le carnet est testé en simulation seulement (`pytest training`).
+
+## Kaggle (quota Colab épuisé)
+
+`training/kaggle/cadrage_entrainement_kaggle.ipynb` est fabriqué par `training/kaggle/make_notebook_kaggle.py` à partir du carnet Colab :
+mêmes étapes, mêmes versions épinglées (`CODE`, `DONNEES`, llama.cpp, Ollama, révision de Qwen3-4B), même test par tâche en dernière cellule.
+Différences : stockage dans `/kaggle/working/cadrage-entrainement` (au lieu de Drive), fichiers temporaires dans `/kaggle/temp`,
+un seul GPU (`CUDA_VISIBLE_DEVICES=0`), reprise depuis un « Input » (version enregistrée). Rien n'a encore tourné sur Kaggle.
