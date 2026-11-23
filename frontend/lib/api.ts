@@ -1,11 +1,20 @@
 import type {
   ChunkDetail,
   DocumentInfo,
+  DocumentRole,
+  Coverage,
   Dossier,
+  ExistingProject,
   Finding,
   FindingPatch,
+  ContextBudget,
   LoginResponse,
+  ModelsOverview,
+  TestReport,
   Passage,
+  Role,
+  Priority,
+  ProjectState,
   RoadmapGenerated,
   UploadResult,
 } from "./api-types";
@@ -13,6 +22,7 @@ import type {
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const PREFIX = "/api/v1";
 const TOKEN_KEY = "cadrage.token";
+const ROLE_KEY = "cadrage.role";
 
 export class ApiError extends Error {
   constructor(
@@ -47,7 +57,15 @@ export function setToken(token: string | null): void {
   const s = storage();
   if (!s) return;
   if (token) s.setItem(TOKEN_KEY, token);
-  else s.removeItem(TOKEN_KEY);
+  else {
+    s.removeItem(TOKEN_KEY);
+    s.removeItem(ROLE_KEY);
+  }
+}
+
+/** Rôle mémorisé à la connexion (sert seulement à afficher le menu ; le serveur contrôle l'accès). */
+export function getRole(): string | null {
+  return storage()?.getItem(ROLE_KEY) ?? null;
 }
 
 async function toError(res: Response): Promise<ApiError> {
@@ -90,6 +108,7 @@ export const api = {
   async login(email: string, password: string): Promise<LoginResponse> {
     const r = await request<LoginResponse>("/auth/login", json("POST", { email, password }));
     setToken(r.token);
+    storage()?.setItem(ROLE_KEY, r.user.role);
     return r;
   },
   async logout(): Promise<void> {
@@ -105,24 +124,53 @@ export const api = {
     request<Dossier>("/dossiers", json("POST", { name, client_name, language })),
   listDocuments: (dossierId: string) =>
     request<DocumentInfo[]>(`/dossiers/${dossierId}/documents`),
-  uploadDocument(dossierId: string, file: File): Promise<UploadResult> {
+  uploadDocument(dossierId: string, file: File, role: DocumentRole = "other"): Promise<UploadResult> {
     const form = new FormData();
     form.append("file", file);
+    form.append("role", role);
     return request<UploadResult>(`/dossiers/${dossierId}/documents`, {
       method: "POST",
       body: form,
     });
   },
+  setDocumentRole: (id: string, role: DocumentRole) =>
+    request<DocumentInfo>(`/documents/${id}`, json("PATCH", { role })),
+  listPriorities: (dossierId: string) => request<Priority[]>(`/dossiers/${dossierId}/priorities`),
+  createPriority: (dossierId: string, body: { title: string; description?: string }) =>
+    request<Priority>(`/dossiers/${dossierId}/priorities`, json("POST", body)),
+  patchPriority: (id: string, body: Partial<Pick<Priority, "title" | "description" | "rank">> & { status?: "proposed" }) =>
+    request<Priority>(`/priorities/${id}`, json("PATCH", body)),
+  validatePriority: (id: string) => request<Priority>(`/priorities/${id}:validate`, { method: "POST" }),
+  rejectPriority: (id: string) => request<Priority>(`/priorities/${id}:reject`, { method: "POST" }),
+  deletePriority: (id: string) => request<void>(`/priorities/${id}`, { method: "DELETE" }),
+  listProjects: (dossierId: string) => request<ExistingProject[]>(`/dossiers/${dossierId}/projects`),
+  createProject: (
+    dossierId: string,
+    body: { title: string; state?: ProjectState; duration_weeks?: number | null; depends_on?: string[] },
+  ) => request<ExistingProject>(`/dossiers/${dossierId}/projects`, json("POST", body)),
+  patchProject: (
+    id: string,
+    body: { title?: string; state?: ProjectState; duration_weeks?: number | null; depends_on?: string[] },
+  ) => request<ExistingProject>(`/projects/${id}`, json("PATCH", body)),
+  deleteProject: (id: string) => request<void>(`/projects/${id}`, { method: "DELETE" }),
   getChunk: (id: string) => request<ChunkDetail>(`/chunks/${id}`),
   search: (dossierId: string, texts: string[], k = 10) =>
     request<Passage[]>(`/dossiers/${dossierId}/search`, json("POST", { texts, k })),
   listFindings: (dossierId: string) => request<Finding[]>(`/dossiers/${dossierId}/findings`),
   extractFindings: (dossierId: string) =>
-    request<unknown>(`/dossiers/${dossierId}/findings:extract`, { method: "POST" }),
+    request<{ coverage?: Coverage }>(`/dossiers/${dossierId}/findings:extract`, { method: "POST" }),
+  me: () => request<{ id: string; role: Role }>("/auth/me"),
   patchFinding: (id: string, patch: FindingPatch) =>
     request<Finding>(`/findings/${id}`, json("PATCH", patch)),
   generateRoadmap: (dossierId: string) =>
     request<RoadmapGenerated>(`/dossiers/${dossierId}/roadmap:generate`, json("POST", {})),
   createDeliverable: (dossierId: string, type: "tor" | "cdc", initiative_id?: string) =>
     request<{ deliverable_id: string }>(`/dossiers/${dossierId}/deliverables`, json("POST", { type, initiative_id })),
+  listModels: () => request<ModelsOverview>("/admin/models"),
+  contextBudget: (candidateTokens: number) =>
+    request<ContextBudget>(`/admin/models/context?candidate_tokens=${candidateTokens}`),
+  testModel: (model: string) => request<TestReport>("/admin/models/test", json("POST", { model })),
+  activateModel: (model: string) =>
+    request<{ active: string }>("/admin/models/activate", json("POST", { model })),
+  rollbackModel: () => request<{ active: string }>("/admin/models/rollback", { method: "POST" }),
 };

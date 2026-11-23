@@ -1,13 +1,13 @@
 "use client";
 
-import { Check, ChevronRight, FileSpreadsheet, FileText, FileType2, Presentation, Search, TriangleAlert, Upload } from "lucide-react";
+import { Check, ChevronRight, FileSpreadsheet, FileText, FileType2, FolderKanban, Presentation, Scale, Search, TriangleAlert, Upload } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type DragEvent } from "react";
 import Shell from "@/components/Shell";
 import { Alert, Empty } from "@/components/ui";
 import { ApiError, api } from "@/lib/api";
-import type { DocumentInfo, Dossier, Finding } from "@/lib/api-types";
+import type { DocumentInfo, DocumentRole, Dossier, Finding } from "@/lib/api-types";
 import { t } from "@/lib/i18n";
 import { getRefs, setRefs, type DossierRefs } from "@/lib/refs";
 import { useGuard } from "@/lib/useGuard";
@@ -27,6 +27,119 @@ function DocIcon({ name }: { name: string }) {
   return <Icon size={18} className="doc-ico" />;
 }
 
+const OTHER_ROLES: DocumentRole[] = ["other", "strategy", "portfolio", "template"];
+const ALL_ROLES: DocumentRole[] = ["diagnostic", ...OTHER_ROLES];
+
+function DocTable({
+  docs,
+  alerts,
+  onRole,
+}: {
+  docs: DocumentInfo[];
+  alerts: Record<string, number>;
+  onRole: (d: DocumentInfo, r: DocumentRole) => void;
+}) {
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>{t.dossier.file}</th>
+            <th>{t.coeur.role}</th>
+            <th>{t.dossier.pages}</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {docs.map((d) => (
+            <tr key={d.id}>
+              <td>
+                <span className="doc-name">
+                  <DocIcon name={d.filename} />
+                  {d.title || d.filename}
+                </span>
+              </td>
+              <td>
+                <select
+                  className="mini-select"
+                  value={d.role}
+                  aria-label={`${t.coeur.role} : ${d.title || d.filename}`}
+                  onChange={(e) => onRole(d, e.target.value as DocumentRole)}
+                >
+                  {ALL_ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {t.coeur.roles[r]}
+                    </option>
+                  ))}
+                </select>
+                {d.role === "template" && <small className="muted"> {t.coeur.templateNote}</small>}
+              </td>
+              <td className="num">{d.pages ?? "–"}</td>
+              <td className="num">
+                {(alerts[d.id] ?? 0) > 0 && (
+                  <span className="badge warn plain">
+                    <TriangleAlert size={13} />
+                    {t.alerts(alerts[d.id])}
+                  </span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function Drop({
+  label,
+  testid,
+  busy,
+  compact,
+  onFiles,
+}: {
+  label: string;
+  testid: string;
+  busy: boolean;
+  compact: boolean;
+  onFiles: (files: FileList | File[]) => void;
+}) {
+  const [over, setOver] = useState(false);
+  const onDrop = (e: DragEvent) => {
+    e.preventDefault();
+    setOver(false);
+    if (e.dataTransfer.files.length) onFiles(e.dataTransfer.files);
+  };
+  return (
+    <label
+      className={`drop${over ? " over" : ""}${compact ? " compact" : ""}`}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setOver(true);
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={onDrop}
+    >
+      <span className="drop-ico">
+        <Upload size={20} />
+      </span>
+      {busy ? t.dossier.uploading : label}
+      <small>{t.dossier.dropFormats}</small>
+      <input
+        type="file"
+        multiple
+        hidden
+        data-testid={testid}
+        accept=".pdf,.docx,.pptx,.txt,.md"
+        onChange={(e) => {
+          if (e.target.files) onFiles(e.target.files);
+          e.target.value = "";
+        }}
+      />
+    </label>
+  );
+}
+
 export default function DossierPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -39,7 +152,7 @@ export default function DossierPage() {
   const [messages, setMessages] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [over, setOver] = useState(false);
+  const [importRole, setImportRole] = useState<DocumentRole>("other");
 
   const reload = useCallback(() => {
     api
@@ -61,12 +174,12 @@ export default function DossierPage() {
     reload();
   }, [id, guard, reload]);
 
-  const upload = async (files: FileList | File[]) => {
+  const upload = async (files: FileList | File[], role: DocumentRole) => {
     setBusy("upload");
     setMessages([]);
     for (const file of Array.from(files)) {
       try {
-        const r = await api.uploadDocument(id, file);
+        const r = await api.uploadDocument(id, file, role);
         setAlerts((a) => ({ ...a, [r.document_id]: r.alerts }));
         setMessages((m) => [...m, t.dossier.imported(file.name, r.chunks)]);
       } catch (e) {
@@ -77,10 +190,13 @@ export default function DossierPage() {
     reload();
   };
 
-  const onDrop = (e: DragEvent) => {
-    e.preventDefault();
-    setOver(false);
-    if (e.dataTransfer.files.length) void upload(e.dataTransfer.files);
+  const changeRole = async (d: DocumentInfo, role: DocumentRole) => {
+    try {
+      const updated = await api.setDocumentRole(d.id, role);
+      setDocs((cur) => cur?.map((x) => (x.id === d.id ? { ...x, role: updated.role } : x)) ?? cur);
+    } catch (e) {
+      setError(guard(e));
+    }
   };
 
   const validated = findings.filter((f) => f.validated).length;
@@ -117,6 +233,8 @@ export default function DossierPage() {
   };
 
   const hasDocs = (docs?.length ?? 0) > 0;
+  const diagnostics = (docs ?? []).filter((d) => d.role === "diagnostic");
+  const others = (docs ?? []).filter((d) => d.role !== "diagnostic");
   const steps = [
     { key: "documents", label: t.dossier.steps.documents, sub: `${docs?.length ?? 0}`, done: hasDocs, run: () => document.getElementById("documents")?.scrollIntoView({ behavior: "smooth" }), off: false },
     { key: "findings", label: t.dossier.steps.findings, sub: `${validated}/${findings.length}`, done: validated > 0, run: () => router.push(`/dossiers/${id}/findings`), off: !hasDocs },
@@ -137,6 +255,14 @@ export default function DossierPage() {
           <h1>{dossier ? dossier.name : t.common.loading}</h1>
         </div>
         <div className="actions">
+          <Link href={`/dossiers/${id}/priorities`} className="btn" data-testid="link-priorities">
+            <Scale size={16} />
+            {t.coeur.priorities}
+          </Link>
+          <Link href={`/dossiers/${id}/projects`} className="btn" data-testid="link-projects">
+            <FolderKanban size={16} />
+            {t.coeur.projects}
+          </Link>
           <Link href={`/dossiers/${id}/search`} className="btn">
             <Search size={16} />
             {t.dossier.search}
@@ -165,31 +291,51 @@ export default function DossierPage() {
       </div>
 
       <div className="section-title" id="documents">
-        <h2>{t.dossier.documents}</h2>
+        <div>
+          <h2>{t.coeur.diagnostics}</h2>
+          <small className="muted">{t.coeur.diagnosticsHint}</small>
+        </div>
       </div>
-      <label
-        className={`drop${over ? " over" : ""}${hasDocs ? " compact" : ""}`}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setOver(true);
-        }}
-        onDragLeave={() => setOver(false)}
-        onDrop={onDrop}
-      >
-        <span className="drop-ico">
-          <Upload size={20} />
-        </span>
-        {busy === "upload" ? t.dossier.uploading : t.dossier.dropHere}
-        <small>{t.dossier.dropFormats}</small>
-        <input
-          type="file"
-          multiple
-          hidden
-          data-testid="file-input"
-          accept=".pdf,.docx,.pptx,.txt,.md"
-          onChange={(e) => e.target.files && void upload(e.target.files)}
-        />
-      </label>
+      <Drop
+        label={t.coeur.diagnosticsDrop}
+        testid="diagnostic-input"
+        busy={busy === "upload"}
+        compact={diagnostics.length > 0}
+        onFiles={(f) => void upload(f, "diagnostic")}
+      />
+      <div style={{ marginTop: 14 }}>
+        {docs && diagnostics.length === 0 ? (
+          <Empty icon={FileText} label={t.coeur.noDiagnostics} flat />
+        ) : (
+          docs && <DocTable docs={diagnostics} alerts={alerts} onRole={changeRole} />
+        )}
+      </div>
+
+      <div className="section-title" style={{ marginTop: 28 }}>
+        <h2>{t.coeur.others}</h2>
+        <label className="row" style={{ gap: 8 }}>
+          <span className="muted">{t.coeur.importAs}</span>
+          <select
+            className="mini-select"
+            value={importRole}
+            aria-label={t.coeur.importAs}
+            onChange={(e) => setImportRole(e.target.value as DocumentRole)}
+          >
+            {OTHER_ROLES.map((r) => (
+              <option key={r} value={r}>
+                {t.coeur.roles[r]}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <Drop
+        label={t.dossier.dropHere}
+        testid="file-input"
+        busy={busy === "upload"}
+        compact={others.length > 0}
+        onFiles={(f) => void upload(f, importRole)}
+      />
       {messages.length > 0 && (
         <ul className="muted" style={{ listStyle: "none", padding: 0, margin: "10px 0 0" }}>
           {messages.map((m, i) => (
@@ -197,45 +343,11 @@ export default function DossierPage() {
           ))}
         </ul>
       )}
-
-      <div style={{ marginTop: 20 }}>
-        {docs?.length === 0 ? (
-          <Empty icon={FileText} label={t.dossier.noDocuments} />
+      <div style={{ marginTop: 14 }}>
+        {docs && others.length === 0 ? (
+          <Empty icon={FileText} label={t.dossier.noDocuments} flat />
         ) : (
-          docs && (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>{t.dossier.file}</th>
-                    <th>{t.dossier.pages}</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {docs.map((d) => (
-                    <tr key={d.id}>
-                      <td>
-                        <span className="doc-name">
-                          <DocIcon name={d.filename} />
-                          {d.title || d.filename}
-                        </span>
-                      </td>
-                      <td className="num">{d.pages ?? "–"}</td>
-                      <td className="num">
-                        {(alerts[d.id] ?? 0) > 0 && (
-                          <span className="badge warn plain">
-                            <TriangleAlert size={13} />
-                            {t.alerts(alerts[d.id])}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )
+          docs && <DocTable docs={others} alerts={alerts} onRole={changeRole} />
         )}
       </div>
     </Shell>

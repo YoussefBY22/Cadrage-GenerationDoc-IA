@@ -32,6 +32,16 @@ class LLMProvider(ABC):
                             temperature: float = 0.0, seed: int | None = 0) -> T:
         """Retourne une instance validée de `schema` ; lève LLMError si impossible."""
 
+    @property
+    def embedding_name(self) -> str:
+        """Étiquette du modèle d'embeddings (stockée avec les vecteurs) ; par défaut, celle du fournisseur."""
+        return self.name
+
+    @property
+    def served_model(self) -> str:
+        """Nom exact du modèle qui a servi le DERNIER appel de ce fil (figé par opération)."""
+        return self.name
+
     @abstractmethod
     def embed(self, texts: list[str]) -> list[list[float]]:
         """Un vecteur par texte (même dimension pour tous)."""

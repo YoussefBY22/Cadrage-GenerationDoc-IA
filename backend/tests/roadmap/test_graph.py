@@ -29,8 +29,13 @@ def test_diamant_chemin_critique():
     assert order == ["A", "B", "C", "D"] and cycles == [] and cp == ["A", "B", "D"]
 
 
-def test_duree_absente_vaut_un_et_egalite():
-    _, _, cp = analyze([n("A"), n("B", ["A"]), n("C", ["A"])])
+def test_duree_absente_pas_de_chemin_critique_invente():
+    order, _, cp = analyze([n("A"), n("B", ["A"]), n("C", ["A"])])
+    assert order == ["A", "B", "C"] and cp == []  # un ordre, jamais une durée supposée
+
+
+def test_egalite_de_chemin_critique_par_id():
+    _, _, cp = analyze([n("A", dur=1), n("B", ["A"], dur=1), n("C", ["A"], dur=1)])
     assert cp == ["A", "B"]
 
 

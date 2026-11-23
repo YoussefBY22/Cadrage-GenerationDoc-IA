@@ -6,8 +6,9 @@ import { useCallback, useEffect, useState } from "react";
 import SourcePanel from "@/components/SourcePanel";
 import { Alert, Empty } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { Finding, Severity } from "@/lib/api-types";
+import type { Coverage, Finding, Severity } from "@/lib/api-types";
 import { t } from "@/lib/i18n";
+import { useDossier } from "@/lib/useDossier";
 import { useGuard } from "@/lib/useGuard";
 
 /** Liste des constats : valider, corriger le texte, ouvrir les sources dans le panneau de droite. */
@@ -20,6 +21,8 @@ export default function FindingsView({ dossierId }: { dossierId: string }) {
   const [source, setSource] = useState<{ chunk: string; finding: string } | null>(null);
   const [filter, setFilter] = useState<Severity | "all">("all");
   const [busy, setBusy] = useState(false);
+  const [coverage, setCoverage] = useState<Coverage | null>(null);
+  const dossier = useDossier(dossierId);
 
   const load = useCallback(() => {
     api
@@ -45,7 +48,8 @@ export default function FindingsView({ dossierId }: { dossierId: string }) {
     setError(null);
     setBusy(true);
     try {
-      await api.extractFindings(dossierId);
+      const r = await api.extractFindings(dossierId);
+      setCoverage(r.coverage ?? null);
       load();
     } catch (e) {
       setError(guard(e));
@@ -62,7 +66,9 @@ export default function FindingsView({ dossierId }: { dossierId: string }) {
       <div className="page-head">
         <div>
           <div className="crumb">
-            <Link href={`/dossiers/${dossierId}`}>{t.nav.dossiers}</Link>
+            <Link href="/dossiers">{t.nav.dossiers}</Link>
+            <ChevronRight size={14} />
+            <Link href={`/dossiers/${dossierId}`}>{dossier?.name ?? "…"}</Link>
             <ChevronRight size={14} />
           </div>
           <h1>{t.findings.title}</h1>
@@ -89,6 +95,16 @@ export default function FindingsView({ dossierId }: { dossierId: string }) {
         </div>
       </div>
       {error && <Alert>{error}</Alert>}
+      {coverage && (
+        <p className="muted" data-testid="coverage" style={{ marginTop: 0 }}>
+          {t.coeur.coverage.read(coverage.chunks_read, coverage.chunks_total)}
+          {coverage.chunks_failed > 0 && ` · ${t.coeur.coverage.failed(coverage.chunks_failed)}`}
+          {coverage.excluded.length > 0 &&
+            ` · ${t.coeur.coverage.excluded} : ${coverage.excluded
+              .map((e) => `${e.filename} (${t.coeur.roles[e.role] ?? e.role} : ${e.reason})`)
+              .join(" ; ")}`}
+        </p>
+      )}
       {findings === null && !error && <p className="muted">{t.common.loading}</p>}
       <div className={`split${source ? " with-panel" : ""}`}>
         <section>
