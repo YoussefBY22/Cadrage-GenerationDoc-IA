@@ -10,6 +10,7 @@ from collections.abc import Sequence
 from sqlalchemy import select
 
 from app.config import Settings, get_settings
+from app.domain.decisions import category_label
 from app.domain.generation import DeliverableContent, SectionDraft
 from app.domain.retrieval import Passage
 from app.domain.verification import VerificationReport
@@ -17,13 +18,20 @@ from app.domain.workflow import CurrentUser
 from app.generation.llm_schemas import LLMSection
 from app.generation.prompting import (
     build_section_prompt,
+    decision_cost,
     estimate_tokens,
     fit_passages,
     passage_budget,
     system_prompt,
 )
 from app.generation.relevance import below_threshold, resolve_threshold
-from app.generation.template_loader import SectionSpec, Template, load_template
+from app.generation.template_loader import (
+    SectionSpec,
+    Template,
+    TemplateError,
+    load_template,
+    template_for,
+)
 from app.llm.base import LLMError, LLMProvider
 from app.storage import schema as s
 from app.verification import resolve_labels, verify_section
@@ -103,13 +111,26 @@ def find_roadmap(repo, dossier_id: str) -> str | None:
 
 
 # --- création d'un livrable -------------------------------------------------------------------
+def default_modules(repo, dossier_id: str) -> list[str]:
+    """Types de projet de la fiche CONFIRMÉE : ils choisissent les modules par défaut (FR-24, FR-25)."""
+    from . import context_sheet
+
+    sheet = context_sheet.get(repo, dossier_id)
+    return list(sheet.data.project_types) if sheet.confirmed else []
+
+
 def create_deliverable(repo, dossier_id: str, type: str, user: CurrentUser, *,
-                       initiative_id: str | None = None, language: str = "fr") -> str:
+                       initiative_id: str | None = None, language: str = "fr",
+                       modules: list[str] | None = None) -> str:
     """ToR / CdC : le contexte est l'initiative choisie (conservée dans la version initiale)."""
     if type not in ("tor", "cdc"):
         raise GenerationError(422, "BAD_TYPE", "Types acceptés ici : tor, cdc "
                               "(la feuille de route se crée par roadmap:generate)")
-    template = load_template(type, language)
+    chosen = list(dict.fromkeys(default_modules(repo, dossier_id) if modules is None else modules))
+    try:
+        template = load_template(type, language, chosen)
+    except TemplateError as exc:
+        raise GenerationError(422, "BAD_MODULE", str(exc)) from exc
     roadmap = None
     if initiative_id is not None:
         rid = find_roadmap(repo, dossier_id)
@@ -126,9 +147,9 @@ def create_deliverable(repo, dossier_id: str, type: str, user: CurrentUser, *,
     did = repo.create_deliverable(dossier_id, type, template.id, user.id)
     repo.add_version(did, DeliverableContent(
         type=type, language=language, template_id=template.id, template_version=template.version,
-        sections=[], roadmap=roadmap), user.id, "generated")
+        sections=[], roadmap=roadmap, modules=chosen), user.id, "generated")
     repo.audit(user.id, "deliverable.create", "deliverable", did,
-               {"type": type, "initiative_id": initiative_id})
+               {"type": type, "initiative_id": initiative_id, "modules": chosen})
     return did
 
 
@@ -140,7 +161,14 @@ def _context(repo, deliverable: dict, content: DeliverableContent) -> tuple[dict
         ini = content.roadmap.items[0].initiative
         ctx["initiative"] = f"{ini.title} — {ini.description}"
         extra.append(ini.title)
-    elif content.type == "roadmap" and content.roadmap:
+    if content.type in ("tor", "cdc"):  # fiche CONFIRMÉE seulement : un cadre, jamais une source
+        from . import context_sheet
+
+        fiche = context_sheet.prompt_lines(
+            context_sheet.get(repo, deliverable["dossier_id"]), content.language)
+        if fiche:
+            ctx["fiche"] = fiche
+    if content.type == "roadmap" and content.roadmap:
         titles = [it.initiative.title for it in content.roadmap.items]
         ctx["initiatives"] = " ; ".join(titles)
     return ctx, extra
@@ -163,62 +191,111 @@ def generate_section(repo, provider: LLMProvider, search, deliverable_id: str, s
         raise GenerationError(409, "NOT_DRAFT", "Le livrable n'est plus en brouillon")
     dossier_id = row["dossier_id"]
     _, content = repo.get_version(deliverable_id)
-    template = load_template(content.type, content.language)
+    template = template_for(content)
     spec: SectionSpec | None = next((x for x in template.sections if x.key == section_key), None)
     if spec is None:
         raise GenerationError(404, "NOT_FOUND", "Section inconnue pour ce gabarit")
 
     ctx, extra = _context(repo, row, content)
     queries = list(spec.queries) + extra
-    passages: list[Passage] = search.search(dossier_id, queries, settings.retrieval_k)
+    lang = content.language
+    # Décisions humaines CONFIRMÉES : les seules fournies et citables (FR-23).
+    confirmed = repo.list_decisions(dossier_id, status="confirmed")
+    missing_cats = [c for c in spec.requires_decisions
+                    if not any(d.category == c for d in confirmed)]
+    decision_section = bool(spec.requires_decisions)
+    passages: list[Passage] = []
     findings = repo.list_findings(dossier_id, validated_only=True) if spec.uses_findings else []
     prompt, status, attempts, latency = "", "ok", 0, 0
     answer = ""
+    relevance = None
+    sent_decisions: list = []
+    dropped_decisions = 0
+    nonce = new_nonce()
 
-    gated, relevance = (False, None)
-    if len(passages) >= spec.min_sources:
-        gated, relevance = below_threshold(search, dossier_id, queries, resolve_threshold(settings))
-    if len(passages) < spec.min_sources:  # refus SANS appel au modèle
-        draft = SectionDraft(
-            section_key=section_key, status="insufficient_evidence", sentences=[],
-            missing_evidence="Passages insuffisants pour les requêtes : " + " ; ".join(queries))
-        status = "refused"
-    elif gated:  # porte de pertinence : rien de assez proche, refus SANS appel au modèle
-        draft = SectionDraft(
-            section_key=section_key, status="insufficient_evidence", sentences=[],
-            missing_evidence=("Aucun passage assez proche (pertinence "
-                              f"{relevance:.2f}) pour les requêtes : " + " ; ".join(queries)
-                              if relevance is not None else
-                              "Aucun passage trouvé pour les requêtes : " + " ; ".join(queries)))
+    if missing_cats:  # refus SANS appel au modèle : une décision ne se devine pas
+        names = ", ".join(category_label(c, lang) for c in missing_cats)
+        head = "décision humaine requise" if lang == "fr" else "human decision required"
+        draft = SectionDraft(section_key=section_key, status="insufficient_evidence", sentences=[],
+                             missing_evidence=f"{head} : {names}")
         status = "refused"
     else:
-        nonce = new_nonce()
-        fixed = system_prompt(content.language) + build_section_prompt(
-            spec, [], findings=findings, context=ctx, nonce=nonce, lang=content.language)
-        budget = passage_budget(getattr(provider, "context_tokens", None), fixed, SECTION_REPLY_TOKENS)
-        passages = fit_passages(passages, nonce, budget)  # seuls les passages lus sont citables
-        prompt = build_section_prompt(spec, passages, findings=findings, context=ctx,
-                                      nonce=nonce, budget=budget, lang=content.language)
-        llm, attempts, latency, error = call_model(provider, prompt, LLMSection,
-                                                   lang=content.language)
-        if llm is None:
-            status = "invalid"
-            draft = SectionDraft(section_key=section_key, status="insufficient_evidence",
-                                 sentences=[], missing_evidence=f"Réponse du modèle invalide : {error}")
+        if decision_section:  # catégories exigées d'abord, puis les autres, dans la fenêtre
+            ordered = ([d for d in confirmed if d.category in spec.requires_decisions]
+                       + [d for d in confirmed if d.category not in spec.requires_decisions])
+            window = getattr(provider, "context_tokens", None) or 4096
+            room, used = int(window * 0.4), 0
+            for d in ordered:
+                cost = decision_cost(d, nonce, lang)
+                if used + cost > room:
+                    dropped_decisions += 1
+                    continue
+                sent_decisions.append(d)
+                used += cost
+            lost = [c for c in spec.requires_decisions
+                    if not any(d.category == c for d in sent_decisions)]
         else:
-            answer = llm.model_dump_json()
-            draft = resolve_labels(llm, passages, section_key=section_key)
-            fmap = {f"F{i}": f.id for i, f in enumerate(findings, 1)}
-            draft = draft.model_copy(update={"sentences": [
-                sn.model_copy(update={"finding_ids": [fmap.get(re.sub(r"\W", "", x).upper(), x)
-                                                      for x in sn.finding_ids]})
-                for sn in draft.sentences[:spec.max_sentences]]})
-            if llm.status == "insufficient_evidence":
+            ordered, lost = [], []
+        if lost:  # fenêtre pleine : refus explicite, jamais de coupe silencieuse
+            names = ", ".join(category_label(c, lang) for c in lost)
+            draft = SectionDraft(
+                section_key=section_key, status="insufficient_evidence", sentences=[],
+                missing_evidence=("fenêtre de contexte pleine : les décisions requises ne tiennent "
+                                  f"pas ({names})" if lang == "fr" else
+                                  f"context window full: required decisions do not fit ({names})"))
+            status = "refused"
+        else:
+            # Une section de décision tient sur ses décisions ; les passages ne sont que du contexte.
+            passages = search.search(dossier_id, queries, settings.retrieval_k)
+            need = 0 if decision_section else spec.min_sources
+            gated = False
+            if not decision_section and len(passages) >= need:
+                gated, relevance = below_threshold(search, dossier_id, queries,
+                                                   resolve_threshold(settings))
+            if len(passages) < need:  # refus SANS appel au modèle
+                draft = SectionDraft(
+                    section_key=section_key, status="insufficient_evidence", sentences=[],
+                    missing_evidence="Passages insuffisants pour les requêtes : " + " ; ".join(queries))
                 status = "refused"
+            elif gated:  # porte de pertinence : rien d'assez proche, refus SANS appel au modèle
+                draft = SectionDraft(
+                    section_key=section_key, status="insufficient_evidence", sentences=[],
+                    missing_evidence=("Aucun passage assez proche (pertinence "
+                                      f"{relevance:.2f}) pour les requêtes : " + " ; ".join(queries)
+                                      if relevance is not None else
+                                      "Aucun passage trouvé pour les requêtes : " + " ; ".join(queries)))
+                status = "refused"
+            else:
+                kw = {"findings": findings, "context": ctx, "nonce": nonce, "lang": lang,
+                          "decisions": sent_decisions, "decision_section": decision_section}
+                fixed = system_prompt(lang) + build_section_prompt(spec, [], **kw)
+                budget = passage_budget(getattr(provider, "context_tokens", None), fixed,
+                                        SECTION_REPLY_TOKENS)
+                # Seuls les passages lus sont citables.
+                passages = fit_passages(passages, nonce, budget) if passages else []
+                prompt = build_section_prompt(spec, passages, budget=budget, **kw)
+                llm, attempts, latency, error = call_model(provider, prompt, LLMSection, lang=lang)
+                if llm is None:
+                    status = "invalid"
+                    draft = SectionDraft(
+                        section_key=section_key, status="insufficient_evidence", sentences=[],
+                        missing_evidence=f"Réponse du modèle invalide : {error}")
+                else:
+                    answer = llm.model_dump_json()
+                    dmap = {f"D{i}": d.id for i, d in enumerate(sent_decisions, 1)}
+                    draft = resolve_labels(llm, passages, section_key=section_key, decisions=dmap)
+                    fmap = {f"F{i}": f.id for i, f in enumerate(findings, 1)}
+                    draft = draft.model_copy(update={"sentences": [
+                        sn.model_copy(update={"finding_ids": [
+                            fmap.get(re.sub(r"\W", "", x).upper(), x) for x in sn.finding_ids]})
+                        for sn in draft.sentences[:spec.max_sentences]]})
+                    if llm.status == "insufficient_evidence":
+                        status = "refused"
     report: VerificationReport = verify_section(
         draft, {p.chunk.id: p.chunk for p in passages}, dossier_id=dossier_id,
         known_finding_ids={f.id for f in findings}, support_threshold=settings.support_threshold,
-        lang=content.language)
+        lang=content.language, decisions={d.id: d.text for d in confirmed},
+        decision_required=decision_section)
 
     run_id = record_run(repo, provider, dossier_id=dossier_id, kind="section", prompt=prompt,
                         status=status, attempts=attempts, latency_ms=latency,
@@ -231,8 +308,11 @@ def generate_section(repo, provider: LLMProvider, search, deliverable_id: str, s
     version = repo.add_version(deliverable_id, new_content, user.id, "generated")
     repo.audit(user.id, "section.generate", "deliverable", deliverable_id,
                {"section": section_key, "version": version, "run_id": run_id, "status": status,
-                "tpv": report.tpv, "relevance": relevance, "blocking": sum(i.severity == "blocking" for i in report.issues),
+                "tpv": report.tpv, "relevance": relevance,
+                "decisions_sent": len(sent_decisions), "decisions_not_sent": dropped_decisions,
+                "blocking": sum(i.severity == "blocking" for i in report.issues),
                 "model": provider.served_model})
     return {"version": version, "run_id": run_id, "status": status, "attempts": attempts,
+            "decisions_sent": len(sent_decisions), "decisions_not_sent": dropped_decisions,
             "section": draft.model_dump(mode="json"), "report": report.model_dump(mode="json"),
             "tpv": report.tpv}

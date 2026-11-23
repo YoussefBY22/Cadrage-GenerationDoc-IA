@@ -1,0 +1,153 @@
+id: software
+version: '1.0'
+fr:
+  label: Logiciel et SI
+  referentiels:
+  - ISO/IEC 25010 (qualité du produit logiciel)
+  - ISO/IEC 27001 (sécurité de l'information)
+  - IEEE 29148 (ingénierie des exigences)
+  tor:
+    sections:
+    - key: sw_competences
+      title: Compétences techniques requises
+      instructions: Décris les compétences techniques exigées telles que les décisions confirmées les
+        fixent.
+      queries:
+      - compétences techniques
+      - technologies et outils
+      - expérience en développement
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - Banque mondiale (qualifications du consultant)
+      requires_decisions:
+      - profile
+      after: profil
+    adapt:
+    - key: livrables
+      instructions_append: Distingue les livrables logiciels (code, documentation) des livrables de gestion.
+  cdc:
+    sections:
+    - key: sw_integration
+      title: Architecture et intégration
+      instructions: Décris l'architecture cible et les intégrations avec l'existant, d'après les passages.
+      queries:
+      - architecture applicative
+      - interfaces et intégration
+      - système d'information existant
+      min_sources: 2
+      max_sentences: 8
+      uses_findings: true
+      referentiels:
+      - ISO/IEC 25010 (compatibilité, interopérabilité)
+      after: non_fonctionnelles
+    - key: sw_securite
+      title: Sécurité et données
+      instructions: Décris les exigences de sécurité et de protection des données, d'après les passages.
+      queries:
+      - sécurité des accès
+      - protection des données personnelles
+      - journalisation et traçabilité
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - ISO/IEC 27001 (mesures de sécurité)
+      after: non_fonctionnelles
+    - key: sw_maintenance
+      title: Maintenance et niveaux de service
+      instructions: Décris la maintenance et les niveaux de service tels que les décisions confirmées
+        les fixent.
+      queries:
+      - maintenance corrective et évolutive
+      - niveaux de service
+      - support utilisateurs
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      requires_decisions:
+      - constraint
+      after: non_fonctionnelles
+    adapt:
+    - key: recette
+      instructions_append: Prévois recette fonctionnelle, tests de charge et de sécurité.
+      queries_add:
+      - tests d'acceptation
+      referentiels_add:
+      - ISO/IEC 25010 (critères de qualité à recetter)
+en:
+  label: Software and IS
+  referentiels:
+  - ISO/IEC 25010 (software product quality)
+  - ISO/IEC 27001 (information security)
+  - IEEE 29148 (requirements engineering)
+  tor:
+    sections:
+    - key: sw_competences
+      title: Required technical skills
+      instructions: Describe the technical skills required as set by the confirmed decisions.
+      queries:
+      - technical skills
+      - technologies and tools
+      - software development experience
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - World Bank (consultant qualifications)
+      requires_decisions:
+      - profile
+      after: profil
+    adapt:
+    - key: livrables
+      instructions_append: Distinguish software deliverables (code, documentation) from management deliverables.
+  cdc:
+    sections:
+    - key: sw_integration
+      title: Architecture and integration
+      instructions: Describe the target architecture and the integrations with the existing systems, from
+        the passages.
+      queries:
+      - application architecture
+      - interfaces and integration
+      - existing information system
+      min_sources: 2
+      max_sentences: 8
+      uses_findings: true
+      referentiels:
+      - ISO/IEC 25010 (compatibility, interoperability)
+      after: non_fonctionnelles
+    - key: sw_securite
+      title: Security and data
+      instructions: Describe the security and data protection requirements, from the passages.
+      queries:
+      - access security
+      - personal data protection
+      - logging and traceability
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - ISO/IEC 27001 (security controls)
+      after: non_fonctionnelles
+    - key: sw_maintenance
+      title: Maintenance and service levels
+      instructions: Describe maintenance and service levels as set by the confirmed decisions.
+      queries:
+      - corrective and evolutive maintenance
+      - service levels
+      - user support
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      requires_decisions:
+      - constraint
+      after: non_fonctionnelles
+    adapt:
+    - key: recette
+      instructions_append: Plan for functional acceptance, load and security tests.
+      queries_add:
+      - acceptance tests
+      referentiels_add:
+      - ISO/IEC 25010 (quality criteria to accept)

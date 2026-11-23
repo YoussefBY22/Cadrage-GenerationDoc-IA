@@ -6,7 +6,7 @@ from typing import Literal
 Lang = Literal["fr", "en"]
 DeliverableType = Literal["findings", "roadmap", "tor", "cdc"]
 
-PREFIXES = ("dos", "doc", "chk", "fnd", "ini", "dlv", "run", "usr", "prt", "prj")
+PREFIXES = ("dos", "doc", "chk", "fnd", "ini", "dlv", "run", "usr", "prt", "prj", "dec")
 
 
 def new_id(prefix: str) -> str:

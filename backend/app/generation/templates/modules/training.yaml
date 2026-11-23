@@ -1,0 +1,122 @@
+id: training
+version: '1.0'
+fr:
+  label: Formation
+  referentiels:
+  - Kirkpatrick (quatre niveaux d'évaluation de la formation)
+  tor:
+    sections:
+    - key: frm_formateurs
+      title: Profil des formateurs
+      instructions: Décris le profil des formateurs tel que les décisions confirmées le fixent.
+      queries:
+      - profil des formateurs
+      - expérience pédagogique
+      - qualifications
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      requires_decisions:
+      - profile
+      after: profil
+    adapt: []
+  cdc:
+    sections:
+    - key: frm_public
+      title: Public et besoins de formation
+      instructions: Décris le public visé et ses besoins de formation, d'après les passages.
+      queries:
+      - public visé
+      - besoins de formation
+      - niveau initial
+      min_sources: 2
+      max_sentences: 8
+      uses_findings: true
+      after: non_fonctionnelles
+    - key: frm_programme
+      title: Programme et modalités
+      instructions: Décris le programme et les modalités pédagogiques, d'après les passages.
+      queries:
+      - programme de formation
+      - modalités pédagogiques
+      - supports
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      after: non_fonctionnelles
+    - key: frm_evaluation
+      title: Évaluation des acquis
+      instructions: Décris l'évaluation de la formation telle que les décisions confirmées la fixent.
+      queries:
+      - évaluation des acquis
+      - satisfaction des participants
+      - mise en pratique
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - Kirkpatrick (réaction, apprentissage, comportement, résultats)
+      requires_decisions:
+      - criterion
+      after: non_fonctionnelles
+    adapt: []
+en:
+  label: Training
+  referentiels:
+  - Kirkpatrick (four levels of training evaluation)
+  tor:
+    sections:
+    - key: frm_formateurs
+      title: Trainer profile
+      instructions: Describe the trainer profile as set by the confirmed decisions.
+      queries:
+      - trainer profile
+      - teaching experience
+      - qualifications
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      requires_decisions:
+      - profile
+      after: profil
+    adapt: []
+  cdc:
+    sections:
+    - key: frm_public
+      title: Audience and training needs
+      instructions: Describe the target audience and its training needs, from the passages.
+      queries:
+      - target audience
+      - training needs
+      - initial level
+      min_sources: 2
+      max_sentences: 8
+      uses_findings: true
+      after: non_fonctionnelles
+    - key: frm_programme
+      title: Programme and methods
+      instructions: Describe the programme and teaching methods, from the passages.
+      queries:
+      - training programme
+      - teaching methods
+      - materials
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      after: non_fonctionnelles
+    - key: frm_evaluation
+      title: Assessment of learning
+      instructions: Describe the training evaluation as set by the confirmed decisions.
+      queries:
+      - assessment of learning
+      - participant satisfaction
+      - on-the-job application
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - Kirkpatrick (reaction, learning, behaviour, results)
+      requires_decisions:
+      - criterion
+      after: non_fonctionnelles
+    adapt: []

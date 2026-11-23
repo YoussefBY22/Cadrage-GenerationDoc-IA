@@ -1,0 +1,128 @@
+id: change
+version: '1.0'
+fr:
+  label: Organisation et conduite du changement
+  referentiels:
+  - Prosci ADKAR (changement individuel)
+  - Kotter (conduite du changement)
+  tor:
+    sections:
+    - key: chg_competences
+      title: Compétences en conduite du changement
+      instructions: Décris les compétences exigées telles que les décisions confirmées les fixent.
+      queries:
+      - conduite du changement
+      - accompagnement des équipes
+      - expérience d'organisation
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      requires_decisions:
+      - profile
+      after: profil
+    adapt: []
+  cdc:
+    sections:
+    - key: chg_parties
+      title: Parties prenantes et impacts
+      instructions: Décris les parties prenantes et les impacts du changement, d'après les passages.
+      queries:
+      - parties prenantes
+      - impacts organisationnels
+      - résistances
+      min_sources: 2
+      max_sentences: 8
+      uses_findings: true
+      referentiels:
+      - Prosci ADKAR (sensibilisation, désir)
+      after: non_fonctionnelles
+    - key: chg_accompagnement
+      title: Plan d'accompagnement
+      instructions: Décris le plan de communication, de formation et d'accompagnement, d'après les passages.
+      queries:
+      - plan de communication
+      - accompagnement des utilisateurs
+      - relais du changement
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - Kotter (communiquer la vision)
+      after: non_fonctionnelles
+    - key: chg_mesure
+      title: Mesure de l'adoption
+      instructions: Décris les indicateurs d'adoption tels que les décisions confirmées les fixent.
+      queries:
+      - indicateurs d'adoption
+      - mesure de l'appropriation
+      - suivi après déploiement
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      requires_decisions:
+      - criterion
+      after: non_fonctionnelles
+    adapt: []
+en:
+  label: Organisation and change management
+  referentiels:
+  - Prosci ADKAR (individual change)
+  - Kotter (leading change)
+  tor:
+    sections:
+    - key: chg_competences
+      title: Change management skills
+      instructions: Describe the skills required as set by the confirmed decisions.
+      queries:
+      - change management
+      - team support
+      - organisation experience
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      requires_decisions:
+      - profile
+      after: profil
+    adapt: []
+  cdc:
+    sections:
+    - key: chg_parties
+      title: Stakeholders and impacts
+      instructions: Describe the stakeholders and the impacts of the change, from the passages.
+      queries:
+      - stakeholders
+      - organisational impacts
+      - resistance
+      min_sources: 2
+      max_sentences: 8
+      uses_findings: true
+      referentiels:
+      - Prosci ADKAR (awareness, desire)
+      after: non_fonctionnelles
+    - key: chg_accompagnement
+      title: Support plan
+      instructions: Describe the communication, training and support plan, from the passages.
+      queries:
+      - communication plan
+      - user support
+      - change champions
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - Kotter (communicate the vision)
+      after: non_fonctionnelles
+    - key: chg_mesure
+      title: Adoption measurement
+      instructions: Describe the adoption indicators as set by the confirmed decisions.
+      queries:
+      - adoption indicators
+      - measuring ownership
+      - post-deployment follow-up
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      requires_decisions:
+      - criterion
+      after: non_fonctionnelles
+    adapt: []

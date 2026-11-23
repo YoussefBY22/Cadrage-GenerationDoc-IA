@@ -18,6 +18,7 @@ class Sentence(BaseModel):
     source_labels: list[str] = []  # ["P2","P5"] tel que rendu par le modèle
     source_ids: list[str] = []  # chunk ids, résolus par le code
     finding_ids: list[str] = []
+    decision_ids: list[str] = []  # décisions humaines confirmées citées (D1..Dn résolus)
 
 
 class SectionDraft(BaseModel):
@@ -54,3 +55,4 @@ class DeliverableContent(BaseModel):
     template_version: str
     sections: list[SectionDraft]
     roadmap: RoadmapResult | None = None
+    modules: list[str] = []  # modules par type de projet combinés au tronc commun (FR-24)

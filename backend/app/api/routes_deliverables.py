@@ -47,6 +47,20 @@ def _after_edit(repo, d, user, version: int):
                    {"from": "approved", "to": "draft", "version": version, "auto": True})
 
 
+def _sections(content) -> list[dict]:
+    """Sections du gabarit exact de ce livrable (tronc + modules) et décisions qu'elles exigent."""
+    from app.domain.decisions import category_label
+    from app.generation.template_loader import TemplateError, template_for
+
+    try:
+        tpl = template_for(content)
+    except TemplateError:
+        return []
+    return [{"key": s.key, "title": s.title, "requires_decisions": list(s.requires_decisions),
+             "requires_labels": [category_label(c, content.language) for c in s.requires_decisions]}
+            for s in tpl.sections]
+
+
 @router.get("/deliverables/{deliverable_id}")
 def get_deliverable(deliverable_id: str, repo: Repo, user: User):
     d = load_deliverable(repo, deliverable_id, user)
@@ -55,6 +69,7 @@ def get_deliverable(deliverable_id: str, repo: Repo, user: User):
     version, content = repo.get_version(deliverable_id)
     return {"id": d["id"], "dossier_id": d["dossier_id"], "type": d["type"], "state": d["state"],
             "template_id": d["template_id"], "version": version,
+            "modules": content.modules, "sections": _sections(content),
             "content": content.model_dump(mode="json"), "reports": _reports(repo, d, content),
             "initiative_issues": vs.initiative_issues(repo, d["dossier_id"], content)}
 
@@ -89,7 +104,7 @@ def put_content(deliverable_id: str, body: dict, repo: Repo, user: User):
     except ValidationError as exc:
         return error_response(422, "INVALID_CONTENT", f"Contenu invalide : {exc.error_count()} erreur(s)")
     _, current = repo.get_version(deliverable_id)
-    fields = ("type", "language", "template_id", "template_version")
+    fields = ("type", "language", "template_id", "template_version", "modules")
     if any(getattr(content, f) != getattr(current, f) for f in fields) or content.type != d["type"]:
         return error_response(422, "IDENTITY_CHANGED",
                               "Type, langue et gabarit d'un livrable ne changent pas à l'édition")

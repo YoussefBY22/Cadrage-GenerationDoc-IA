@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from app.api.routes_dossiers import not_found
+from app.domain.context import ProjectType
 from app.domain.roadmap import Criterion
 from app.services import Provider, Repo, User, error_response, generation, roadmap_service
 from app.services.generation import GenerationError, get_deliverable
@@ -50,6 +51,8 @@ class DeliverableBody(BaseModel):
     template_id: str | None = None
     initiative_id: str | None = None
     language: Literal["fr", "en"] | None = None  # défaut : langue du dossier
+    # modules par type de projet ; absent = types de la fiche confirmée ; [] = tronc commun seul
+    modules: list[ProjectType] | None = None
 
 
 def _member(repo, dossier_id, user) -> bool:
@@ -92,7 +95,8 @@ def create_deliverable(dossier_id: str, body: DeliverableBody, repo: Repo, user:
     try:
         did = generation.create_deliverable(
             repo, dossier_id, body.type, user, initiative_id=body.initiative_id,
-            language=body.language or repo.get_dossier(dossier_id)["language"])
+            language=body.language or repo.get_dossier(dossier_id)["language"],
+            modules=body.modules)
     except GenerationError as exc:
         return error_response(exc.status, exc.code, exc.message)
     return {"deliverable_id": did, "type": body.type}

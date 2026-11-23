@@ -55,6 +55,12 @@ def test_parcours_complet_institution_1(api, repo, tmp_path):
 
     tor = api.post(f"/api/v1/dossiers/{did}/deliverables",
                    json={"type": "tor", "initiative_id": ini}).json()["deliverable_id"]
+    # budget, profils, calendrier : décisions humaines, jamais dans un diagnostic
+    for spec in load_template("tor", "fr").sections:
+        for cat in spec.requires_decisions:
+            r = api.post(f"/api/v1/dossiers/{did}/decisions", json={
+                "category": cat, "text": f"Décision retenue pour {spec.key}.", "status": "confirmed"})
+            assert r.status_code == 201, r.text
     for spec in load_template("tor", "fr").sections:
         r = api.post(f"/api/v1/deliverables/{tor}/sections/{spec.key}:generate")
         assert r.status_code == 200, (spec.key, r.text)

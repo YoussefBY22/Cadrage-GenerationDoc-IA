@@ -1,0 +1,148 @@
+id: data_ai
+version: '1.0'
+fr:
+  label: Données et IA
+  referentiels:
+  - DAMA-DMBOK (gouvernance des données)
+  - ISO/IEC 42001 (système de management de l'IA)
+  - CRISP-DM (démarche de projet de données)
+  tor:
+    sections:
+    - key: da_competences
+      title: Compétences en données et IA
+      instructions: Décris les profils data et IA exigés tels que les décisions confirmées les fixent.
+      queries:
+      - profils data
+      - science des données
+      - expérience en apprentissage automatique
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      requires_decisions:
+      - profile
+      after: profil
+    adapt:
+    - key: objectifs
+      instructions_append: Précise la décision métier que les données ou le modèle doivent éclairer.
+  cdc:
+    sections:
+    - key: da_donnees
+      title: Données et qualité
+      instructions: Décris les sources de données, leur qualité et leur disponibilité, d'après les passages.
+      queries:
+      - sources de données
+      - qualité des données
+      - volumes et formats
+      min_sources: 2
+      max_sentences: 8
+      uses_findings: true
+      referentiels:
+      - DAMA-DMBOK (qualité des données)
+      after: non_fonctionnelles
+    - key: da_modele
+      title: Performance et évaluation du modèle
+      instructions: Décris les critères de performance du modèle tels que les décisions confirmées les
+        fixent.
+      queries:
+      - indicateurs de performance
+      - évaluation du modèle
+      - seuils d'acceptation
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - CRISP-DM (évaluation)
+      requires_decisions:
+      - criterion
+      after: non_fonctionnelles
+    - key: da_gouvernance
+      title: Gouvernance, éthique et conformité
+      instructions: Décris les exigences de gouvernance, d'éthique et de conformité, d'après les passages.
+      queries:
+      - protection des données
+      - éthique et biais
+      - conformité réglementaire
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - ISO/IEC 42001 (gouvernance de l'IA)
+      after: non_fonctionnelles
+    adapt:
+    - key: recette
+      instructions_append: Prévois une recette sur données réelles et un suivi de dérive après mise en
+        service.
+      queries_add:
+      - jeu de test
+en:
+  label: Data and AI
+  referentiels:
+  - DAMA-DMBOK (data governance)
+  - ISO/IEC 42001 (AI management system)
+  - CRISP-DM (data project process)
+  tor:
+    sections:
+    - key: da_competences
+      title: Data and AI skills
+      instructions: Describe the data and AI profiles required as set by the confirmed decisions.
+      queries:
+      - data profiles
+      - data science
+      - machine learning experience
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      requires_decisions:
+      - profile
+      after: profil
+    adapt:
+    - key: objectifs
+      instructions_append: State the business decision the data or the model must inform.
+  cdc:
+    sections:
+    - key: da_donnees
+      title: Data and quality
+      instructions: Describe the data sources, their quality and availability, from the passages.
+      queries:
+      - data sources
+      - data quality
+      - volumes and formats
+      min_sources: 2
+      max_sentences: 8
+      uses_findings: true
+      referentiels:
+      - DAMA-DMBOK (data quality)
+      after: non_fonctionnelles
+    - key: da_modele
+      title: Model performance and evaluation
+      instructions: Describe the model performance criteria as set by the confirmed decisions.
+      queries:
+      - performance indicators
+      - model evaluation
+      - acceptance thresholds
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - CRISP-DM (evaluation)
+      requires_decisions:
+      - criterion
+      after: non_fonctionnelles
+    - key: da_gouvernance
+      title: Governance, ethics and compliance
+      instructions: Describe the governance, ethics and compliance requirements, from the passages.
+      queries:
+      - data protection
+      - ethics and bias
+      - regulatory compliance
+      min_sources: 1
+      max_sentences: 8
+      uses_findings: false
+      referentiels:
+      - ISO/IEC 42001 (AI governance)
+      after: non_fonctionnelles
+    adapt:
+    - key: recette
+      instructions_append: Plan acceptance on real data and drift monitoring after go-live.
+      queries_add:
+      - test dataset

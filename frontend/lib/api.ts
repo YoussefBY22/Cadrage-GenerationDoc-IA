@@ -13,6 +13,12 @@ import type {
   TestReport,
   Passage,
   Role,
+  ChatReply,
+  ChatTurn,
+  ContextData,
+  ContextSheet,
+  Decision,
+  DecisionCategory,
   Priority,
   ProjectState,
   RoadmapGenerated,
@@ -135,6 +141,19 @@ export const api = {
   },
   setDocumentRole: (id: string, role: DocumentRole) =>
     request<DocumentInfo>(`/documents/${id}`, json("PATCH", { role })),
+  getContext: (dossierId: string) => request<ContextSheet>(`/dossiers/${dossierId}/context`),
+  saveContext: (dossierId: string, body: Partial<ContextData> & { confirm?: boolean }) =>
+    request<ContextSheet>(`/dossiers/${dossierId}/context`, json("PUT", body)),
+  chat: (dossierId: string, message: string, history: ChatTurn[]) =>
+    request<ChatReply>(`/dossiers/${dossierId}/chat`, json("POST", { message, history })),
+  listDecisions: (dossierId: string) => request<Decision[]>(`/dossiers/${dossierId}/decisions`),
+  createDecision: (dossierId: string, body: { category: DecisionCategory; text: string; status?: "proposed" | "confirmed" }) =>
+    request<Decision>(`/dossiers/${dossierId}/decisions`, json("POST", body)),
+  patchDecision: (id: string, body: { category?: DecisionCategory; text?: string }) =>
+    request<Decision>(`/decisions/${id}`, json("PATCH", body)),
+  confirmDecision: (id: string) => request<Decision>(`/decisions/${id}:confirm`, { method: "POST" }),
+  retractDecision: (id: string) => request<Decision>(`/decisions/${id}:retract`, { method: "POST" }),
+  deleteDecision: (id: string) => request<void>(`/decisions/${id}`, { method: "DELETE" }),
   listPriorities: (dossierId: string) => request<Priority[]>(`/dossiers/${dossierId}/priorities`),
   createPriority: (dossierId: string, body: { title: string; description?: string }) =>
     request<Priority>(`/dossiers/${dossierId}/priorities`, json("POST", body)),

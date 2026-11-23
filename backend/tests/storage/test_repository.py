@@ -260,6 +260,16 @@ def test_protocol_fully_exercised(repo, world):
     spy.list_projects(d2)
     spy.update_project(pj.id, state="done")
     spy.delete_project(pj.id)
+    dc = spy.create_decision(d2, category="budget", text="40 000 euros", status="proposed",
+                             author_id=uid)
+    spy.get_decision(dc.id)
+    spy.list_decisions(d2)
+    spy.update_decision(dc.id, status="confirmed")
+    spy.delete_decision(dc.id)
+    from app.domain.context import ContextData
+
+    spy.save_context(d2, ContextData(sector="Santé"), user_id=uid, confirmed=False)
+    spy.get_context(d2)
     protocol_methods = {n for n, v in vars(Repository).items()
                         if callable(v) and not n.startswith("_")}
     assert protocol_methods - called == set()

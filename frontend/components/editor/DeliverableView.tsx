@@ -88,7 +88,7 @@ export default function DeliverableView({ id }: { id: string }) {
   if (!d) return <p role={error ? "alert" : undefined}>{error ?? t.common.loading}</p>;
 
   const editable = d.state === "draft";
-  const specs = TEMPLATE_SECTIONS[d.type] ?? [];
+  const specs = d.sections?.length ? d.sections : (TEMPLATE_SECTIONS[d.type] ?? []).map((s) => ({ ...s, requires_labels: [] as string[] }));
   const byKey = new Map(d.content.sections.map((s) => [s.section_key, s]));
   const reportOf = (key: string) => d.reports.find((r) => r.report.section_key === key);
 
@@ -109,6 +109,15 @@ export default function DeliverableView({ id }: { id: string }) {
             <span>v{d.version}</span>
           </div>
           <h1>{TYPE_LABEL[d.type] ?? d.type.toUpperCase()}</h1>
+          {(d.modules ?? []).length > 0 && (
+            <div className="row" style={{ marginTop: 6 }} data-testid="modules">
+              {(d.modules ?? []).map((k) => (
+                <span key={k} className="tag">
+                  {t.context.types[k] ?? k}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         {editable && (
           <div className="actions">
@@ -147,7 +156,7 @@ export default function DeliverableView({ id }: { id: string }) {
 
       <div className="split with-panel">
         <section>
-          {specs.map(({ key }) => {
+          {specs.map(({ key, title: specTitle, requires_labels: needs }) => {
             const section = byKey.get(key);
             const report = reportOf(key);
             const hard = new Set(
@@ -159,11 +168,16 @@ export default function DeliverableView({ id }: { id: string }) {
               ...(section?.status === "insufficient_evidence" ? [{ index: -1, label: m.ackRefusal }] : []),
             ];
             const sectionComments = comments.filter((c) => c.section_key === key);
-            const title = sectionTitle(d.type, key);
+            const title = sectionTitle(d.type, key) !== key ? sectionTitle(d.type, key) : specTitle;
             return (
               <article key={key} className="card section-card" data-testid={`section-${key}`}>
                 <header>
                   <h2>{title}</h2>
+                  {needs.length > 0 && (
+                    <Link href={`/dossiers/${d.dossier_id}/decisions`} className="tag" title={m.needsDecisionHint}>
+                      {m.needsDecision(needs.join(", "))}
+                    </Link>
+                  )}
                   {editable && (
                     <button
                       className="btn btn-primary btn-sm"

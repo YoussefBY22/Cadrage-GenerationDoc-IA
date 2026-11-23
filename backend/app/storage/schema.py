@@ -269,3 +269,29 @@ existing_projects = Table(
     _dt("updated_at", nullable=False, default=utcnow),
     Index("ix_existing_projects_dossier", "dossier_id"),
 )
+
+decisions = Table(
+    "decisions", metadata,
+    Column("id", ID, primary_key=True),
+    Column("dossier_id", ID, ForeignKey("dossiers.id"), nullable=False),
+    Column("category", String(16), nullable=False),
+    Column("text", Text, nullable=False),
+    Column("status", String(16), nullable=False, default="proposed"),
+    Column("author_id", ID),
+    Column("confirmed_by", ID),
+    _dt("confirmed_at"),
+    _dt("created_at", nullable=False, default=utcnow),
+    _dt("updated_at", nullable=False, default=utcnow),
+    Index("ix_decisions_dossier", "dossier_id"),
+)
+
+# Fiche de contexte : une ligne par dossier ; seules les valeurs confirmées par un humain y entrent.
+context_sheets = Table(
+    "context_sheets", metadata,
+    Column("dossier_id", ID, ForeignKey("dossiers.id"), primary_key=True),
+    Column("data", JsonType(), nullable=False),
+    Column("confirmed_by", ID),
+    _dt("confirmed_at"),
+    Column("updated_by", ID),
+    _dt("updated_at", nullable=False, default=utcnow),
+)

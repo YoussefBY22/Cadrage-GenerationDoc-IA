@@ -31,6 +31,11 @@ def honest(prompt: str, schema) -> dict:
         return {"status": "ok", "findings": [
             {"text": best_sentence(t), "theme": "gouvernance", "severity": "medium", "sources": [p]}
             for p, t in ps[:2]]}
+    if name == "LLMSection" and "SECTION DE DÉCISION" in prompt:
+        # section de décision : le modèle honnête reformule la décision D1, jamais un constat
+        text = re.search(r"^D1: \[[^\]]*\] (.*)$", prompt, re.MULTILINE).group(1)
+        return {"status": "ok", "sentences": [
+            {"text": text, "kind": "fact", "sources": [], "decisions": ["D1"]}]}
     if name == "LLMSection":
         sent = [{"text": best_sentence(t), "kind": "fact", "sources": [p],
                  "findings": ["F1"] if "F1:" in prompt else []} for p, t in ps[:2]]

@@ -11,6 +11,7 @@ export interface Sentence {
   source_labels: string[];
   source_ids: string[];
   finding_ids: string[];
+  decision_ids?: string[];
 }
 
 export interface SectionDraft {
@@ -125,6 +126,7 @@ export interface DeliverableContent {
   template_version: string;
   sections: SectionDraft[];
   roadmap: RoadmapResult | null;
+  modules?: string[];
 }
 
 export interface SentenceCheck {
@@ -156,6 +158,9 @@ export interface Deliverable {
   version: number;
   content: DeliverableContent;
   reports: SectionReport[];
+  modules?: string[];
+  /** Sections du gabarit exact (tronc commun + modules) et décisions humaines exigées. */
+  sections?: { key: string; title: string; requires_decisions: string[]; requires_labels: string[] }[];
 }
 
 export interface VersionInfo {

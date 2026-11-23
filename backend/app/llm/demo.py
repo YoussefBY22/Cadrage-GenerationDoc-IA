@@ -15,6 +15,28 @@ def _best_sentence(text: str) -> str:
     return max(ok or parts, key=len)
 
 
+_MESSAGE = re.compile(r"^MESSAGE \(donnée\) : (.*)$", re.MULTILINE)
+
+
+def _chat(prompt: str) -> dict:
+    """Chat de démonstration : relève budget, durée et profil dans le message, rien d'autre."""
+    found = _MESSAGE.search(prompt)
+    msg = found.group(1) if found else ""
+    low = msg.lower()
+    decisions, fields = [], []
+    for word, cat in (("budget", "budget"), ("profil", "profile"), ("délai", "schedule"),
+                      ("durée", "duration"), ("critère", "criterion")):
+        if word in low:
+            decisions.append({"category": cat, "text": msg.strip().rstrip(".") + "."})
+            break
+    if "ministère" in low or "administration" in low:
+        fields.append({"field": "sector", "value": "Administration publique"})
+    asked = [] if decisions else ["Quel budget, quel profil et quel calendrier envisagez-vous ?"]
+    return {"reply": "Je note cela. Confirmez ce qui est juste." if decisions or fields
+            else "Pouvez-vous préciser le contexte du projet ?",
+            "questions": asked, "fields": fields, "decisions": decisions}
+
+
 def demo_handler(prompt: str, schema) -> dict:
     """Réponse structurée déterministe pour chaque schéma de génération."""
     from app.roadmap.scoring import DEFAULT_CRITERIA
@@ -25,6 +47,14 @@ def demo_handler(prompt: str, schema) -> dict:
         return {"status": "ok", "findings": [
             {"text": _best_sentence(t), "theme": "gouvernance", "severity": "medium", "sources": [p]}
             for p, t in ps[:2]]}
+    if name == "LLMChat":
+        return _chat(prompt)
+    if name == "LLMSection" and "SECTION DE DÉCISION" in prompt:
+        # section de décision : on reformule la décision D1, jamais un constat du diagnostic
+        found = re.search(r"^D1: \[[^\]]*\] (.*)$", prompt, re.MULTILINE)
+        text = found.group(1) if found else "Décision à préciser."
+        return {"status": "ok", "sentences": [
+            {"text": text, "kind": "fact", "sources": [], "decisions": ["D1"]}]}
     if name == "LLMSection":
         if not ps:
             return {"status": "insufficient_evidence", "sentences": [],

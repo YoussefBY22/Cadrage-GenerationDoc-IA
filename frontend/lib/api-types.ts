@@ -41,6 +41,64 @@ export interface Priority {
   created_at: string | null;
 }
 
+export type DecisionCategory = "budget" | "profile" | "schedule" | "duration" | "criterion" | "constraint" | "other";
+export type DecisionStatus = "proposed" | "confirmed";
+
+export interface Decision {
+  id: string;
+  dossier_id: string;
+  category: DecisionCategory;
+  text: string;
+  status: DecisionStatus;
+  author_id: string | null;
+  author_name?: string | null;
+  confirmed_by?: string | null;
+  confirmed_by_name?: string | null;
+  confirmed_at?: string | null;
+  created_at: string | null;
+}
+
+export type ProjectType = "software" | "data_ai" | "infrastructure" | "supplies" | "services" | "study" | "change" | "training";
+
+export interface ContextData {
+  sector: string;
+  size: string;
+  country: string;
+  language: string;
+  project_types: ProjectType[];
+  scope: string;
+  constraints: string;
+  stakeholders: string;
+}
+
+export interface ContextSheet {
+  dossier_id: string;
+  data: ContextData;
+  confirmed: boolean;
+  confirmed_at: string | null;
+  confirmed_by_name?: string | null;
+  missing: string[];
+  flags: string[];
+}
+
+export interface ChatTurn {
+  role: "user" | "assistant";
+  text: string;
+}
+
+export interface ChatReply {
+  status: "ok" | "refused" | "invalid";
+  reason?: string | null;
+  reply: string;
+  questions: string[];
+  proposals: {
+    fields: { field: keyof ContextData; value: string | ProjectType[]; current: string | ProjectType[] }[];
+    decisions: { category: DecisionCategory; label: string; text: string }[];
+  };
+  dropped: { kind: string; value: string; why: string }[];
+  sent: { passages: number; history_turns: number; history_dropped: number };
+}
+
 export interface Coverage {
   documents: number;
   chunks_read: number;

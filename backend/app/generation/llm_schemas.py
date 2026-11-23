@@ -15,6 +15,7 @@ class LLMSentence(BaseModel):
     kind: SentenceKind
     sources: list[str]
     findings: list[str] = []
+    decisions: list[str] = []
 
 
 class LLMSection(BaseModel):

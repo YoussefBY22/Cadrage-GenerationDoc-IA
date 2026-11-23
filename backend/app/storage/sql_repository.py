@@ -8,6 +8,8 @@ from sqlalchemy import Engine, delete, func, insert, select, update
 from sqlalchemy.exc import IntegrityError
 
 from ..domain.coeur import ExistingProject, Priority
+from ..domain.context import ContextData, ContextSheet
+from ..domain.decisions import Decision
 from ..domain.documents import Chunk, ParsedDocument
 from ..domain.generation import DeliverableContent, Finding
 from ..domain.ids import new_id
@@ -34,6 +36,13 @@ def _priority(row) -> Priority:
         rank=row.rank, status=row.status, source_ids=list(row.source_ids or []),
         author_id=row.author_id, validated_by=row.validated_by, validated_at=row.validated_at,
         created_at=row.created_at)
+
+
+def _decision(row) -> Decision:
+    return Decision(
+        id=row.id, dossier_id=row.dossier_id, category=row.category, text=row.text,
+        status=row.status, author_id=row.author_id, confirmed_by=row.confirmed_by,
+        confirmed_at=row.confirmed_at, created_at=row.created_at)
 
 
 def _project(row) -> ExistingProject:
@@ -328,6 +337,68 @@ class SqlRepository:
     def delete_priority(self, priority_id) -> None:
         with self.engine.begin() as c:
             c.execute(delete(s.priorities).where(s.priorities.c.id == priority_id))
+
+    # --- fiche de contexte --------------------------------------------------------------------
+    def get_context(self, dossier_id) -> ContextSheet | None:
+        with self.engine.connect() as c:
+            row = c.execute(select(s.context_sheets).where(
+                s.context_sheets.c.dossier_id == dossier_id)).first()
+        if row is None:
+            return None
+        return ContextSheet(
+            dossier_id=dossier_id, data=ContextData.model_validate(row.data or {}),
+            confirmed_by=row.confirmed_by, confirmed_at=row.confirmed_at,
+            updated_by=row.updated_by, updated_at=row.updated_at)
+
+    def save_context(self, dossier_id, data: ContextData, *, user_id, confirmed: bool) -> ContextSheet:
+        """Une modification retire la confirmation ; seul `confirmed=True` la (re)pose."""
+        values = {"data": data.model_dump(mode="json"), "updated_by": user_id,
+                  "updated_at": s.utcnow(),
+                  "confirmed_by": user_id if confirmed else None,
+                  "confirmed_at": s.utcnow() if confirmed else None}
+        with self.engine.begin() as c:
+            exists = c.execute(select(s.context_sheets.c.dossier_id).where(
+                s.context_sheets.c.dossier_id == dossier_id)).first()
+            if exists:
+                c.execute(update(s.context_sheets).where(
+                    s.context_sheets.c.dossier_id == dossier_id).values(**values))
+            else:
+                c.execute(insert(s.context_sheets).values(dossier_id=dossier_id, **values))
+        return self.get_context(dossier_id)
+
+    # --- décisions humaines -------------------------------------------------------------------
+    def create_decision(self, dossier_id, *, category, text, status, author_id) -> Decision:
+        did = new_id("dec")
+        confirmed = status == "confirmed"
+        with self.engine.begin() as c:
+            c.execute(insert(s.decisions).values(
+                id=did, dossier_id=dossier_id, category=category, text=text, status=status,
+                author_id=author_id, confirmed_by=author_id if confirmed else None,
+                confirmed_at=s.utcnow() if confirmed else None))
+        return self.get_decision(did)
+
+    def get_decision(self, decision_id) -> Decision | None:
+        with self.engine.connect() as c:
+            row = c.execute(select(s.decisions).where(s.decisions.c.id == decision_id)).first()
+        return _decision(row) if row else None
+
+    def list_decisions(self, dossier_id, status: str | None = None) -> list[Decision]:
+        stmt = select(s.decisions).where(s.decisions.c.dossier_id == dossier_id)
+        if status is not None:
+            stmt = stmt.where(s.decisions.c.status == status)
+        with self.engine.connect() as c:
+            return [_decision(r) for r in c.execute(
+                stmt.order_by(s.decisions.c.created_at, s.decisions.c.id))]
+
+    def update_decision(self, decision_id, **values) -> Decision | None:
+        with self.engine.begin() as c:
+            c.execute(update(s.decisions).where(s.decisions.c.id == decision_id).values(
+                updated_at=s.utcnow(), **values))
+        return self.get_decision(decision_id)
+
+    def delete_decision(self, decision_id) -> None:
+        with self.engine.begin() as c:
+            c.execute(delete(s.decisions).where(s.decisions.c.id == decision_id))
 
     # --- projets existants --------------------------------------------------------------------
     def create_project(self, dossier_id, *, title, state, duration_weeks, depends_on, source_ids,
