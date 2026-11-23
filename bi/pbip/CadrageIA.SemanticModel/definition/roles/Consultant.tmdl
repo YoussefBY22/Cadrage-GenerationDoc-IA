@@ -1,0 +1,16 @@
+role Consultant
+	modelPermission: read
+
+	tablePermission Livrables = Livrables[Clé de consultant] IN CALCULATETABLE(VALUES('Accès'[Clé de personne autorisée]), 'Accès'[Utilisateur] = USERPRINCIPALNAME())
+
+	tablePermission Missions = 'Missions'[Clé de mission] IN SELECTCOLUMNS(FILTER(Livrables, Livrables[Clé de consultant] IN CALCULATETABLE(VALUES('Accès'[Clé de personne autorisée]), 'Accès'[Utilisateur] = USERPRINCIPALNAME())), "cle", Livrables[Clé de mission])
+
+	tablePermission 'Choix du client' = 'Choix du client'[Cible] IN SELECTCOLUMNS(FILTER(Missions, Missions[Clé de mission] IN SELECTCOLUMNS(FILTER(Livrables, Livrables[Clé de consultant] IN CALCULATETABLE(VALUES('Accès'[Clé de personne autorisée]), 'Accès'[Utilisateur] = USERPRINCIPALNAME())), "cle", Livrables[Clé de mission])), "client", Missions[Client])
+
+	tablePermission 'Accès' = 'Accès'[Utilisateur] = USERPRINCIPALNAME()
+
+	tablePermission Personnes = 'Personnes'[Clé de personne] IN CALCULATETABLE(VALUES('Accès'[Clé de personne autorisée]), 'Accès'[Utilisateur] = USERPRINCIPALNAME())
+
+	tablePermission 'Choix du consultant' = 'Choix du consultant'[Cible] IN SELECTCOLUMNS(FILTER(Personnes, Personnes[Clé de personne] IN CALCULATETABLE(VALUES('Accès'[Clé de personne autorisée]), 'Accès'[Utilisateur] = USERPRINCIPALNAME())), "nom", Personnes[Consultant])
+
+	tablePermission 'Prévisions' = 'Prévisions'[Clé de personne prévue] IN CALCULATETABLE(VALUES('Accès'[Clé de personne autorisée]), 'Accès'[Utilisateur] = USERPRINCIPALNAME())

@@ -5,6 +5,7 @@ Usage : python bi/pbip/build_pbip.py [--csv DOSSIER]   (idempotent)
 - indicateurs.py : définitions, formules DAX et seuils (source unique)
 - modele.py      : tables en français, Power Query, relations
 - rapport.py     : pages, barre latérale, visuels (briques dans pbir.py)
+- backend/app/dw/pilotage.py : seuils, règles et méthode de prédiction
 - ../theme/cadrage-ey.json : thème copié dans les ressources du rapport
 
 Ne pas enregistrer depuis Power BI Desktop : la génération suivante écraserait ses modifications.
@@ -14,6 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import time
 from pathlib import Path
 
 from indicateurs import kpi_md, measures_dax
@@ -25,6 +27,20 @@ BI = RACINE.parent
 CSV_PAR_DEFAUT = r"C:\Users\youss\Desktop\PFE-IA-Cadrage\bi\export"
 
 
+def effacer(dossier: Path) -> None:
+    """Windows garde parfois un fichier verrouillé quelques secondes après la fermeture de Power BI."""
+    for essai in range(6):
+        if not dossier.exists():
+            return
+        try:
+            shutil.rmtree(dossier)
+            return
+        except PermissionError:
+            if essai == 5:
+                raise
+            time.sleep(2)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Génère le projet Power BI")
     parser.add_argument("--csv", default=CSV_PAR_DEFAUT, help="chemin absolu du dossier des CSV (DossierCsv)")
@@ -34,8 +50,7 @@ def main() -> None:
     # Seules les parties générées sont effacées ; le cache local `.pbi/` de Power BI est laissé en place.
     for dossier in (modele / "definition", rapport / "definition",
                     rapport / "StaticResources" / "RegisteredResources"):
-        if dossier.exists():
-            shutil.rmtree(dossier)
+        effacer(dossier)
 
     construire_modele(modele, args.csv)
     construire_rapport(rapport, BI / "theme" / "cadrage-ey.json")

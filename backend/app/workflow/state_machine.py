@@ -34,6 +34,7 @@ class TransitionContext:
     allow_self_approval: bool = False
     unacknowledged_failures: int = 0
     sections_complete: bool = True
+    unverified_initiatives: int = 0
 
 
 def check_transition(ctx: TransitionContext) -> None:
@@ -49,8 +50,14 @@ def check_transition(ctx: TransitionContext) -> None:
     if ctx.to == "approved":
         if not ctx.actor_can_review:
             raise WorkflowError("FORBIDDEN_ROLE", "Rôle relecteur ou admin requis", status=403)
-        if ctx.actor_id == ctx.version_author_id and not ctx.allow_self_approval:
+        if ctx.actor_id in (ctx.version_author_id, ctx.deliverable_author_id) \
+                and not ctx.allow_self_approval:
             raise WorkflowError("FOUR_EYES", "L'approbateur doit différer de l'auteur")
+        if ctx.unverified_initiatives:
+            raise WorkflowError(
+                "UNVERIFIED_INITIATIVES",
+                f"{ctx.unverified_initiatives} problème(s) d'initiatives : constat absent, "
+                "inconnu ou non validé, ou feuille de route vide")
         if ctx.unacknowledged_failures:
             raise WorkflowError(
                 "UNACKNOWLEDGED_FAILURES",

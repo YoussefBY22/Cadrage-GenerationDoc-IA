@@ -16,19 +16,14 @@ table Missions
 		sourceColumn: client_name
 		summarizeBy: none
 
-	column 'Est une démonstration'
-		dataType: int64
-		isHidden
-		sourceColumn: is_demo
-		summarizeBy: none
-
 	partition Missions = m
 		mode: import
 		source =
 				let
-				    Actives = Table.TransformColumnTypes(Table.SelectColumns(Vue("v_generation"), {"mission_key", "mission_name", "client_name", "is_demo"}), {{"mission_key", Int64.Type}, {"mission_name", type text}, {"client_name", type text}, {"is_demo", Int64.Type}}, CultureCsv),
-				    Importees = Table.TransformColumnTypes(Table.SelectColumns(Vue("v_security"), {"mission_key", "mission_name", "is_demo"}), {{"mission_key", Int64.Type}, {"mission_name", type text}, {"is_demo", Int64.Type}}, CultureCsv),
-				    SansGeneration = Table.AddColumn(Table.SelectRows(Importees, each not List.Contains(Actives[mission_key], [mission_key])), "client_name", each "Non renseigné", type text),
-				    Resultat = Table.Distinct(Table.Combine({Actives, SansGeneration}), {"mission_key"})
+				    Suivies = Table.TransformColumnTypes(Table.SelectColumns(Vue("v_deliverable"), {"mission_key", "mission_name", "client_name"}), {{"mission_key", Int64.Type}, {"mission_name", type text}, {"client_name", type text}}, CultureCsv),
+				    Actives = Table.TransformColumnTypes(Table.SelectColumns(Vue("v_generation"), {"mission_key", "mission_name", "client_name"}), {{"mission_key", Int64.Type}, {"mission_name", type text}, {"client_name", type text}}, CultureCsv),
+				    Importees = Table.TransformColumnTypes(Table.SelectColumns(Vue("v_security"), {"mission_key", "mission_name"}), {{"mission_key", Int64.Type}, {"mission_name", type text}}, CultureCsv),
+				    SansClient = Table.AddColumn(Importees, "client_name", each "Non renseigné", type text),
+				    Resultat = Table.Distinct(Table.Buffer(Table.Combine({Suivies, Actives, SansClient})), {"mission_key"})
 				in
 				    Resultat

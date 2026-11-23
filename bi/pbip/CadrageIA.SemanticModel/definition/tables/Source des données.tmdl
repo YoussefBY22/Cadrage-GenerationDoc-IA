@@ -1,0 +1,23 @@
+table 'Source des données'
+	isHidden
+
+	column 'Date de situation'
+		dataType: string
+		isHidden
+		sourceColumn: as_of
+		summarizeBy: none
+
+	column 'Est une démonstration'
+		dataType: int64
+		isHidden
+		sourceColumn: is_demo
+		summarizeBy: none
+
+	partition 'Source des données' = m
+		mode: import
+		source =
+				let
+				    Tous = Table.TransformColumnTypes(Table.SelectColumns(Vue("v_deliverable"), {"as_of", "is_demo"}), {{"as_of", type text}, {"is_demo", Int64.Type}}, CultureCsv),
+				    Resultat = #table(type table [as_of = text, is_demo = Int64.Type], {{List.Max(Tous[as_of]), List.Max(Tous[is_demo], 0)}})
+				in
+				    Resultat

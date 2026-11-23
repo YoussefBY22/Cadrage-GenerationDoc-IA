@@ -1,7 +1,10 @@
 # Cahier des charges — Assistant IA local de cadrage
 
-**Projet de fin d'études** · Version 0.1 · 21/11/2026 · Auteur : Youssef Ben Youssef
+**Projet de fin d'études** · Version 0.2 (proposition) · 22/11/2026 · Auteur : Youssef Ben Youssef
 **Référence du sujet** : *Stages & PFE Book 2026-2027*, page 92, **Réf. #TST 11** — « Conception d'un outil IA de génération de feuilles de route, de termes de référence et de cahiers des charges » (diplôme : ingénieur ; 1 poste ; durée : 6 mois).
+
+> **v0.2** : la chaîne constat → priorité institutionnelle → initiative → dépendance devient le cœur du produit.
+> État réel, architecture cible et lots : [15 — Architecture cible](15-architecture-cible.md).
 
 ---
 
@@ -32,7 +35,7 @@ Ces points **ne figurent pas dans le sujet**. Ce sont des choix de travail (D1 �
 |---|---|---|
 | D1 | **Aucun appel à une API ou un modèle hébergé** pendant l'utilisation du produit | Les documents de diagnostic sont confidentiels. |
 | D2 | Modèle de langage **ouvert, exécuté sur le serveur du client** | Même raison ; le client garde le contrôle. |
-| D3 | Le modèle est **adapté** (fine-tuning léger) pour **rédiger et structurer** les livrables | Qualité et cohérence de forme. |
+| D3 | L'adaptation du modèle (fine-tuning léger) est **expérimentale** : retenue seulement si elle bat le modèle de base avec RAG. | Le produit doit fonctionner sans elle et avec un autre modèle. |
 | D4 | Les **connaissances du client** restent dans une base interrogée à la demande (**RAG**), jamais dans les poids du modèle | Confidentialité, mise à jour, traçabilité. |
 | D5 | Un **tableau de bord** (Power BI ou équivalent sur site) mesure l'usage et la qualité | Les utilisateurs connaissent Power BI. |
 
@@ -54,7 +57,8 @@ Ces points **ne figurent pas dans le sujet**. Ce sont des choix de travail (D1 �
 
 | Rôle | Besoin |
 |---|---|
-| **Consultant** (utilisateur principal) | Déposer des documents, obtenir un premier jet, vérifier les sources, corriger, valider, exporter. |
+| **Client** (utilisateur principal à terme) | Déposer ses rapports d'audit et documents, préciser son contexte, suivre et commenter. Il n'approuve pas à la place du consultant. |
+| **Consultant** (utilisateur principal du prototype, responsable de la validation) | Déposer des documents, obtenir un premier jet, vérifier les sources, corriger, valider, exporter. |
 | **Relecteur / manager** | Approuver ou refuser avec motif ; voir l'historique. |
 | **Administrateur** | Gérer les comptes, les dossiers clients, les modèles et les sauvegardes. |
 | **Décideur** | Consulter le tableau de bord (usage, qualité, temps gagné). |
@@ -81,6 +85,19 @@ Ces points **ne figurent pas dans le sujet**. Ce sont des choix de travail (D1 �
 | FR-16 | **Journal d'audit** : qui a fait quoi, avec quelle version du modèle et quelles sources. | Responsabilité du consultant |
 | FR-17 | **Entrepôt de données** alimenté automatiquement (modèle en étoile) et **tableau de bord** (voir §10). | H5 |
 | FR-18 | **Banc d'essai** intégré pour comparer des modèles et des réglages (voir §11). | Qualité |
+| FR-19 | **Chaîne navigable** constat → objectif → initiative → priorité → dépendance → source, avec contrôles de cohérence. | Cœur du sujet |
+| FR-20 | **Priorités institutionnelles** : extraites ou saisies, classées, validées, reliées aux initiatives. | Priorités institutionnelles |
+| FR-21 | **Portefeuille de projets** existants et prévus : état, durée, dépendances. Aucune date sans durée connue. | Dépendances entre projets |
+| FR-22 | **Espace diagnostics** sans limite de nombre : lus intégralement et en premier, contradictions affichées. | Constats d'un diagnostic |
+| FR-23 | Distinguer **fait sourcé, proposition de l'IA, décision humaine** (citable, datée, signée). | Responsabilité du consultant |
+| FR-24 | **Gabarits par type de projet**, combinables, avec validation section par section. | Adaptés au contexte |
+| FR-25 | **Fiche de contexte** remplie par formulaire et chat, confirmée avant usage. | Adaptés au contexte |
+| FR-26 | **Afficher les limites** : fenêtre de contexte, passages envoyés, couverture de lecture. Aucune coupe silencieuse. | Sources traçables |
+| FR-27 | Signaler pages sans texte, images et graphiques non lus ; OCR et vision locale optionnels. | Documents fournis |
+| FR-28 | **Registre de modèles** : choix par interface ou commande, test, activation humaine, retour arrière. | D2 |
+| FR-29 | **Studio d'entraînement** local : intensité, estimation, suivi, tests, rapport complet. | D3 |
+| FR-30 | **Parcours client** isolé, avec approbation par un consultant nommé. | Révision humaine |
+| FR-31 | **Tableau de bord client** séparé, limité à ses données et aux éléments validés. | Suivi |
 
 ## 8. Exigences non fonctionnelles
 
@@ -141,7 +158,9 @@ Ces points **ne figurent pas dans le sujet**. Ce sont des choix de travail (D1 �
 | **J3** | Entrepôt, vues analytiques, tableau de bord |
 | **J4** | Jeux de données publics, scripts d'adaptation, premières expériences |
 | **J5** | Banc d'essai, résultats comparés, déploiement sur conteneurs |
-| **J6** | Version sur le serveur de l'entreprise : modèle plus grand, adaptation réelle, rapport final |
+| **J6** | Version sur le serveur de l'entreprise : modèle plus grand, adaptation sur données autorisées par écrit, rapport final |
+
+Le plan mois par mois des exigences FR-19 à FR-31 est dans [15 §11](15-architecture-cible.md).
 
 ## 13. Hypothèses retenues (à valider avec l'entreprise)
 
@@ -156,6 +175,12 @@ Faute de réponses de l'entreprise à ce stade, le projet retient les hypothèse
 | H5 | Le corpus de développement et d'évaluation est **public (réel) et synthétique** ; **aucune donnée client** n'est utilisée. | Des exemples anonymisés fournis par l'entreprise amélioreraient l'évaluation, sous accord écrit. |
 | H6 | Circuit de relecture : le **consultant rédige**, le **manager approuve**, et ce sont **deux personnes distinctes**. | Un autre circuit (relecteur supplémentaire, auto-approbation) modifie les rôles et l'entonnoir de validation. |
 | H7 | Critère de réussite du prototype : **0 citation inventée**, **au moins 50 %** des phrases générées **réutilisables telles quelles**, et **au moins 30 %** de **temps gagné** sur la rédaction. | Des seuils différents modifient la lecture des résultats d'évaluation ; le temps gagné reste une **estimation**, non une mesure. |
+
+**Mesure de H7** :
+
+- citation inventée : citation inexistante ou étrangère au dossier dans une version approuvée ;
+- réutilisable telle quelle : phrase inchangée après relecture, refus et transitions exclus, sur au moins 30 livrables ;
+- temps gagné : tâches comparables chronométrées avec et sans l'outil, relecture incluse. Non publié tant que ce n'est pas fait.
 
 ## 14. Risques
 
@@ -174,10 +199,13 @@ Faute de réponses de l'entreprise à ce stade, le projet retient les hypothèse
 | Élément du sujet | Exigences |
 |---|---|
 | Documents fournis en entrée | FR-01, FR-02, FR-03 |
-| Feuille de route priorisée | FR-04, FR-09, FR-10 |
+| Feuille de route priorisée | FR-04, FR-09, FR-10, FR-19 |
+| Constats d'un diagnostic | FR-19, FR-22, FR-26 |
+| Priorités institutionnelles | FR-20 |
+| Dépendances entre projets | FR-10, FR-21 |
 | Termes de référence | FR-05, FR-15 |
 | Cahier des charges | FR-06, FR-15 |
-| Adaptés au contexte | FR-03, FR-15 |
+| Adaptés au contexte | FR-03, FR-15, FR-24, FR-25 |
 | Sources visibles et traçables | FR-07, FR-08, FR-11, FR-16 |
 | Révision humaine avant utilisation | FR-12, FR-13 |
 | Tâches de rédaction répétitives | FR-12, FR-14, FR-15 |

@@ -60,13 +60,10 @@ def test_prompt_sans_referentiel_inchange():
     assert "RÉFÉRENTIELS" not in prompt
 
 
-def test_prompt_initiatives_propose_etiquette_domaine():
+def test_prompt_initiatives_ne_demande_plus_le_domaine():
+    """Mesuré le 23/11 sur qwen3:4b : « APO12 » posé sur les 5 initiatives. L'étiquette revient au consultant."""
     crit = [Criterion(key="impact", label="Impact", weight=1.0)]
-    for lang, word in (("fr", "COBIT"), ("en", "COBIT")):
+    for lang in ("fr", "en"):
         p = build_initiatives_prompt([], [passage(1, "Texte.")], crit, nonce=NONCE, lang=lang)
-        assert word in p and "domain" in p
-
-
-def test_schema_llm_domaine_facultatif():
-    ini = LLMInitiative(title="t", description="d", findings=["F1"], scores=[])
-    assert ini.domain is None
+        assert "domain" not in p
+    assert "domain" not in LLMInitiative.model_fields

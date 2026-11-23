@@ -90,6 +90,42 @@ export function TransitionBar({
   );
 }
 
+/** Acquittement par un relecteur : un motif est toujours exigé (le serveur refuse sinon). */
+export function AckBar({
+  items,
+  onAck,
+}: {
+  items: { index: number; label: string }[];
+  onAck: (index: number, reason: string) => void;
+}) {
+  const [reason, setReason] = useState("");
+  if (items.length === 0) return null;
+  return (
+    <div className="row">
+      <input
+        className="grow"
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        placeholder={m.ackReason}
+        aria-label={m.ackReason}
+      />
+      {items.map((it) => (
+        <button
+          key={it.index}
+          className="btn btn-sm"
+          disabled={!reason.trim()}
+          onClick={() => {
+            onAck(it.index, reason.trim());
+            setReason("");
+          }}
+        >
+          {it.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function ExportBar({
   state,
   onExport,

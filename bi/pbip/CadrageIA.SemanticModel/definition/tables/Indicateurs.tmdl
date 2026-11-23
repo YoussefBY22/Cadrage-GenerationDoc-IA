@@ -1,575 +1,699 @@
 table Indicateurs
 
-	/// Formule : phrases validées par le vérificateur ÷ phrases des sections générées (TPV, taux de phrases vérifiées).
-	/// Pourquoi : c'est la promesse du produit : chaque phrase s'appuie sur une preuve du dossier.
-	/// Cible : au moins 50 %. Ce plancher est déduit de H7 : une phrase non vérifiée n'est pas réutilisable telle quelle.
-	/// Limite : mesure l'ancrage dans les sources, pas la vérité du contenu.
-	measure 'Phrases vérifiées' = DIVIDE([Nombre de phrases vérifiées], [Phrases générées])
-		formatString: 0 %
-		displayFolder: 1. Qualité et preuves
-
-	/// Formule : citations produites − citations dont la source existe dans le dossier.
-	/// Pourquoi : une source inexistante ou prise dans un autre dossier ruine la confiance et peut fuiter entre clients.
-	/// Cible : 0 (H7).
-	/// Limite : compte ce que le modèle a produit et que le vérificateur a signalé, pas ce qui reste après relecture.
-	measure 'Citations inventées' =
-			VAR vTotal = SUM('Générations'[Citations produites])
-			RETURN IF(NOT ISBLANK(vTotal), vTotal - SUM('Générations'[Citations valides en nombre]))
+	/// Formule : livrables en brouillon ou renvoyés, dont les renvois pas encore resoumis.
+	/// Décision : Par quel livrable commencer
+	/// Cible : aucun seuil dans H7
+	/// Situation à la date des données : ne suit pas la période.
+	measure 'Livrables à traiter' = CALCULATE(COUNTROWS(Livrables), KEEPFILTERS(Livrables[Code d'état] IN {"draft", "rejected"})) + 0
 		formatString: #,0
-		displayFolder: 1. Qualité et preuves
+		displayFolder: Consultant
 
-	/// Formule : chiffres cités retrouvés dans le passage source ÷ chiffres cités.
-	/// Pourquoi : un montant, un délai ou un taux faux est l'erreur la plus coûteuse dans un livrable de conseil.
-	/// Cible : Aucun seuil dans H7 : indicateur de suivi.
-	/// Limite : vide si aucun chiffre n'est cité (kpi.py renvoie 1 dans ce cas).
-	measure 'Chiffres retrouvés dans la source' = DIVIDE(SUM('Générations'[Chiffres retrouvés]), SUM('Générations'[Chiffres cités]))
-		formatString: 0 %
-		displayFolder: 1. Qualité et preuves
+	measure 'Renvois à reprendre' = CALCULATE(COUNTROWS(Livrables), KEEPFILTERS(Livrables[Code d'état] IN {"draft", "rejected"}), KEEPFILTERS(Livrables[Renvoyé] = 1)) + 0
+		formatString: #,0
+		displayFolder: Consultant
 
-	/// Formule : générations de sections refusées ÷ générations de sections (constats exclus).
-	/// Pourquoi : un refus vaut mieux qu'une invention ; un taux élevé révèle des dossiers trop pauvres ou une recherche mal réglée.
-	/// Cible : Aucun seuil dans H7 : indicateur de suivi.
-	/// Limite : kpi.py rapporte les refus à toutes les générations, constats compris.
-	measure 'Sections refusées faute de preuve' = DIVIDE([Nombre de sections refusées], [Générations de sections])
-		formatString: 0 %
-		displayFolder: 1. Qualité et preuves
+	/// Formule : phrases des livrables chez le consultant dont la source est absente du dossier, ou rejetées par le vérificateur et inchangées depuis.
+	/// Décision : Quoi corriger avant de soumettre
+	/// Cible : 0 avant de soumettre (règle du produit)
+	/// Situation à la date des données : ne suit pas la période.
+	/// Limite : une phrase modifiée n'est pas revérifiée ici : seule sa source est contrôlée.
+	measure 'Phrases bloquantes à corriger' = CALCULATE(SUM(Livrables[Phrases bloquantes]), KEEPFILTERS(Livrables[Code d'état] IN {"draft", "rejected"})) + 0
+		formatString: #,0
+		displayFolder: Consultant
 
-	/// Formule : minutes gagnées sur les sections rédigées ÷ minutes d'une rédaction manuelle de toutes les sections approuvées.
-	/// Pourquoi : c'est le retour sur investissement attendu par le cabinet.
-	/// Cible : au moins 30 % (H7).
-	/// Limite : estimation : 30 min par section manuelle (à valider), gain proportionnel au texte conservé, relecture non déduite. Une section refusée ne fait rien gagner.
-	measure 'Temps gagné' =
-			DIVIDE(
-			    CALCULATE(SUM('Sections approuvées'[Minutes gagnées]), KEEPFILTERS('Sections approuvées'[Refusée] = 0)),
-			    SUM('Sections approuvées'[Minutes de référence]))
-		formatString: 0 %
-		displayFolder: 2. Productivité et relecture
+	measure 'Sections rédigées puis approuvées' = CALCULATE(COUNTROWS('Sections approuvées'), KEEPFILTERS('Sections approuvées'[Refusée] = 0)) + 0
+		formatString: #,0
+		displayFolder: Consultant
 
-	/// Formule : heures gagnées ÷ livrables approuvés.
-	/// Pourquoi : traduit le pourcentage en temps de consultant rendu à l'analyse.
-	/// Cible : aucun seuil en heures dans H7, qui raisonne en pourcentage (voir Temps gagné).
-	/// Limite : même estimation que Temps gagné.
-	measure 'Temps gagné par livrable' = DIVIDE([Heures gagnées], [Livrables approuvés])
-		formatString: 0 "h"
-		displayFolder: 2. Productivité et relecture
+	measure 'Nombre de sections sans retouche' = CALCULATE(COUNTROWS('Sections approuvées'), KEEPFILTERS('Sections approuvées'[Refusée] = 0), KEEPFILTERS('Sections approuvées'[Sans retouche] = 1)) + 0
+		formatString: #,0
+		displayFolder: Consultant
 
 	/// Formule : sections approuvées mot pour mot ÷ sections rédigées puis approuvées (refus exclus).
-	/// Pourquoi : mesure l'adoption réelle : le consultant garde le texte au lieu de le refaire.
-	/// Cible : au moins 50 % (H7, « réutilisables telles quelles »).
-	/// Limite : H7 raisonne par phrase et l'entrepôt par section : une seule retouche disqualifie la section, la mesure est donc plus sévère que H7.
-	measure 'Sections acceptées sans retouche' = DIVIDE([Nombre de sections sans retouche], [Sections rédigées puis approuvées])
+	/// Décision : Partir du premier jet ou le retravailler
+	/// Cible : au moins 50 % (H7)
+	/// Flux : suit la période.
+	/// Limite : H7 raisonne par phrase, l'entrepôt par section (plus sévère). Pas de taux sous 30 sections.
+	measure 'Sections acceptées sans retouche' =
+			VAR vN = [Sections rédigées puis approuvées]
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF(vN >= 30, DIVIDE([Nombre de sections sans retouche], vN)))
 		formatString: 0 %
-		displayFolder: 2. Productivité et relecture
+		displayFolder: Consultant
 
-	/// Formule : médiane des heures entre la première soumission et l'approbation, par livrable.
-	/// Pourquoi : le temps gagné à la rédaction est perdu si le livrable attend en relecture.
-	/// Cible : Aucun seuil dans H7 : indicateur de suivi.
-	/// Limite : heures calendaires ; non filtré par modèle, car un livrable peut en mélanger plusieurs.
-	measure 'Délai de validation' = MEDIAN(Relectures[Délai en heures])
+	/// Formule : livrables en relecture, dont ceux qui attendent depuis plus de 48 h.
+	/// Décision : Qui relit quoi aujourd'hui
+	/// Cible : 0 au-delà de 48 h (règle de pilotage, hors H7)
+	/// Situation à la date des données : ne suit pas la période.
+	measure 'Livrables à valider' = CALCULATE(COUNTROWS(Livrables), KEEPFILTERS(Livrables[Code d'état] IN {"in_review"})) + 0
+		formatString: #,0
+		displayFolder: Responsable
+
+	measure 'Relectures en retard' = CALCULATE(COUNTROWS(Livrables), KEEPFILTERS(Livrables[Code d'état] IN {"in_review"}), KEEPFILTERS(Livrables[Heures dans l'état] > 48)) + 0
+		formatString: #,0
+		displayFolder: Responsable
+
+	/// Formule : phrases bloquantes, non acquittées, des livrables en relecture.
+	/// Décision : Quoi vérifier en premier
+	/// Cible : 0 à l'approbation (règle du produit)
+	/// Situation à la date des données : ne suit pas la période.
+	measure 'Phrases bloquantes à vérifier' = CALCULATE(SUM(Livrables[Phrases bloquantes]), KEEPFILTERS(Livrables[Code d'état] IN {"in_review"})) + 0
+		formatString: #,0
+		displayFolder: Responsable
+
+	measure 'Livrables avec délai' = CALCULATE(COUNT(Livrables[Délai en heures]), KEEPFILTERS(Livrables[Code d'état] IN {"approved"}), USERELATIONSHIP(Livrables[Clé d'approbation], Calendrier[Clé de date])) + 0
+		formatString: #,0
+		displayFolder: Responsable
+
+	/// Formule : médiane des heures entre la première soumission et l'approbation.
+	/// Décision : Renforcer ou répartir la relecture
+	/// Cible : aucun seuil dans H7
+	/// Flux : suit la période.
+	/// Limite : heures calendaires ; pas de valeur sous 30 livrables ; ne voit pas ce qui attend encore.
+	measure 'Délai de validation' = IF([Livrables avec délai] >= 30, CALCULATE(MEDIAN(Livrables[Délai en heures]), KEEPFILTERS(Livrables[Code d'état] IN {"approved"}), USERELATIONSHIP(Livrables[Clé d'approbation], Calendrier[Clé de date])))
 		formatString: 0 "h"
-		displayFolder: 2. Productivité et relecture
+		displayFolder: Responsable
 
-	/// Formule : renvois par le relecteur ÷ soumissions en relecture.
-	/// Pourquoi : signale des brouillons qui arrivent trop tôt ou trop fragiles chez le manager.
-	/// Cible : Aucun seuil dans H7 : indicateur de suivi.
-	/// Limite : non filtré par modèle.
-	measure 'Renvois en correction' = DIVIDE(SUM(Relectures[Renvois]), SUM(Relectures[Soumissions]))
+	measure 'Premières relectures décidées' = CALCULATE(COUNT(Livrables[Renvoyé en première relecture]), USERELATIONSHIP(Livrables[Clé de soumission], Calendrier[Clé de date])) + 0
+		formatString: #,0
+		displayFolder: Responsable
+
+	measure 'Nombre de renvois en première relecture' = CALCULATE(SUM(Livrables[Renvoyé en première relecture]), USERELATIONSHIP(Livrables[Clé de soumission], Calendrier[Clé de date])) + 0
+		formatString: #,0
+		displayFolder: Responsable
+
+	/// Formule : livrables renvoyés à leur première relecture ÷ livrables dont la première relecture est décidée.
+	/// Décision : Revoir la préparation avant soumission
+	/// Cible : aucun seuil dans H7
+	/// Flux : suit la période.
+	/// Limite : pas de taux sous 30 décisions.
+	measure 'Renvois à la première relecture' =
+			VAR vN = [Premières relectures décidées]
+			RETURN IF(vN >= 30, DIVIDE([Nombre de renvois en première relecture], vN))
 		formatString: 0 %
-		displayFolder: 2. Productivité et relecture
+		displayFolder: Responsable
 
-	/// Formule : (phrases vérifiées de la configuration − celles de la référence B) × 100, en points.
-	/// Pourquoi : un modèle plus lourd ou affiné ne se justifie que s'il fait mieux que la référence.
-	/// Cible : supérieur à 0 pour justifier un changement ; H7 ne fixe pas de seuil.
-	/// Limite : échantillons de tailles différentes : lire avec le nombre de générations.
-	measure 'Écart à la référence B' =
-			VAR vTaux = [Phrases vérifiées]
-			VAR vReference = CALCULATE([Phrases vérifiées], REMOVEFILTERS(Configurations), Configurations[Configuration] = "B")
-			RETURN IF(NOT ISBLANK(vTaux) && NOT ISBLANK(vReference), (vTaux - vReference) * 100)
-		formatString: +0" pts";-0" pts";"0 pt"
-		displayFolder: 3. Comparaison des modèles
-
-	/// Formule : 95e centile de la durée d'un appel de rédaction de section, en secondes.
-	/// Pourquoi : au-delà de quelques dizaines de secondes, le consultant cesse d'utiliser l'outil ; cette mesure arbitre qualité contre vitesse.
-	/// Cible : Aucun seuil dans H7 : indicateur de suivi.
-	/// Limite : appels de section seulement (kpi.py prend tous les appels) ; la latence d'une tentative répétée est répartie à parts égales.
-	measure 'Temps de réponse p95' =
-			CALCULATE(
-			    PERCENTILEX.INC('Appels au modèle', 'Appels au modèle'[Latence en ms], 0.95) / 1000,
-			    KEEPFILTERS('Appels au modèle'[Nature] = "section"))
-		formatString: 0 "s"
-		displayFolder: 3. Comparaison des modèles
-
-	/// Formule : somme des consignes cachées détectées dans les documents importés.
-	/// Pourquoi : un document piégé peut détourner le modèle ; chaque alerte demande un examen humain.
-	/// Cible : aucun seuil dans H7 ; examiner 100 % des alertes.
-	/// Limite : compte les détections, pas les attaques réussies ; non filtré par modèle ni par type de livrable.
-	measure 'Alertes d''injection' = IF([Documents analysés] > 0, SUM(Documents[Alertes]) + 0)
+	measure 'Livrables approuvés' = CALCULATE(COUNTROWS(Livrables), KEEPFILTERS(Livrables[Code d'état] IN {"approved"}), USERELATIONSHIP(Livrables[Clé d'approbation], Calendrier[Clé de date])) + 0
 		formatString: #,0
-		displayFolder: 4. Sécurité et usage
+		displayFolder: Rapport
 
-	/// Formule : documents avec au moins une alerte ÷ documents importés.
-	/// Pourquoi : situe le risque : incident isolé ou source documentaire à revoir.
-	/// Cible : Aucun seuil dans H7 : indicateur de suivi.
-	/// Limite : un document est daté de la première génération de sa mission.
-	measure 'Documents signalés' = DIVIDE([Nombre de documents signalés] + 0, [Documents analysés])
+	measure 'Livrables mesurés' = CALCULATE(COUNT(Livrables[Citations finales]), KEEPFILTERS(Livrables[Code d'état] IN {"approved"}), USERELATIONSHIP(Livrables[Clé d'approbation], Calendrier[Clé de date])) + 0
+		formatString: #,0
+		displayFolder: Rapport
+
+	measure 'Citations approuvées' = CALCULATE(SUM(Livrables[Citations finales]), KEEPFILTERS(Livrables[Code d'état] IN {"approved"}), USERELATIONSHIP(Livrables[Clé d'approbation], Calendrier[Clé de date]))
+		formatString: #,0
+		displayFolder: Rapport
+
+	/// Formule : citations de la version approuvée dont la source n'est pas dans le dossier.
+	/// Décision : Autoriser ou bloquer l'envoi au client
+	/// Cible : 0 (H7)
+	/// Flux : suit la période.
+	/// Limite : « non mesuré » si la version approuvée n'a pas de sections lisibles ; qu'une source existe ne prouve pas qu'elle soutient la phrase.
+	measure 'Citations sans source après approbation' = IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF([Livrables mesurés] > 0, CALCULATE(SUM(Livrables[Citations sans source]), KEEPFILTERS(Livrables[Code d'état] IN {"approved"}), USERELATIONSHIP(Livrables[Clé d'approbation], Calendrier[Clé de date])) + 0))
+		formatString: #,0
+		displayFolder: Rapport
+
+	measure 'Citations générées' = CALCULATE(SUM('Générations'[Citations produites]), KEEPFILTERS('Générations'[Statut] = "ok"), KEEPFILTERS('Générations'[Code du type] <> "findings")) + 0
+		formatString: #,0
+		displayFolder: Rapport
+
+	measure 'Nombre de citations sans source avant relecture' = [Citations générées] - CALCULATE(SUM('Générations'[Citations valides en nombre]), KEEPFILTERS('Générations'[Statut] = "ok"), KEEPFILTERS('Générations'[Code du type] <> "findings"))
+		formatString: #,0
+		displayFolder: Rapport
+
+	/// Formule : citations générées dont la source n'est pas dans le dossier ÷ citations générées.
+	/// Décision : Régler la recherche ou le modèle
+	/// Cible : aucune : le critère H7 porte sur ce qui reste après approbation
+	/// Flux : suit la période.
+	measure 'Citations sans source avant relecture' = IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF([Citations générées] >= 30, DIVIDE([Nombre de citations sans source avant relecture], [Citations générées])))
 		formatString: 0 %
-		displayFolder: 4. Sécurité et usage
+		displayFolder: Rapport
 
-	/// Formule : nombre de livrables distincts approuvés par un manager.
-	/// Pourquoi : c'est l'usage qui compte : un brouillon non approuvé ne crée pas de valeur.
-	/// Cible : Aucun seuil dans H7 : indicateur de suivi.
-	measure 'Livrables approuvés' = DISTINCTCOUNT('Sections approuvées'[Identifiant du livrable])
+	measure 'Phrases générées' = CALCULATE(SUM('Générations'[Phrases produites]), KEEPFILTERS('Générations'[Statut] = "ok"), KEEPFILTERS('Générations'[Code du type] <> "findings")) + 0
 		formatString: #,0
-		displayFolder: 4. Sécurité et usage
+		displayFolder: Rapport
 
-	/// Phrases des générations réussies.
-	measure 'Phrases générées' = CALCULATE(SUM('Générations'[Phrases produites]), KEEPFILTERS('Générations'[Statut] = "ok"))
+	measure 'Nombre de phrases vérifiées' = CALCULATE(SUM('Générations'[Phrases validées]), KEEPFILTERS('Générations'[Statut] = "ok"), KEEPFILTERS('Générations'[Code du type] <> "findings")) + 0
 		formatString: #,0
-		displayFolder: 1. Qualité et preuves
+		displayFolder: Rapport
 
-	/// Phrases validées par le vérificateur.
-	measure 'Nombre de phrases vérifiées' = CALCULATE(SUM('Générations'[Phrases validées]), KEEPFILTERS('Générations'[Statut] = "ok"))
-		formatString: #,0
-		displayFolder: 1. Qualité et preuves
-
-	/// Phrases en avertissement, à relire.
-	measure 'Phrases à vérifier' = CALCULATE(SUM('Générations'[Phrases en avertissement]), KEEPFILTERS('Générations'[Statut] = "ok"))
-		formatString: #,0
-		displayFolder: 1. Qualité et preuves
-
-	/// Phrases bloquées par le vérificateur.
-	measure 'Phrases rejetées' = CALCULATE(SUM('Générations'[Phrases en échec]), KEEPFILTERS('Générations'[Statut] = "ok"))
-		formatString: #,0
-		displayFolder: 1. Qualité et preuves
-
-	/// Contribution de chaque marche de la cascade, des phrases générées aux phrases vérifiées.
-	measure 'Variation de phrases' =
-			SWITCH(SELECTEDVALUE(Cascade[Ordre]), 1, [Phrases générées], 2, -[Phrases à vérifier], 3, -[Phrases rejetées],
-			    [Phrases générées] - [Phrases à vérifier] - [Phrases rejetées])
-		formatString: #,0
-		displayFolder: 1. Qualité et preuves
-
-	/// Contrôles de citation en anomalie.
-	measure Anomalies = CALCULATE(COUNTROWS(Citations), KEEPFILTERS(Citations[Code de contrôle] <> "NONE"))
-		formatString: #,0
-		displayFolder: 1. Qualité et preuves
-
-	/// Tentatives de rédaction d'une section, constats exclus.
-	measure 'Générations de sections' = CALCULATE(COUNTROWS('Générations'), KEEPFILTERS('Générations'[Nature] = "Section"))
-		formatString: #,0
-		displayFolder: 1. Qualité et preuves
-
-	/// Générations de sections refusées faute de preuve.
-	measure 'Nombre de sections refusées' = CALCULATE(COUNTROWS('Générations'), KEEPFILTERS('Générations'[Nature] = "Section"), KEEPFILTERS('Générations'[Statut] = "refused")) + 0
-		formatString: #,0
-		displayFolder: 1. Qualité et preuves
-
-	/// Sections distinctes demandées (mission, type de livrable, section).
-	measure 'Sections demandées' = CALCULATE(COUNTROWS(SUMMARIZE('Générations', 'Générations'[Clé de mission], 'Générations'[Code du type], 'Générations'[Code de section])), KEEPFILTERS('Générations'[Nature] = "Section"))
-		formatString: #,0
-		displayFolder: 2. Productivité et relecture
-
-	/// Sections distinctes rédigées au moins une fois.
-	measure 'Sections rédigées' = CALCULATE(COUNTROWS(SUMMARIZE('Générations', 'Générations'[Clé de mission], 'Générations'[Code du type], 'Générations'[Code de section])), KEEPFILTERS('Générations'[Nature] = "Section"), KEEPFILTERS('Générations'[Statut] = "ok"))
-		formatString: #,0
-		displayFolder: 2. Productivité et relecture
-
-	/// Sections approuvées, refus exclus.
-	measure 'Sections rédigées puis approuvées' = CALCULATE(COUNTROWS('Sections approuvées'), KEEPFILTERS('Sections approuvées'[Refusée] = 0))
-		formatString: #,0
-		displayFolder: 2. Productivité et relecture
-
-	/// Sections approuvées mot pour mot.
-	measure 'Nombre de sections sans retouche' =
-			VAR vRedigees = [Sections rédigées puis approuvées]
-			RETURN IF(vRedigees > 0, CALCULATE(COUNTROWS('Sections approuvées'), KEEPFILTERS('Sections approuvées'[Refusée] = 0),
-			    KEEPFILTERS('Sections approuvées'[Sans retouche] = 1)) + 0)
-		formatString: #,0
-		displayFolder: 2. Productivité et relecture
-
-	/// Volume à chaque étape de l'entonnoir, chacune à sa propre date.
-	measure 'Sections à l''étape' =
-			SWITCH(SELECTEDVALUE('Étapes'[Ordre]), 1, [Sections demandées], 2, [Sections rédigées],
-			    3, [Sections rédigées puis approuvées], 4, [Nombre de sections sans retouche])
-		formatString: #,0
-		displayFolder: 2. Productivité et relecture
-
-	/// Minutes gagnées estimées ÷ 60, refus exclus.
-	measure 'Heures gagnées' = CALCULATE(SUM('Sections approuvées'[Minutes gagnées]), KEEPFILTERS('Sections approuvées'[Refusée] = 0)) / 60
-		formatString: 0 "h"
-		displayFolder: 2. Productivité et relecture
-
-	/// Part moyenne du texte modifiée avant approbation, refus exclus.
-	measure 'Part réécrite' = CALCULATE(AVERAGE('Sections approuvées'[Part de texte modifiée]), KEEPFILTERS('Sections approuvées'[Refusée] = 0))
+	/// Formule : phrases validées par le vérificateur ÷ phrases générées (TPV).
+	/// Décision : Effort de relecture à prévoir
+	/// Cible : aucune : H7 ne fixe pas de seuil sur le TPV
+	/// Flux : suit la période.
+	/// Limite : mesure l'ancrage dans les sources, pas la vérité.
+	measure 'Phrases vérifiées' = IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF([Phrases générées] >= 30, DIVIDE([Nombre de phrases vérifiées], [Phrases générées])))
 		formatString: 0 %
-		displayFolder: 2. Productivité et relecture
+		displayFolder: Rapport
 
-	/// Citations dont la source existe dans le dossier ÷ citations produites.
-	measure 'Citations valides' = DIVIDE(SUM('Générations'[Citations valides en nombre]), SUM('Générations'[Citations produites]))
-		formatString: 0 %
-		displayFolder: 3. Comparaison des modèles
+	/// Formule : consignes cachées détectées dans les documents importés.
+	/// Décision : Examiner chaque passage signalé
+	/// Cible : examiner toutes les alertes
+	/// Situation à la date des données : ne suit pas la période.
+	/// Limite : une alerte est une détection, pas une attaque réussie.
+	measure 'Alertes d''injection' = SUM(Documents[Alertes]) + 0
+		formatString: #,0
+		displayFolder: Administration
 
-	/// Valeur du critère affiché dans chaque petit multiple.
-	measure 'Valeur du critère' =
-			SWITCH(SELECTEDVALUE('Critères'[Ordre]), 1, [Phrases vérifiées], 2, [Citations valides],
-			    3, [Chiffres retrouvés dans la source], 4, [Sections acceptées sans retouche])
-		formatString: 0 %
-		displayFolder: 3. Comparaison des modèles
-
-	/// Documents importés.
 	measure 'Documents analysés' = COUNTROWS(Documents)
 		formatString: #,0
-		displayFolder: 4. Sécurité et usage
+		displayFolder: Administration
 
-	/// Documents avec au moins une alerte.
-	measure 'Nombre de documents signalés' = CALCULATE(COUNTROWS(Documents), KEEPFILTERS(Documents[Alertes] > 0))
+	measure 'Nombre de documents signalés' = IF([Documents analysés] > 0, CALCULATE(COUNTROWS(Documents), KEEPFILTERS(Documents[Alertes] > 0)) + 0)
 		formatString: #,0
-		displayFolder: 4. Sécurité et usage
+		displayFolder: Administration
 
-	/// Documents sans alerte.
-	measure 'Documents sans alerte' = CALCULATE(COUNTROWS(Documents), KEEPFILTERS(Documents[Alertes] = 0))
+	/// Formule : documents avec au moins une alerte d'injection ÷ documents importés.
+	/// Décision : Revoir une source documentaire
+	/// Cible : examiner toutes les alertes
+	/// Situation à la date des données : ne suit pas la période.
+	/// Limite : pas de taux sous 30 documents.
+	measure 'Documents signalés' = IF([Documents analysés] >= 30, DIVIDE([Nombre de documents signalés], [Documents analysés]))
+		formatString: 0 %
+		displayFolder: Administration
+
+	measure 'Reco rang' =
+			VAR vPriorite = SELECTEDVALUE('Règles'[Priorité])
+			VAR vListe = FILTER(ADDCOLUMNS(FILTER(ALL('Règles'), TRUE()), "@n",
+			    VAR vCode = 'Règles'[Code de règle]
+			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
+			VAR vRang = COUNTROWS(FILTER(vListe, 'Règles'[Priorité] <= vPriorite)) + 0
+			RETURN IF(COUNTROWS(FILTER(vListe, 'Règles'[Priorité] = vPriorite)) > 0
+			    && vRang <= 3, vRang)
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Reco nombre' =
+			IF(NOT ISBLANK([Reco rang]), VAR vCode = SELECTEDVALUE('Règles'[Code de règle])
+			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode))
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Reco pour' = IF(NOT ISBLANK([Reco rang]), SELECTEDVALUE('Règles'[Acteur]))
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Reco action' = IF(NOT ISBLANK([Reco rang]), SELECTEDVALUE('Règles'[Action]))
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Reco état' =
+			VAR vListe = FILTER(ADDCOLUMNS(FILTER(ALL('Règles'), TRUE()), "@n",
+			    VAR vCode = 'Règles'[Code de règle]
+			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
+			RETURN IF(COUNTROWS(vListe) + 0 = 0, "Aucune action", " ")
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Reco rang (consultant)' =
+			VAR vPriorite = SELECTEDVALUE('Règles'[Priorité])
+			VAR vListe = FILTER(ADDCOLUMNS(FILTER(ALL('Règles'), 'Règles'[Acteur] = "Consultant"), "@n",
+			    VAR vCode = 'Règles'[Code de règle]
+			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
+			VAR vRang = COUNTROWS(FILTER(vListe, 'Règles'[Priorité] <= vPriorite)) + 0
+			RETURN IF(COUNTROWS(FILTER(vListe, 'Règles'[Priorité] = vPriorite)) > 0
+			    && vRang <= 3, vRang)
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Reco nombre (consultant)' =
+			IF(NOT ISBLANK([Reco rang (consultant)]), VAR vCode = SELECTEDVALUE('Règles'[Code de règle])
+			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode))
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Reco action (consultant)' = IF(NOT ISBLANK([Reco rang (consultant)]), SELECTEDVALUE('Règles'[Action]))
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Reco état (consultant)' =
+			VAR vListe = FILTER(ADDCOLUMNS(FILTER(ALL('Règles'), 'Règles'[Acteur] = "Consultant"), "@n",
+			    VAR vCode = 'Règles'[Code de règle]
+			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
+			RETURN IF(COUNTROWS(vListe) + 0 = 0, "Aucune action", " ")
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Reco rang (responsable)' =
+			VAR vPriorite = SELECTEDVALUE('Règles'[Priorité])
+			VAR vListe = FILTER(ADDCOLUMNS(FILTER(ALL('Règles'), 'Règles'[Acteur] = "Responsable"), "@n",
+			    VAR vCode = 'Règles'[Code de règle]
+			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
+			VAR vRang = COUNTROWS(FILTER(vListe, 'Règles'[Priorité] <= vPriorite)) + 0
+			RETURN IF(COUNTROWS(FILTER(vListe, 'Règles'[Priorité] = vPriorite)) > 0
+			    && vRang <= 3, vRang)
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Reco nombre (responsable)' =
+			IF(NOT ISBLANK([Reco rang (responsable)]), VAR vCode = SELECTEDVALUE('Règles'[Code de règle])
+			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode))
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Reco action (responsable)' = IF(NOT ISBLANK([Reco rang (responsable)]), SELECTEDVALUE('Règles'[Action]))
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Reco état (responsable)' =
+			VAR vListe = FILTER(ADDCOLUMNS(FILTER(ALL('Règles'), 'Règles'[Acteur] = "Responsable"), "@n",
+			    VAR vCode = 'Règles'[Code de règle]
+			    RETURN CALCULATE(COUNTROWS(Actions), Actions[Code de règle signalée] = vCode)), [@n] > 0)
+			RETURN IF(COUNTROWS(vListe) + 0 = 0, "Aucune action", " ")
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Soumissions réelles' =
+			VAR vClient = SELECTEDVALUE('Choix du client'[Client choisi], "Tous")
+			VAR vType = SELECTEDVALUE('Choix du type'[Type choisi], "Tous")
+			VAR vPersonne = SELECTEDVALUE('Choix du consultant'[Consultant choisi], "Tous")
+			VAR vCandidats = FILTER(ALL('Prévisions'), 'Prévisions'[Périmètre client] = vClient
+			    && 'Prévisions'[Périmètre type] = vType && (vPersonne = "Tous"
+			        || 'Prévisions'[Périmètre consultant] = vPersonne))
+			VAR vPrevision = TOPN(1, vCandidats, 'Prévisions'[Rang de périmètre], ASC, 'Prévisions'[Clé de prévision], ASC)
+			VAR vStatut = MAXX(vPrevision, 'Prévisions'[Statut de prévision])
+			VAR vCle = MAXX(vPrevision, 'Prévisions'[Clé de prévision])
+			RETURN CALCULATE(SUM('Série de prévision'[Réel]), 'Série de prévision'[Clé de prévision] = vCle)
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Prévision' =
+			VAR vClient = SELECTEDVALUE('Choix du client'[Client choisi], "Tous")
+			VAR vType = SELECTEDVALUE('Choix du type'[Type choisi], "Tous")
+			VAR vPersonne = SELECTEDVALUE('Choix du consultant'[Consultant choisi], "Tous")
+			VAR vCandidats = FILTER(ALL('Prévisions'), 'Prévisions'[Périmètre client] = vClient
+			    && 'Prévisions'[Périmètre type] = vType && (vPersonne = "Tous"
+			        || 'Prévisions'[Périmètre consultant] = vPersonne))
+			VAR vPrevision = TOPN(1, vCandidats, 'Prévisions'[Rang de périmètre], ASC, 'Prévisions'[Clé de prévision], ASC)
+			VAR vStatut = MAXX(vPrevision, 'Prévisions'[Statut de prévision])
+			VAR vCle = MAXX(vPrevision, 'Prévisions'[Clé de prévision])
+			RETURN CALCULATE(SUM('Série de prévision'[Point prévu]), 'Série de prévision'[Clé de prévision] = vCle)
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Borne basse' =
+			VAR vClient = SELECTEDVALUE('Choix du client'[Client choisi], "Tous")
+			VAR vType = SELECTEDVALUE('Choix du type'[Type choisi], "Tous")
+			VAR vPersonne = SELECTEDVALUE('Choix du consultant'[Consultant choisi], "Tous")
+			VAR vCandidats = FILTER(ALL('Prévisions'), 'Prévisions'[Périmètre client] = vClient
+			    && 'Prévisions'[Périmètre type] = vType && (vPersonne = "Tous"
+			        || 'Prévisions'[Périmètre consultant] = vPersonne))
+			VAR vPrevision = TOPN(1, vCandidats, 'Prévisions'[Rang de périmètre], ASC, 'Prévisions'[Clé de prévision], ASC)
+			VAR vStatut = MAXX(vPrevision, 'Prévisions'[Statut de prévision])
+			VAR vCle = MAXX(vPrevision, 'Prévisions'[Clé de prévision])
+			RETURN CALCULATE(SUM('Série de prévision'[Borne basse prévue]), 'Série de prévision'[Clé de prévision] = vCle)
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Borne haute' =
+			VAR vClient = SELECTEDVALUE('Choix du client'[Client choisi], "Tous")
+			VAR vType = SELECTEDVALUE('Choix du type'[Type choisi], "Tous")
+			VAR vPersonne = SELECTEDVALUE('Choix du consultant'[Consultant choisi], "Tous")
+			VAR vCandidats = FILTER(ALL('Prévisions'), 'Prévisions'[Périmètre client] = vClient
+			    && 'Prévisions'[Périmètre type] = vType && (vPersonne = "Tous"
+			        || 'Prévisions'[Périmètre consultant] = vPersonne))
+			VAR vPrevision = TOPN(1, vCandidats, 'Prévisions'[Rang de périmètre], ASC, 'Prévisions'[Clé de prévision], ASC)
+			VAR vStatut = MAXX(vPrevision, 'Prévisions'[Statut de prévision])
+			VAR vCle = MAXX(vPrevision, 'Prévisions'[Clé de prévision])
+			RETURN CALCULATE(SUM('Série de prévision'[Borne haute prévue]), 'Série de prévision'[Clé de prévision] = vCle)
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Prévision valeur' =
+			VAR vClient = SELECTEDVALUE('Choix du client'[Client choisi], "Tous")
+			VAR vType = SELECTEDVALUE('Choix du type'[Type choisi], "Tous")
+			VAR vPersonne = SELECTEDVALUE('Choix du consultant'[Consultant choisi], "Tous")
+			VAR vCandidats = FILTER(ALL('Prévisions'), 'Prévisions'[Périmètre client] = vClient
+			    && 'Prévisions'[Périmètre type] = vType && (vPersonne = "Tous"
+			        || 'Prévisions'[Périmètre consultant] = vPersonne))
+			VAR vPrevision = TOPN(1, vCandidats, 'Prévisions'[Rang de périmètre], ASC, 'Prévisions'[Clé de prévision], ASC)
+			VAR vStatut = MAXX(vPrevision, 'Prévisions'[Statut de prévision])
+			RETURN SWITCH(vStatut, "ok", FORMAT(MAXX(vPrevision, 'Prévisions'[Point]), "0", "fr-FR") & " soumissions attendues (" & FORMAT(MAXX(vPrevision, 'Prévisions'[Bas]), "0", "fr-FR") & " à " & FORMAT(MAXX(vPrevision, 'Prévisions'[Haut]), "0", "fr-FR") & ")",
+			    "not_better", "Pas de prévision fiable", "Historique insuffisant")
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Prévision méthode' =
+			VAR vClient = SELECTEDVALUE('Choix du client'[Client choisi], "Tous")
+			VAR vType = SELECTEDVALUE('Choix du type'[Type choisi], "Tous")
+			VAR vPersonne = SELECTEDVALUE('Choix du consultant'[Consultant choisi], "Tous")
+			VAR vCandidats = FILTER(ALL('Prévisions'), 'Prévisions'[Périmètre client] = vClient
+			    && 'Prévisions'[Périmètre type] = vType && (vPersonne = "Tous"
+			        || 'Prévisions'[Périmètre consultant] = vPersonne))
+			VAR vPrevision = TOPN(1, vCandidats, 'Prévisions'[Rang de périmètre], ASC, 'Prévisions'[Clé de prévision], ASC)
+			VAR vStatut = MAXX(vPrevision, 'Prévisions'[Statut de prévision])
+			RETURN IF(vStatut <> "ok", " ", IF(MAX('Source des données'[Est une démonstration]) = 1, "Fiabilité non mesurée",
+			    FORMAT(MAXX(vPrevision, 'Prévisions'[Soumissions]), "0", "fr-FR") & " soumissions observées"))
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Mention simulation' =
+			IF(MAX('Source des données'[Est une démonstration]) = 1,
+			    "Simulation sur données inventées", " ")
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Bandeau données' = IF(MAX('Source des données'[Est une démonstration]) = 1, "Données de démonstration · valeurs inventées", " ")
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Pied de page' = IF(MAX('Source des données'[Est une démonstration]) = 1, "Traitement local · jeu inventé", "Traitement local · confidentiel")
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Sous-titre synthese' =
+			VAR vDate = MAX('Source des données'[Date de situation])
+			VAR vJour = MID(vDate, 9, 2) & "/" & MID(vDate, 6, 2) & "/" & LEFT(vDate, 4)
+			RETURN "Client : " & SELECTEDVALUE('Choix du client'[Client choisi], "Tous") & "  ·  type : " & SELECTEDVALUE('Choix du type'[Type choisi], "Tous") & "  ·  consultant : " & SELECTEDVALUE('Choix du consultant'[Consultant choisi], "Tous") & "  |  " & SELECTEDVALUE('Choix de période'[Période choisie], "Tout l'historique") & ", situation au " & vJour
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Sous-titre production' =
+			VAR vDate = MAX('Source des données'[Date de situation])
+			VAR vJour = MID(vDate, 9, 2) & "/" & MID(vDate, 6, 2) & "/" & LEFT(vDate, 4)
+			RETURN "Client : " & SELECTEDVALUE('Choix du client'[Client choisi], "Tous") & "  ·  type : " & SELECTEDVALUE('Choix du type'[Type choisi], "Tous") & "  ·  consultant : " & SELECTEDVALUE('Choix du consultant'[Consultant choisi], "Tous") & "  |  " & SELECTEDVALUE('Choix de période'[Période choisie], "Tout l'historique") & ", situation au " & vJour
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Sous-titre validation' =
+			VAR vDate = MAX('Source des données'[Date de situation])
+			VAR vJour = MID(vDate, 9, 2) & "/" & MID(vDate, 6, 2) & "/" & LEFT(vDate, 4)
+			RETURN "Client : " & SELECTEDVALUE('Choix du client'[Client choisi], "Tous") & "  ·  type : " & SELECTEDVALUE('Choix du type'[Type choisi], "Tous") & "  ·  consultant : " & SELECTEDVALUE('Choix du consultant'[Consultant choisi], "Tous") & "  |  " & SELECTEDVALUE('Choix de période'[Période choisie], "Tout l'historique") & ", situation au " & vJour
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Sous-titre administration' =
+			VAR vDate = MAX('Source des données'[Date de situation])
+			VAR vJour = MID(vDate, 9, 2) & "/" & MID(vDate, 6, 2) & "/" & LEFT(vDate, 4)
+			RETURN "Client : " & SELECTEDVALUE('Choix du client'[Client choisi], "Tous") & "  ·  type : " & SELECTEDVALUE('Choix du type'[Type choisi], "Tous") & "  ·  consultant : " & SELECTEDVALUE('Choix du consultant'[Consultant choisi], "Tous") & "  |  " & SELECTEDVALUE('Choix de période'[Période choisie], "Tout l'historique") & ", situation au " & vJour
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Filtres du rapport' =
+			VAR vDate = MAX('Source des données'[Date de situation])
+			VAR vJour = MID(vDate, 9, 2) & "/" & MID(vDate, 6, 2) & "/" & LEFT(vDate, 4)
+			RETURN "Client : " & SELECTEDVALUE('Choix du client'[Client choisi], "Tous") & "  ·  type : " & SELECTEDVALUE('Choix du type'[Type choisi], "Tous") & "  ·  consultant : " & SELECTEDVALUE('Choix du consultant'[Consultant choisi], "Tous") & "  |  " & SELECTEDVALUE('Choix de période'[Période choisie], "Tout l'historique") & ", situation au " & vJour
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Constat synthese' =
+			VAR vFile = [Livrables à valider]
+			VAR vReste = [Citations sans source après approbation]
+			RETURN IF(vFile = 0, "Aucune relecture en attente",
+			    vFile & " à valider, dont " & [Relectures en retard] & " en retard")
+			    & IF(vReste > 0, " · " & vReste & " sans source après approbation", "")
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Constat production' =
+			VAR vTodo = [Livrables à traiter]
+			RETURN IF(vTodo = 0, "Aucun livrable à traiter",
+			    vTodo & " à traiter · " & [Renvois à reprendre] & IF([Renvois à reprendre] > 1, " renvoyés", " renvoyé"))
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Constat validation' =
+			VAR vN = [Phrases bloquantes à vérifier]
+			RETURN IF([Livrables à valider] = 0, "Aucune relecture en attente",
+			    [Relectures en retard] & " en retard · " & vN & IF(vN > 1, " phrases bloquantes", " phrase bloquante"))
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Constat administration' =
+			VAR vAlertes = [Alertes d'injection]
+			RETURN [Banc décision] & " · " & vAlertes & IF(vAlertes > 1, " alertes", " alerte") & " à examiner"
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Note Livrables à traiter' = "dont " & [Renvois à reprendre] & IF([Renvois à reprendre] > 1, " renvoyés", " renvoyé")
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Note Phrases bloquantes à corriger' = "sur " & [Livrables à traiter] & IF([Livrables à traiter] > 1, " livrables", " livrable") & " à traiter"
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Note Sections acceptées sans retouche' =
+			VAR vPart = [Nombre de sections sans retouche] + 0
+			VAR vN = [Sections rédigées puis approuvées] + 0
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, " ", IF(vN < 30, "Effectif insuffisant (n = " & vN & ")", FORMAT(vPart, "#,0", "fr-FR") & " sur " & FORMAT(vN, "#,0", "fr-FR") & " sections"))
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Note Livrables à valider' = "dont " & [Relectures en retard] & " en retard"
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Note Délai de validation' =
+			VAR vN = [Livrables avec délai]
+			RETURN IF(vN < 30, "Effectif insuffisant (n = " & vN & ")",
+			    "médiane, n = " & vN & " livrables")
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Note Renvois à la première relecture' =
+			VAR vPart = [Nombre de renvois en première relecture] + 0
+			VAR vN = [Premières relectures décidées] + 0
+			RETURN IF(vN < 30, "Effectif insuffisant (n = " & vN & ")", FORMAT(vPart, "#,0", "fr-FR") & " sur " & FORMAT(vN, "#,0", "fr-FR") & " relectures")
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Note Phrases bloquantes à vérifier' = "sur " & [Livrables à valider] & IF([Livrables à valider] > 1, " livrables", " livrable") & " en relecture"
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Note Citations sans source après approbation' =
+			VAR vN = [Livrables mesurés]
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, " ", IF(vN = 0, "Non mesuré", "sur " & FORMAT([Citations approuvées], "#,0", "fr-FR") & " citations, " & vN & IF(vN > 1, " livrables mesurés", " livrable mesuré")))
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Note Citations sans source avant relecture' =
+			VAR vPart = [Nombre de citations sans source avant relecture] + 0
+			VAR vN = [Citations générées] + 0
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, " ", IF(vN < 30, "Effectif insuffisant (n = " & vN & ")", FORMAT(vPart, "#,0", "fr-FR") & " sur " & FORMAT(vN, "#,0", "fr-FR") & " citations"))
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Note Phrases vérifiées' =
+			VAR vPart = [Nombre de phrases vérifiées] + 0
+			VAR vN = [Phrases générées] + 0
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, " ", IF(vN < 30, "Effectif insuffisant (n = " & vN & ")", FORMAT(vPart, "#,0", "fr-FR") & " sur " & FORMAT(vN, "#,0", "fr-FR") & " phrases"))
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Note Documents signalés' =
+			VAR vPart = [Nombre de documents signalés] + 0
+			VAR vN = [Documents analysés] + 0
+			RETURN IF(vN < 30, "Effectif insuffisant (n = " & vN & ")", FORMAT(vPart, "#,0", "fr-FR") & " sur " & FORMAT(vN, "#,0", "fr-FR") & " documents")
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Note Alertes d''injection' = "dans " & ([Nombre de documents signalés] + 0) & " documents"
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'À traiter état' = CALCULATE(SELECTEDVALUE(Livrables[État]), KEEPFILTERS(Livrables[Code d'état] IN {"draft", "rejected"}))
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'À traiter motif' = IF(NOT ISBLANK([À traiter état]), COALESCE(SELECTEDVALUE(Livrables[Motif du renvoi]), "—"))
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'À traiter bloquantes' = IF(NOT ISBLANK([À traiter état]), SUM(Livrables[Phrases bloquantes]) + 0)
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'À traiter sans preuve' = IF(NOT ISBLANK([À traiter état]), SUM(Livrables[Sections sans preuve]) + 0)
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'À traiter inactivité' = IF(NOT ISBLANK([À traiter état]), MAX(Livrables[Heures sans activité]) / 24)
+		formatString: 0 "j"
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Section priorité' =
+			VAR v = CALCULATE(SUM('Sections courantes'[Priorité de section]), KEEPFILTERS(Livrables[Code d'état] IN {"draft", "rejected"}))
+			RETURN IF(v > 0, v)
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Section bloquantes' = IF(NOT ISBLANK([Section priorité]), CALCULATE(SUM('Sections courantes'[Bloquantes]), KEEPFILTERS(Livrables[Code d'état] IN {"draft", "rejected"})) + 0)
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Section sans source' = IF(NOT ISBLANK([Section priorité]), CALCULATE(SUM('Sections courantes'[Sans source]), KEEPFILTERS(Livrables[Code d'état] IN {"draft", "rejected"})) + 0)
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Section refus' = IF(NOT ISBLANK([Section priorité]), IF(CALCULATE(SUM('Sections courantes'[Refus]), KEEPFILTERS(Livrables[Code d'état] IN {"draft", "rejected"})) > 0, "Compléter", "Corriger"))
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Charge en relecture' =
+			VAR v = [Livrables à valider]
+			RETURN IF(v > 0, v)
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Charge chez le consultant' =
+			VAR v = [Livrables à traiter]
+			RETURN IF(v > 0, v)
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'File attente' = CALCULATE(MAX(Livrables[Heures dans l'état]), KEEPFILTERS(Livrables[Code d'état] IN {"in_review"})) / 24
+		formatString: 0 "j"
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'File priorité' = IF(NOT ISBLANK([File attente]), [File attente] * (1 + IF(MAX('Source des données'[Est une démonstration]) = 1, 0, COALESCE(MAX(Livrables[Risque]), 0))))
 		formatString: #,0
-		displayFolder: 4. Sécurité et usage
-
-	/// Alertes, missions sans alerte masquées.
-	measure 'Alertes par mission' = CALCULATE(SUM(Documents[Alertes]), KEEPFILTERS(Documents[Alertes] > 0))
-		formatString: #,0
-		displayFolder: 4. Sécurité et usage
-
-	/// Missions avec au moins une génération.
-	measure 'Missions actives' = DISTINCTCOUNT('Générations'[Clé de mission])
-		formatString: #,0
-		displayFolder: 4. Sécurité et usage
-
-	/// Appels de génération, sections et constats.
-	measure 'Générations' = COUNTROWS('Générations')
-		formatString: #,0
-		displayFolder: 4. Sécurité et usage
-
-	measure 'Carte Phrases vérifiées' =
-			VAR v = [Phrases vérifiées]
-			RETURN IF(ISBLANK(v), "—", FORMAT(v, "0 %", "fr-FR"))
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Carte Citations inventées' =
-			VAR v = [Citations inventées]
-			RETURN IF(ISBLANK(v), "—", FORMAT(v, "#,0", "fr-FR"))
+	measure 'File consultant' = IF(NOT ISBLANK([File attente]), CALCULATE(SELECTEDVALUE(Personnes[Consultant]), CROSSFILTER(Livrables[Clé de consultant], Personnes[Clé de personne], BOTH)))
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Carte Chiffres retrouvés dans la source' =
-			VAR v = [Chiffres retrouvés dans la source]
-			RETURN IF(ISBLANK(v), "—", FORMAT(v, "0 %", "fr-FR"))
+	measure 'File bloquantes' = IF(NOT ISBLANK([File attente]), SUM(Livrables[Phrases bloquantes]) + 0)
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Carte Sections refusées faute de preuve' =
-			VAR v = [Sections refusées faute de preuve]
-			RETURN IF(ISBLANK(v), "—", FORMAT(v, "0 %", "fr-FR"))
+	measure 'File risque' =
+			IF(NOT ISBLANK([File attente]), IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(ISBLANK(MAX(Livrables[Risque])), "Non mesuré",
+			    FORMAT(MAX(Livrables[Risque]), "0 %") & " (n = " & MAX(Livrables[Risque effectif]) & ")")))
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Carte Temps gagné' =
-			VAR v = [Temps gagné]
-			RETURN IF(ISBLANK(v), "—", FORMAT(v, "0 %", "fr-FR"))
+	measure 'Couleur d''attente' =
+			VAR v = [File attente]
+			RETURN IF(NOT ISBLANK(v), IF(v * 24 > 48, "#F6D5D8", "#FFFFFF"))
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Carte Temps gagné par livrable' =
-			VAR v = [Temps gagné par livrable]
-			RETURN IF(ISBLANK(v), "—", FORMAT(v, "0.0 h", "fr-FR"))
+	measure 'Couleur de blocage' = IF([File bloquantes] > 0, "#E9E9EF", "#FFFFFF")
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Carte Sections acceptées sans retouche' =
-			VAR v = [Sections acceptées sans retouche]
-			RETURN IF(ISBLANK(v), "—", FORMAT(v, "0 %", "fr-FR"))
+	measure 'Couleur de correction' = IF([À traiter bloquantes] > 0, "#F6D5D8", "#FFFFFF")
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Carte Délai de validation' =
+	measure 'H7 citations' =
+			VAR vN = [Livrables mesurés]
+			VAR vReste = [Citations sans source après approbation]
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(vN = 0, "Non mesuré", vReste & " sur " & FORMAT([Citations approuvées], "#,0", "fr-FR") & " citations (" & vN & IF(vN > 1, " livrables", " livrable") & ") · cible 0 · "
+			    & IF(vReste > 0, "non atteint",
+			        IF(vN < [Livrables approuvés], "non mesuré en totalité",
+			            IF(vN < 30, "effectif insuffisant pour conclure", "atteint")))))
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'H7 retouche' =
+			VAR vN = [Sections rédigées puis approuvées]
+			VAR vTaux = [Sections acceptées sans retouche]
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(vN < 30, "Effectif insuffisant (n = " & vN & ")",
+			    FORMAT(vTaux, "0 %") & " (" & [Nombre de sections sans retouche] & " sur " & vN & ") · cible ≥ 50 % · "
+			    & IF(vTaux >= 0.5, "atteint", "non atteint") & ", approximation par section"))
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Rapport file' = [Livrables à valider] & IF([Livrables à valider] > 1, " livrables", " livrable") & ", dont " & [Relectures en retard] & " en retard"
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Rapport délai' =
 			VAR v = [Délai de validation]
-			RETURN IF(ISBLANK(v), "—", FORMAT(v, "0.0 h", "fr-FR"))
+			RETURN IF(ISBLANK(v), [Note Délai de validation],
+			    FORMAT(v, "0") & " h (" & [Note Délai de validation] & ")")
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Carte Renvois en correction' =
-			VAR v = [Renvois en correction]
-			RETURN IF(ISBLANK(v), "—", FORMAT(v, "0 %", "fr-FR"))
+	measure 'Rapport renvois' =
+			VAR v = [Renvois à la première relecture]
+			RETURN IF(ISBLANK(v), [Note Renvois à la première relecture],
+			    FORMAT(v, "0 %") & " (" & [Note Renvois à la première relecture] & ")")
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Carte Alertes d''injection' =
-			VAR v = [Alertes d'injection]
-			RETURN IF(ISBLANK(v), "—", FORMAT(v, "#,0", "fr-FR"))
+	measure 'Rapport bloquantes' = [Phrases bloquantes à vérifier] & " en relecture, " & [Phrases bloquantes à corriger] & " chez les consultants"
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Carte Documents signalés' =
-			VAR v = [Documents signalés]
-			RETURN IF(ISBLANK(v), "—", FORMAT(v, "0 %", "fr-FR"))
+	measure 'Rapport vérifiées' =
+			VAR vN = [Phrases générées]
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(vN < 30, "Effectif insuffisant",
+			    FORMAT([Phrases vérifiées], "0 %") & " de " & FORMAT(vN, "#,0", "fr-FR") & " phrases générées"))
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Carte Missions actives' =
-			VAR v = [Missions actives]
-			RETURN IF(ISBLANK(v), "—", FORMAT(v, "#,0", "fr-FR"))
+	measure 'Rapport détectées' =
+			VAR vN = [Citations générées]
+			RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, "Non mesuré", IF(vN < 30, "Effectif insuffisant",
+			    FORMAT([Citations sans source avant relecture], "0 %") & " ("
+			    & [Nombre de citations sans source avant relecture] & " sur " & FORMAT(vN, "#,0", "fr-FR") & ")"))
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Carte Livrables approuvés' =
-			VAR v = [Livrables approuvés]
-			RETURN IF(ISBLANK(v), "—", FORMAT(v, "#,0", "fr-FR"))
+	measure 'Banc décision' =
+			VAR vRetenues = FILTER(ALL(Banc), Banc[Code de décision] = "retain")
+			VAR vMesurees = COUNTROWS(FILTER(ALL(Banc), NOT ISBLANK(Banc[TPV]))) + 0
+			VAR vNombre = COUNTROWS(vRetenues) + 0
+			RETURN IF(vMesurees = 0, "Banc d'essai non mesuré",
+			    IF(vNombre = 0, "Rester sur B",
+			        "À retenir : " & CONCATENATEX(vRetenues, Banc[Configuration], ", ")))
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Statut Phrases vérifiées' =
-			VAR v = [Phrases vérifiées]
-			RETURN IF(ISBLANK(v), "Aucune donnée", IF(v >= 0.5, "✓ Au-dessus du plancher de 50 %", "✕ Sous le plancher de 50 %"))
+	measure 'Banc montage' = SELECTEDVALUE(Banc[Montage])
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Couleur Phrases vérifiées' =
-			VAR v = [Phrases vérifiées]
-			RETURN IF(ISBLANK(v), "#747480", IF(v >= 0.5, "#1E6B4F", "#B4232F"))
+	measure 'Banc effectif' = IF(COUNTROWS(Banc) = 1, IF(ISBLANK(MAX(Banc[Sections du banc])), "—", FORMAT(MAX(Banc[Sections du banc]), "0")))
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Statut Citations inventées' =
-			VAR v = [Citations inventées]
-			RETURN IF(ISBLANK(v), "Aucune donnée", IF(v <= 0, "✓ Cible atteinte : 0", "✕ Cible : 0"))
+	measure 'Banc TPV' = IF(COUNTROWS(Banc) = 1, IF(ISBLANK(MAX(Banc[TPV])), "Non mesuré", FORMAT(MAX(Banc[TPV]), "0 %")))
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Couleur Citations inventées' =
-			VAR v = [Citations inventées]
-			RETURN IF(ISBLANK(v), "#747480", IF(v <= 0, "#1E6B4F", "#B4232F"))
+	measure 'Banc écart' =
+			IF(COUNTROWS(Banc) = 1, IF(ISBLANK(MAX(Banc[Écart])), "—",
+			    FORMAT(100 * MAX(Banc[Écart]), "+0.0;-0.0;0.0", "fr-FR")))
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Statut Sections acceptées sans retouche' =
-			VAR v = [Sections acceptées sans retouche]
-			RETURN IF(ISBLANK(v), "Aucune donnée", IF(v >= 0.5, "✓ Cible atteinte : ≥ 50 %", "✕ Cible : ≥ 50 %"))
+	measure 'Banc latence' =
+			IF(COUNTROWS(Banc) = 1, IF(ISBLANK(MAX(Banc[Latence p95])), "—",
+			    FORMAT(MAX(Banc[Latence p95]) / 1000, "0") & " s"))
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Couleur Sections acceptées sans retouche' =
-			VAR v = [Sections acceptées sans retouche]
-			RETURN IF(ISBLANK(v), "#747480", IF(v >= 0.5, "#1E6B4F", "#B4232F"))
+	measure 'Banc verdict' = SELECTEDVALUE(Banc[Décision])
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Statut Temps gagné' =
-			VAR v = [Temps gagné]
-			RETURN IF(ISBLANK(v), "Aucune donnée", IF(v >= 0.3, "✓ Cible atteinte : ≥ 30 %", "✕ Cible : ≥ 30 %"))
+	measure 'Couleur de décision' = SWITCH(SELECTEDVALUE(Banc[Code de décision]), "worse", "#B4232F", "unsafe", "#B4232F", "#2E2E38")
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Couleur Temps gagné' =
-			VAR v = [Temps gagné]
-			RETURN IF(ISBLANK(v), "#747480", IF(v >= 0.3, "#1E6B4F", "#B4232F"))
+	measure 'Format taux' =
+			VAR vN = [Documents analysés]
+			VAR vSignales = [Nombre de documents signalés]
+			RETURN IF(vN > 0, IF(vN < 30, "Effectif faible", FORMAT(DIVIDE(vSignales, vN), "0 %")))
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Bandeau données' =
-			IF(CALCULATE(MAX(Missions[Est une démonstration]), REMOVEFILTERS()) = 1,
-			    "Données de démonstration · valeurs inventées", " ")
+	measure 'Mission signalée' =
+			VAR v = SUM(Documents[Alertes])
+			RETURN IF(v > 0, v)
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure Verdict =
-			VAR vCitations = [Citations inventées]
-			VAR vRetouche = [Sections acceptées sans retouche]
-			VAR vTemps = [Temps gagné]
-			VAR vAtteints = IF(NOT ISBLANK(vCitations) && vCitations <= 0, 1, 0)
-			    + IF(vRetouche >= 0.5, 1, 0) + IF(vTemps >= 0.3, 1, 0)
-			RETURN IF(ISBLANK(vCitations) || ISBLANK(vRetouche) || ISBLANK(vTemps),
-			    "Pas assez de données dans cette sélection pour conclure",
-			    vAtteints & IF(vAtteints > 1, " critères atteints", " critère atteint") & " sur 3")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Détail du verdict' =
-			VAR vCitations = [Citations inventées]
-			VAR vRetouche = [Sections acceptées sans retouche]
-			VAR vTemps = [Temps gagné]
-			RETURN IF(ISBLANK(vCitations) || ISBLANK(vRetouche) || ISBLANK(vTemps), " ",
-			    IF(vTemps >= 0.3, "✓", "✕") & " Temps gagné  ·  "
-			    & IF(vRetouche >= 0.5, "✓", "✕") & " Texte réutilisable  ·  "
-			    & IF(vCitations <= 0, "✓", "✕") & " Zéro citation inventée")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Tuile qualité' =
-			VAR vTotal = [Phrases générées]
-			RETURN IF(ISBLANK(vTotal), "—", FORMAT(vTotal - [Nombre de phrases vérifiées], "#,0", "fr-FR") & " phrases à revoir")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Tuile productivité' =
-			VAR v = [Heures gagnées]
-			RETURN IF(ISBLANK(v), "—", FORMAT(v, "#,0", "fr-FR") & " h gagnées")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Tuile modèles' =
-			VAR vListe = FILTER(ADDCOLUMNS(ALLSELECTED(Configurations[Configuration]), "@v", [Phrases vérifiées]), NOT ISBLANK([@v]))
-			VAR vPremier = TOPN(1, vListe, [@v], DESC, Configurations[Configuration], ASC)
-			VAR vNom = MAXX(vPremier, Configurations[Configuration])
-			VAR vValeur = MAXX(vPremier, [@v])
-			RETURN IF(ISBLANK(vNom), "—", vNom & " en tête à " & FORMAT(vValeur, "0 %"))
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Tuile sécurité' =
-			VAR v = [Alertes d'injection]
-			RETURN IF(ISBLANK(v), "—", v & IF(v > 1, " alertes", " alerte"))
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Titre cascade' =
-			VAR vTotal = [Phrases générées]
-			VAR vOk = [Nombre de phrases vérifiées] + 0
-			RETURN IF(ISBLANK(vTotal), "Aucune phrase générée dans cette sélection",
-			    vOk & " phrases sur " & vTotal & " sont vérifiées")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Titre anomalies' =
-			VAR vListe = FILTER(ADDCOLUMNS(ALLSELECTED(Citations[Anomalie]), "@v", [Anomalies]), NOT ISBLANK([@v]))
-			VAR vPremier = TOPN(1, vListe, [@v], DESC, Citations[Anomalie], ASC)
-			VAR vNom = MAXX(vPremier, Citations[Anomalie])
-			VAR vValeur = MAXX(vPremier, [@v])
-			RETURN IF(ISBLANK(vNom), "Aucune anomalie dans cette sélection",
-			    "« " & vNom & " » est la première anomalie (" & vValeur & " cas)")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Titre sections fragiles' =
-			VAR vListe = FILTER(ADDCOLUMNS(ALLSELECTED('Générations'[Section]), "@v", [Phrases vérifiées]), NOT ISBLANK([@v]))
-			VAR vPremier = TOPN(1, vListe, [@v], ASC, 'Générations'[Section], ASC)
-			VAR vNom = MAXX(vPremier, 'Générations'[Section])
-			VAR vValeur = MAXX(vPremier, [@v])
-			RETURN IF(ISBLANK(vNom), "Aucune section rédigée dans cette sélection",
-			    "« " & vNom & " » est la section la moins vérifiée (" & FORMAT(vValeur, "0 %") & ")")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Titre entonnoir' =
-			VAR vDebut = [Sections demandées]
-			VAR vFin = [Nombre de sections sans retouche]
-			RETURN IF(ISBLANK(vDebut) || ISBLANK(vFin), "Des sections demandées aux sections réutilisées",
-			    vFin & " sections sur " & vDebut & " vont au bout sans retouche")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Titre retouches' =
-			VAR vTotal = [Sections rédigées puis approuvées]
-			VAR vModifiees = vTotal - [Nombre de sections sans retouche]
-			RETURN IF(ISBLANK(vTotal), "Aucune section approuvée dans cette sélection",
-			    vModifiees & " sections approuvées sur " & vTotal & " ont été retouchées")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Titre réécriture' =
-			VAR vListe = FILTER(ADDCOLUMNS(ALLSELECTED('Sections approuvées'[Section]), "@v", [Part réécrite]), NOT ISBLANK([@v]))
-			VAR vPremier = TOPN(1, vListe, [@v], DESC, 'Sections approuvées'[Section], ASC)
-			VAR vNom = MAXX(vPremier, 'Sections approuvées'[Section])
-			VAR vValeur = MAXX(vPremier, [@v])
-			RETURN IF(ISBLANK(vNom), "Aucune section approuvée dans cette sélection",
-			    "« " & vNom & " » demande le plus de réécriture")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Titre critères' =
-			VAR vListe = FILTER(ADDCOLUMNS(ALLSELECTED(Configurations[Configuration]), "@v", [Phrases vérifiées]), NOT ISBLANK([@v]))
-			VAR vPremier = TOPN(1, vListe, [@v], DESC, Configurations[Configuration], ASC)
-			VAR vNom = MAXX(vPremier, Configurations[Configuration])
-			VAR vValeur = MAXX(vPremier, [@v])
-			RETURN IF(ISBLANK(vNom), "Aucune configuration à comparer",
-			    "La configuration " & vNom & " vérifie le plus de phrases (" & FORMAT(vValeur, "0 %") & ")")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Titre bilan' =
-			VAR vListe = FILTER(ADDCOLUMNS(ALLSELECTED(Configurations[Configuration et modèle]), "@v", [Écart à la référence B]), NOT ISBLANK([@v]))
-			VAR vPremier = TOPN(1, vListe, [@v], DESC, Configurations[Configuration et modèle], ASC)
-			VAR vNom = MAXX(vPremier, Configurations[Configuration et modèle])
-			VAR vValeur = MAXX(vPremier, [@v])
-			RETURN IF(ISBLANK(vNom), "Bilan de chaque configuration",
-			    IF(ROUND(vValeur, 0) > 0,
-			        LEFT(vNom, 1) & " devance la référence B de " & FORMAT(vValeur, "0") & " points",
-			        "Aucune configuration ne devance la référence B"))
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Titre arbitrage' =
-			VAR vListe = FILTER(ADDCOLUMNS(ALLSELECTED(Configurations[Configuration]), "@q", [Phrases vérifiées],
-			    "@t", [Temps de réponse p95]), NOT ISBLANK([@q]) && NOT ISBLANK([@t]))
-			VAR vFiable = MAXX(TOPN(1, vListe, [@q], DESC, Configurations[Configuration], ASC), Configurations[Configuration])
-			VAR vRapide = MAXX(TOPN(1, vListe, [@t], ASC, Configurations[Configuration], ASC), Configurations[Configuration])
-			RETURN IF(ISBLANK(vFiable), "Qualité et vitesse",
-			    IF(vFiable = vRapide, vFiable & " est la plus fiable et la plus rapide",
-			        vFiable & " est la plus fiable, " & vRapide & " la plus rapide"))
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Titre alertes' =
-			VAR vAlertes = [Alertes d'injection] + 0
-			VAR vMissions = CALCULATE(DISTINCTCOUNT(Documents[Clé de mission]), KEEPFILTERS(Documents[Alertes] > 0))
-			RETURN IF(vAlertes = 0, "Aucune alerte d'injection dans cette sélection",
-			    vAlertes & IF(vAlertes > 1, " alertes réparties sur ", " alerte sur ")
-			    & vMissions & IF(vMissions > 1, " missions", " mission") & " à examiner")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Titre formats' =
-			VAR vListe = FILTER(ADDCOLUMNS(ALLSELECTED(Documents[Format]), "@v", [Nombre de documents signalés]), NOT ISBLANK([@v]))
-			VAR vPremier = TOPN(1, vListe, [@v], DESC, Documents[Format], ASC)
-			VAR vNom = MAXX(vPremier, Documents[Format])
-			VAR vValeur = MAXX(vPremier, [@v])
-			RETURN IF(ISBLANK(vNom), "Aucun format de document signalé",
-			    IF(COUNTROWS(FILTER(vListe, [@v] = vValeur)) > 1, "Plusieurs formats sont touchés à égalité",
-			        vNom & " est le format le plus souvent signalé"))
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Titre usage' =
-			VAR vTotal = [Générations] + 0
-			VAR vClients = DISTINCTCOUNT('Générations'[Client d'origine])
-			RETURN IF(vTotal = 0, "Aucune génération dans cette sélection",
-			    vTotal & " générations pour " & vClients & IF(vClients > 1, " clients", " client"))
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Fond de taux' =
-			VAR v = [Phrases vérifiées]
-			RETURN IF(NOT ISBLANK(v), SWITCH(TRUE(), v < 0.5, "#F6D5D8", v >= 0.8, "#FFFFFF", "#E9E9EF"))
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Couleur d''écart' =
-			VAR v = ROUND([Écart à la référence B], 0)
-			RETURN SWITCH(TRUE(), v > 0, "#1E6B4F", v < 0, "#B4232F", "#2E2E38")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Couleur du critère' =
-			VAR v = [Valeur du critère]
-			VAR vMax = MAXX(ALLSELECTED(Configurations[Configuration]), [Valeur du critère])
-			RETURN IF(ROUND(v, 2) = ROUND(vMax, 2), "#FFE600", "#C4C4CD")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Couleur de réécriture' =
-			VAR v = [Part réécrite]
-			VAR vMax = MAXX(ALLSELECTED('Sections approuvées'[Section]), [Part réécrite])
-			RETURN IF(v = vMax, "#FFE600", "#C4C4CD")
-		displayFolder: 9. Présentation
-		isHidden
-
-	measure 'Couleur de retouche' = IF(SELECTEDVALUE('Sections approuvées'[Ordre de retouche]) = 1, "#FFE600", "#C4C4CD")
+	measure 'Mission documents' = IF(NOT ISBLANK([Mission signalée]), COUNTROWS(Documents))
 		displayFolder: 9. Présentation
 		isHidden
 

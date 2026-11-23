@@ -2,7 +2,7 @@ table Calendrier
 
 	column Date
 		dataType: dateTime
-		formatString: dd/mm/yyyy
+		formatString: dd/MM/yyyy
 		sourceColumn: jour
 		summarizeBy: none
 
@@ -12,37 +12,16 @@ table Calendrier
 		sourceColumn: date_key
 		summarizeBy: none
 
-	column 'Ordre du mois'
-		dataType: int64
-		isHidden
-		sourceColumn: mois_ordre
-		summarizeBy: none
-
-	column Mois
-		dataType: string
-		sourceColumn: mois
-		sortByColumn: 'Ordre du mois'
-		summarizeBy: none
-
-	column 'Mois abrégé'
-		dataType: string
-		sourceColumn: mois_court
-		sortByColumn: 'Ordre du mois'
-		summarizeBy: none
-
 	partition Calendrier = m
 		mode: import
 		source =
 				let
-				    Cles = List.RemoveNulls(List.Combine({Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_generation"), {"date_key"}), {{"date_key", Int64.Type}}, CultureCsv), "date_key"), Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_outcome"), {"date_key"}), {{"date_key", Int64.Type}}, CultureCsv), "date_key")})),
+				    Cles = List.Buffer(List.RemoveNulls(List.Combine({Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_generation"), {"date_key"}), {{"date_key", Int64.Type}}, CultureCsv), "date_key"), Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_deliverable"), {"approved_date_key"}), {{"approved_date_key", Int64.Type}}, CultureCsv), "approved_date_key"), Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_deliverable"), {"submitted_date_key"}), {{"submitted_date_key", Int64.Type}}, CultureCsv), "submitted_date_key")}))),
 				    VersDate = (k as number) as date => #date(Number.IntegerDivide(k, 10000), Number.Mod(Number.IntegerDivide(k, 100), 100), Number.Mod(k, 100)),
-				    Debut = Date.StartOfMonth(VersDate(List.Min(Cles, 20260101))),
-				    Fin = Date.EndOfMonth(VersDate(List.Max(Cles, 20261231))),
-				    Jours = List.Dates(Debut, Duration.Days(Fin - Debut) + 1, #duration(1, 0, 0, 0)),
+				    Premier = VersDate(List.Min(Cles, 20260101)),
+				    Dernier = VersDate(List.Max(Cles, 20261231)),
+				    Jours = List.Dates(Date.StartOfMonth(Premier), Duration.Days(Date.EndOfMonth(Dernier) - Date.StartOfMonth(Premier)) + 1, #duration(1, 0, 0, 0)),
 				    Base = Table.FromColumns({Jours}, type table [jour = date]),
-				    AvecCle = Table.AddColumn(Base, "date_key", each Date.Year([jour]) * 10000 + Date.Month([jour]) * 100 + Date.Day([jour]), Int64.Type),
-				    AvecOrdre = Table.AddColumn(AvecCle, "mois_ordre", each Date.Year([jour]) * 100 + Date.Month([jour]), Int64.Type),
-				    AvecMois = Table.AddColumn(AvecOrdre, "mois", each {"Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"}{Date.Month([jour]) - 1} & " " & Text.From(Date.Year([jour])), type text),
-				    AvecMoisCourt = Table.AddColumn(AvecMois, "mois_court", each {"janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."}{Date.Month([jour]) - 1} & " " & Text.End(Text.From(Date.Year([jour])), 2), type text)
+				    AvecCle = Table.AddColumn(Base, "date_key", each Date.Year([jour]) * 10000 + Date.Month([jour]) * 100 + Date.Day([jour]), Int64.Type)
 				in
-				    AvecMoisCourt
+				    AvecCle

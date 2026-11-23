@@ -44,7 +44,7 @@ def _roadmap(doc, data: ExportData) -> None:
     rows = []
     for it in items:
         by = {sc.key: sc.value for sc in it.initiative.scores}
-        rows.append([it.rank, it.wave, f"{it.score:.2f}", it.initiative.title, *[by.get(k, "—") for k in keys]])
+        rows.append([it.rank, it.wave, ("—" if it.unscored else f"{it.score:.2f}"), it.initiative.title, *[by.get(k, "—") for k in keys]])
     _table(doc, [lb["rank"], lb["wave"], lb["score"], lb["initiative"], *keys], rows)
     doc.add_heading(lb["matrix"], level=1)
     findings = list(dict.fromkeys(f for it in items for f in it.initiative.finding_ids))

@@ -5,3 +5,5 @@ export/
 **/.pbi/unappliedChanges.json
 **/.platform
 __pycache__/
+# Table de correspondance RLS : données personnelles, jamais versionnée
+acces.csv

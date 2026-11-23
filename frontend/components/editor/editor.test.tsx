@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ExportBar, TransitionBar } from "./ActionBars";
+import { AckBar, ExportBar, TransitionBar } from "./ActionBars";
 import { deliverables } from "./client";
 import { docToSection, sectionToDoc } from "./convert";
 import RoadmapView from "./RoadmapView";
@@ -108,6 +108,16 @@ describe("transitions et exports", () => {
     fireEvent.change(screen.getByLabelText(/Motif/), { target: { value: "chiffres faux" } });
     fireEvent.click(screen.getByText("Confirmer"));
     expect(onT).toHaveBeenCalledWith("rejected", "chiffres faux");
+  });
+
+  it("l'acquittement exige un motif et le transmet", () => {
+    const onAck = vi.fn();
+    render(<AckBar items={[{ index: 2, label: "Acquitter #3" }, { index: -1, label: "Acquitter le refus" }]} onAck={onAck} />);
+    const button = screen.getByText("Acquitter #3");
+    expect(button).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/Motif de l'acquittement/), { target: { value: "vérifié sur pièce" } });
+    fireEvent.click(button);
+    expect(onAck).toHaveBeenCalledWith(2, "vérifié sur pièce");
   });
 
   it("un consultant ne voit pas approuver/refuser ; brouillon : soumettre seulement", () => {

@@ -25,7 +25,7 @@ Chaque lot possède une liste de fichiers (aucun conflit de fusion), lit son bri
 |---|---|
 | Tests automatiques | **397** backend + 22 entraînement + 22 interface ; 2 sautés (PostgreSQL, LibreOffice) ; lint vert |
 | Rappel@10 de la recherche | **1,000 (30/30)** sur 30 requêtes, 3 institutions fictives |
-| Erreurs injectées détectées | **23/23 (100 %)**, 8 types d'erreur |
+| Erreurs injectées détectées | 23/23 cas construits, 8 types d'erreur (ne couvrait ni nombres en lettres, ni fourchettes, ni sens) |
 | Attaques par injection | 14 détectées, 0 faux positif sur 25 phrases normales |
 | Parcours de démonstration complet (10 étapes, import → ToR → approbation → export) | **1,9 s**, ToR de 6 sections, TPV 1,00, 28 entrées d'audit |
 | Revue d'intégration (R1) | **5 bugs** trouvés et corrigés, avec tests |
@@ -66,9 +66,10 @@ Total de la nuit : **88 pts de la fenêtre de 5 h** (59 + 29 sur deux fenêtres)
 
 ## Ce qui a changé
 Six sessions en parallèle, sur des fichiers distincts, ont fait tourner pour la première fois **un vrai modèle, une vraie base, Docker, un navigateur, LibreOffice et Power BI**.
+- **Correction du 22/11 au soir** : les chiffres de génération qui suivent ont pu être mesurés sur des invites tronquées (fenêtre de 4 096 jetons), ils sont à refaire.
 - **Modèle local réel** : qwen3:4b et bge-m3 (Ollama) sur un PC à 4 Go de VRAM. Par section : **18,2 s** (p50), 23,1 s (p95), 3,1 Go de VRAM ; rappel@10 **1,000** (31 sections, 1 institution). Un réglage (`num_gpu=99`) a réduit la latence de 25 % et les faux refus de 60 à 10 % (une passe : bruit de ±1–2 sections).
 - **PostgreSQL + pgvector** et entrepôt : exécutés sans bug ; le rôle de lecture `bi_reader` n'accède qu'à `dw`.
-- **Corpus réel** : **103 documents CC BY**, **3 105 exemples** d'entraînement vérifiés, **jeu or de 34 questions**, licences et SHA-256 tracés.
+- **Corpus réel** : **103 documents CC BY**, 3 105 exemples d'entraînement (jeu **rejeté** le 22/11/2026 après lecture : réponses presque toutes recopiées des passages (2 061 sur 2 067), questions faites de mots-clés, 83 % en anglais, aucune feuille de route ni TdR ni cahier des charges), 34 questions de test rédigées par une IA et non relues par un humain, licences et SHA-256 tracés.
 - **Interface** refaite (jaune et anthracite, sans marque), **FR/EN**, test navigateur de bout en bout ; **livrables en anglais** ; Power BI (thème, projet PBIP, CSV) ; export PDF par LibreOffice.
 - **Hypothèses H1 à H7** (sur site, GPU 24 Go / PC 4 Go, formats, trames, données publiques, consultant + manager, seuils de réussite) écrites au cahier des charges, à valider avec l'entreprise.
 

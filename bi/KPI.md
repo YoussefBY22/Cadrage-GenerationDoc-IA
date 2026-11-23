@@ -1,208 +1,209 @@
 # Indicateurs du tableau de bord Power BI
 
-> Fichier généré par `python bi/pbip/build_pbip.py` depuis [`pbip/indicateurs.py`](pbip/indicateurs.py).
-> La même définition figure dans la description de chaque mesure (info-bulle du volet Données)
-> et dans l'icône d'information des cartes du rapport.
+> Fichier généré par `python bi/pbip/build_pbip.py` depuis [`pbip/indicateurs.py`](pbip/indicateurs.py)
+> et [`pilotage.py`](../backend/app/dw/pilotage.py), la source unique des seuils et des règles.
+> Qui voit quoi : [docs/14](../docs/14-acteurs-dashboard.md).
 
-## Critères de réussite (hypothèse H7)
+Les pages montrent le nombre et son effectif. Décisions, formules, cibles et seuils ne vivent qu'ici.
 
-Source : [cahier des charges](../docs/01-cahier-des-charges.md), §13. H7 est une hypothèse de travail, à valider avec l'entreprise.
+Principes : au plus 4 indicateurs par page acteur, chacun lié à une décision ; un taux va avec son effectif et disparaît sous 30 cas ; un critère non mesuré s'affiche « non mesuré », sans verdict. Sur les données de démonstration, aucune qualité de modèle n'est mesurée.
 
-| Critère H7 | Indicateur du rapport | Cible |
-|---|---|---|
-| 0 citation inventée | Citations inventées | 0 |
-| Phrases réutilisables telles quelles | Sections acceptées sans retouche (approximation plus sévère) | ≥ 50 % |
-| Temps gagné sur la rédaction | Temps gagné (estimation) | ≥ 30 % |
+## Consultant
 
-Le verdict de la page d'accueil porte sur ces trois critères. Les autres indicateurs expliquent le résultat et n'ont pas de seuil, sauf le plancher des phrases vérifiées, déduit de H7. Le palier de 80 % qui colore la matrice est un repère de lecture, pas une cible.
+### Livrables à traiter
 
-## 1. Qualité et preuves
-
-### Phrases vérifiées
-
-- **Formule** : phrases validées par le vérificateur ÷ phrases des sections générées (TPV, taux de phrases vérifiées).
-- **Pourquoi** : c'est la promesse du produit : chaque phrase s'appuie sur une preuve du dossier.
-- **Cible** : au moins 50 %. Ce plancher est déduit de H7 : une phrase non vérifiée n'est pas réutilisable telle quelle.
-- **Limite** : mesure l'ancrage dans les sources, pas la vérité du contenu.
+- **Décision** : Par quel livrable commencer
+- **Formule** : livrables en brouillon ou renvoyés, dont les renvois pas encore resoumis.
+- **Cible** : aucun seuil dans H7
+- **Portée** : Situation à la date des données : ne suit pas la période.
 
 ```dax
-Phrases vérifiées =
-DIVIDE([Nombre de phrases vérifiées], [Phrases générées])
+Livrables à traiter =
+CALCULATE(COUNTROWS(Livrables), KEEPFILTERS(Livrables[Code d'état] IN {"draft", "rejected"})) + 0
 ```
 
-### Citations inventées
+### Phrases bloquantes à corriger
 
-- **Formule** : citations produites − citations dont la source existe dans le dossier.
-- **Pourquoi** : une source inexistante ou prise dans un autre dossier ruine la confiance et peut fuiter entre clients.
-- **Cible** : 0 (H7).
-- **Limite** : compte ce que le modèle a produit et que le vérificateur a signalé, pas ce qui reste après relecture.
-
-```dax
-Citations inventées =
-VAR vTotal = SUM('Générations'[Citations produites])
-RETURN IF(NOT ISBLANK(vTotal), vTotal - SUM('Générations'[Citations valides en nombre]))
-```
-
-### Chiffres retrouvés dans la source
-
-- **Formule** : chiffres cités retrouvés dans le passage source ÷ chiffres cités.
-- **Pourquoi** : un montant, un délai ou un taux faux est l'erreur la plus coûteuse dans un livrable de conseil.
-- **Cible** : Aucun seuil dans H7 : indicateur de suivi.
-- **Limite** : vide si aucun chiffre n'est cité (kpi.py renvoie 1 dans ce cas).
+- **Décision** : Quoi corriger avant de soumettre
+- **Formule** : phrases des livrables chez le consultant dont la source est absente du dossier, ou rejetées par le vérificateur et inchangées depuis.
+- **Cible** : 0 avant de soumettre (règle du produit)
+- **Portée** : Situation à la date des données : ne suit pas la période.
+- **Limite** : une phrase modifiée n'est pas revérifiée ici : seule sa source est contrôlée.
 
 ```dax
-Chiffres retrouvés dans la source =
-DIVIDE(SUM('Générations'[Chiffres retrouvés]), SUM('Générations'[Chiffres cités]))
-```
-
-### Sections refusées faute de preuve
-
-- **Formule** : générations de sections refusées ÷ générations de sections (constats exclus).
-- **Pourquoi** : un refus vaut mieux qu'une invention ; un taux élevé révèle des dossiers trop pauvres ou une recherche mal réglée.
-- **Cible** : Aucun seuil dans H7 : indicateur de suivi.
-- **Limite** : kpi.py rapporte les refus à toutes les générations, constats compris.
-
-```dax
-Sections refusées faute de preuve =
-DIVIDE([Nombre de sections refusées], [Générations de sections])
-```
-
-## 2. Productivité et relecture
-
-### Temps gagné
-
-- **Formule** : minutes gagnées sur les sections rédigées ÷ minutes d'une rédaction manuelle de toutes les sections approuvées.
-- **Pourquoi** : c'est le retour sur investissement attendu par le cabinet.
-- **Cible** : au moins 30 % (H7).
-- **Limite** : estimation : 30 min par section manuelle (à valider), gain proportionnel au texte conservé, relecture non déduite. Une section refusée ne fait rien gagner.
-
-```dax
-Temps gagné =
-DIVIDE(
-    CALCULATE(SUM('Sections approuvées'[Minutes gagnées]), KEEPFILTERS('Sections approuvées'[Refusée] = 0)),
-    SUM('Sections approuvées'[Minutes de référence]))
-```
-
-### Temps gagné par livrable
-
-- **Formule** : heures gagnées ÷ livrables approuvés.
-- **Pourquoi** : traduit le pourcentage en temps de consultant rendu à l'analyse.
-- **Cible** : aucun seuil en heures dans H7, qui raisonne en pourcentage (voir Temps gagné).
-- **Limite** : même estimation que Temps gagné.
-
-```dax
-Temps gagné par livrable =
-DIVIDE([Heures gagnées], [Livrables approuvés])
+Phrases bloquantes à corriger =
+CALCULATE(SUM(Livrables[Phrases bloquantes]), KEEPFILTERS(Livrables[Code d'état] IN {"draft", "rejected"})) + 0
 ```
 
 ### Sections acceptées sans retouche
 
+- **Décision** : Partir du premier jet ou le retravailler
 - **Formule** : sections approuvées mot pour mot ÷ sections rédigées puis approuvées (refus exclus).
-- **Pourquoi** : mesure l'adoption réelle : le consultant garde le texte au lieu de le refaire.
-- **Cible** : au moins 50 % (H7, « réutilisables telles quelles »).
-- **Limite** : H7 raisonne par phrase et l'entrepôt par section : une seule retouche disqualifie la section, la mesure est donc plus sévère que H7.
+- **Cible** : au moins 50 % (H7)
+- **Portée** : Flux : suit la période.
+- **Limite** : H7 raisonne par phrase, l'entrepôt par section (plus sévère). Pas de taux sous 30 sections.
 
 ```dax
 Sections acceptées sans retouche =
-DIVIDE([Nombre de sections sans retouche], [Sections rédigées puis approuvées])
+VAR vN = [Sections rédigées puis approuvées]
+RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF(vN >= 30, DIVIDE([Nombre de sections sans retouche], vN)))
+```
+
+## Responsable
+
+### Livrables à valider
+
+- **Décision** : Qui relit quoi aujourd'hui
+- **Formule** : livrables en relecture, dont ceux qui attendent depuis plus de 48 h.
+- **Cible** : 0 au-delà de 48 h (règle de pilotage, hors H7)
+- **Portée** : Situation à la date des données : ne suit pas la période.
+
+```dax
+Livrables à valider =
+CALCULATE(COUNTROWS(Livrables), KEEPFILTERS(Livrables[Code d'état] IN {"in_review"})) + 0
 ```
 
 ### Délai de validation
 
-- **Formule** : médiane des heures entre la première soumission et l'approbation, par livrable.
-- **Pourquoi** : le temps gagné à la rédaction est perdu si le livrable attend en relecture.
-- **Cible** : Aucun seuil dans H7 : indicateur de suivi.
-- **Limite** : heures calendaires ; non filtré par modèle, car un livrable peut en mélanger plusieurs.
+- **Décision** : Renforcer ou répartir la relecture
+- **Formule** : médiane des heures entre la première soumission et l'approbation.
+- **Cible** : aucun seuil dans H7
+- **Portée** : Flux : suit la période.
+- **Limite** : heures calendaires ; pas de valeur sous 30 livrables ; ne voit pas ce qui attend encore.
 
 ```dax
 Délai de validation =
-MEDIAN(Relectures[Délai en heures])
+IF([Livrables avec délai] >= 30, CALCULATE(MEDIAN(Livrables[Délai en heures]), KEEPFILTERS(Livrables[Code d'état] IN {"approved"}), USERELATIONSHIP(Livrables[Clé d'approbation], Calendrier[Clé de date])))
 ```
 
-### Renvois en correction
+### Renvois à la première relecture
 
-- **Formule** : renvois par le relecteur ÷ soumissions en relecture.
-- **Pourquoi** : signale des brouillons qui arrivent trop tôt ou trop fragiles chez le manager.
-- **Cible** : Aucun seuil dans H7 : indicateur de suivi.
-- **Limite** : non filtré par modèle.
+- **Décision** : Revoir la préparation avant soumission
+- **Formule** : livrables renvoyés à leur première relecture ÷ livrables dont la première relecture est décidée.
+- **Cible** : aucun seuil dans H7
+- **Portée** : Flux : suit la période.
+- **Limite** : pas de taux sous 30 décisions.
 
 ```dax
-Renvois en correction =
-DIVIDE(SUM(Relectures[Renvois]), SUM(Relectures[Soumissions]))
+Renvois à la première relecture =
+VAR vN = [Premières relectures décidées]
+RETURN IF(vN >= 30, DIVIDE([Nombre de renvois en première relecture], vN))
 ```
 
-## 3. Comparaison des modèles
+### Phrases bloquantes à vérifier
 
-### Écart à la référence B
-
-- **Formule** : (phrases vérifiées de la configuration − celles de la référence B) × 100, en points.
-- **Pourquoi** : un modèle plus lourd ou affiné ne se justifie que s'il fait mieux que la référence.
-- **Cible** : supérieur à 0 pour justifier un changement ; H7 ne fixe pas de seuil.
-- **Limite** : échantillons de tailles différentes : lire avec le nombre de générations.
+- **Décision** : Quoi vérifier en premier
+- **Formule** : phrases bloquantes, non acquittées, des livrables en relecture.
+- **Cible** : 0 à l'approbation (règle du produit)
+- **Portée** : Situation à la date des données : ne suit pas la période.
 
 ```dax
-Écart à la référence B =
-VAR vTaux = [Phrases vérifiées]
-VAR vReference = CALCULATE([Phrases vérifiées], REMOVEFILTERS(Configurations), Configurations[Configuration] = "B")
-RETURN IF(NOT ISBLANK(vTaux) && NOT ISBLANK(vReference), (vTaux - vReference) * 100)
+Phrases bloquantes à vérifier =
+CALCULATE(SUM(Livrables[Phrases bloquantes]), KEEPFILTERS(Livrables[Code d'état] IN {"in_review"})) + 0
 ```
 
-### Temps de réponse p95
+## Rapport
 
-- **Formule** : 95e centile de la durée d'un appel de rédaction de section, en secondes.
-- **Pourquoi** : au-delà de quelques dizaines de secondes, le consultant cesse d'utiliser l'outil ; cette mesure arbitre qualité contre vitesse.
-- **Cible** : Aucun seuil dans H7 : indicateur de suivi.
-- **Limite** : appels de section seulement (kpi.py prend tous les appels) ; la latence d'une tentative répétée est répartie à parts égales.
+### Citations sans source après approbation
+
+- **Décision** : Autoriser ou bloquer l'envoi au client
+- **Formule** : citations de la version approuvée dont la source n'est pas dans le dossier.
+- **Cible** : 0 (H7)
+- **Portée** : Flux : suit la période.
+- **Limite** : « non mesuré » si la version approuvée n'a pas de sections lisibles ; qu'une source existe ne prouve pas qu'elle soutient la phrase.
 
 ```dax
-Temps de réponse p95 =
-CALCULATE(
-    PERCENTILEX.INC('Appels au modèle', 'Appels au modèle'[Latence en ms], 0.95) / 1000,
-    KEEPFILTERS('Appels au modèle'[Nature] = "section"))
+Citations sans source après approbation =
+IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF([Livrables mesurés] > 0, CALCULATE(SUM(Livrables[Citations sans source]), KEEPFILTERS(Livrables[Code d'état] IN {"approved"}), USERELATIONSHIP(Livrables[Clé d'approbation], Calendrier[Clé de date])) + 0))
 ```
 
-## 4. Sécurité et usage
+### Citations sans source avant relecture
+
+- **Décision** : Régler la recherche ou le modèle
+- **Formule** : citations générées dont la source n'est pas dans le dossier ÷ citations générées.
+- **Cible** : aucune : le critère H7 porte sur ce qui reste après approbation
+- **Portée** : Flux : suit la période.
+
+```dax
+Citations sans source avant relecture =
+IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF([Citations générées] >= 30, DIVIDE([Nombre de citations sans source avant relecture], [Citations générées])))
+```
+
+### Phrases vérifiées
+
+- **Décision** : Effort de relecture à prévoir
+- **Formule** : phrases validées par le vérificateur ÷ phrases générées (TPV).
+- **Cible** : aucune : H7 ne fixe pas de seuil sur le TPV
+- **Portée** : Flux : suit la période.
+- **Limite** : mesure l'ancrage dans les sources, pas la vérité.
+
+```dax
+Phrases vérifiées =
+IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF([Phrases générées] >= 30, DIVIDE([Nombre de phrases vérifiées], [Phrases générées])))
+```
+
+## Administration
 
 ### Alertes d'injection
 
-- **Formule** : somme des consignes cachées détectées dans les documents importés.
-- **Pourquoi** : un document piégé peut détourner le modèle ; chaque alerte demande un examen humain.
-- **Cible** : aucun seuil dans H7 ; examiner 100 % des alertes.
-- **Limite** : compte les détections, pas les attaques réussies ; non filtré par modèle ni par type de livrable.
+- **Décision** : Examiner chaque passage signalé
+- **Formule** : consignes cachées détectées dans les documents importés.
+- **Cible** : examiner toutes les alertes
+- **Portée** : Situation à la date des données : ne suit pas la période.
+- **Limite** : une alerte est une détection, pas une attaque réussie.
 
 ```dax
 Alertes d'injection =
-IF([Documents analysés] > 0, SUM(Documents[Alertes]) + 0)
+SUM(Documents[Alertes]) + 0
 ```
 
 ### Documents signalés
 
-- **Formule** : documents avec au moins une alerte ÷ documents importés.
-- **Pourquoi** : situe le risque : incident isolé ou source documentaire à revoir.
-- **Cible** : Aucun seuil dans H7 : indicateur de suivi.
-- **Limite** : un document est daté de la première génération de sa mission.
+- **Décision** : Revoir une source documentaire
+- **Formule** : documents avec au moins une alerte d'injection ÷ documents importés.
+- **Cible** : examiner toutes les alertes
+- **Portée** : Situation à la date des données : ne suit pas la période.
+- **Limite** : pas de taux sous 30 documents.
 
 ```dax
 Documents signalés =
-DIVIDE([Nombre de documents signalés] + 0, [Documents analysés])
+IF([Documents analysés] >= 30, DIVIDE([Nombre de documents signalés], [Documents analysés]))
 ```
 
-### Livrables approuvés
+## Recommandations
 
-- **Formule** : nombre de livrables distincts approuvés par un manager.
-- **Pourquoi** : c'est l'usage qui compte : un brouillon non approuvé ne crée pas de valeur.
-- **Cible** : Aucun seuil dans H7 : indicateur de suivi.
+Règles déterministes, sans LLM. Les 3 plus prioritaires qui se déclenchent sur le périmètre filtré (client, type, consultant) s'affichent. Elles décrivent la situation à la date des données et ne suivent pas la période.
 
-```dax
-Livrables approuvés =
-DISTINCTCOUNT('Sections approuvées'[Identifiant du livrable])
-```
+| Priorité | Code | Pour | Constat | Seuil | Action |
+|---:|---|---|---|---|---|
+| 1 | `citation_restante` | Responsable | Approuvés avec une citation sans source : n sur N livrables approuvés | au moins 1 citation sans source dans la version approuvée (H7 : 0) | Corriger puis faire réapprouver. |
+| 2 | `relecture_en_retard` | Responsable | Relectures en retard : n sur N livrables en relecture | en relecture depuis plus de 48 h | Relire d'abord le plus ancien. |
+| 3 | `renvoi_a_reprendre` | Consultant | Renvois à reprendre : n sur N livrables chez les consultants | renvoyé par un responsable et pas encore resoumis | Reprendre selon le motif du renvoi. |
+| 4 | `bloquant_en_relecture` | Responsable | Soumis avec une phrase bloquante : n sur N livrables en relecture | au moins 1 phrase bloquante encore présente | Vérifier avant d'approuver. |
+| 5 | `bloquant_avant_soumission` | Consultant | Brouillons avec une phrase bloquante : n sur N livrables chez les consultants | au moins 1 phrase bloquante encore présente | Corriger la source ou le chiffre. |
+| 6 | `preuve_manquante` | Consultant | Sections refusées faute de preuve : n sur N livrables chez les consultants | au moins 1 section refusée dans la version courante | Ajouter le document manquant. |
+| 7 | `brouillon_en_sommeil` | Consultant | Brouillons sans activité : n sur N livrables chez les consultants | aucune activité depuis plus de 5 jours | Soumettre ou signaler le blocage. |
 
-## Écarts volontaires avec `backend/app/dw/kpi.py`
+## Alertes et tuiles
 
-- **Sections refusées** : l'entrepôt les enregistre « inchangées », avec 30 minutes gagnées chacune (0 mot généré, 0 mot final). Le rapport les exclut des sections sans retouche et du temps gagné. `kpi.unchanged_rate` et `kpi.minutes_saved` les comptent encore et donnent donc des valeurs plus flatteuses.
-- **Taux de refus** : rapporté aux générations de sections, constats exclus.
-- **Temps de réponse p95** : calculé sur les appels de section, pour comparer des tâches identiques.
-- **Chiffres retrouvés** : vide, et non 100 %, quand aucun chiffre n'est cité.
+Les cartes portent des mesures numériques : dans Power BI Service, elles peuvent être épinglées et recevoir une alerte (voir [PUBLICATION.md](PUBLICATION.md)).
 
-Le taux de phrases vérifiées, les citations valides, le délai de validation, les renvois en correction et les alertes d'injection suivent les mêmes formules que `kpi.py`.
+## Prédictions
+
+### Charge de relecture des 2 prochaines semaines
+
+- **Méthode** : moyenne des 8 dernières semaines glissantes × 2, renvois resoumis compris.
+- **Intervalle** : 80 %, d'après les erreurs des prévisions rétrospectives. Leurs fenêtres se chevauchent : l'intervalle est indicatif.
+- **Référence naïve** : répéter les 2 dernières semaines.
+- **Publication** : au moins 30 soumissions et 10 prévisions vérifiables, et une erreur absolue moyenne inférieure à la référence. Sinon « historique insuffisant » ou « pas de prévision fiable ».
+
+### Risque de renvoi d'un livrable en attente
+
+- **Méthode** : taux de renvoi observé à la première relecture, selon la présence d'au moins une phrase bloquante, tous clients du cabinet.
+- **Intervalle** : Wilson à 80 %, avec l'effectif du groupe.
+- **Publication** : au moins 20 cas par groupe, 30 cas rétrospectifs et un score de Brier meilleur que le taux global.
+- **Ordre de la file** : jours d'attente × (1 + risque de renvoi).
+
+## Banc d'essai
+
+Règle de [docs/08 §6](../docs/08-modele-rag-evaluation.md) : une configuration n'est retenue face à B que si l'intervalle à 95 % de l'écart de TPV (bootstrap apparié sur les sections) est au-dessus de 0 et qu'aucune métrique de sécurité ne se dégrade.
