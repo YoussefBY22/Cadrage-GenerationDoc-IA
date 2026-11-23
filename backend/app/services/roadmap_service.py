@@ -158,7 +158,7 @@ def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
         type="roadmap", language=language, template_id=template.id,
         template_version=template.version, sections=[], roadmap=result), user.id, "generated")
     repo.audit(user.id, "roadmap.generate", "deliverable", did,
-               {"initiatives": len(initiatives), "run_id": run_id, "model": provider.name,
+               {"initiatives": len(initiatives), "run_id": run_id, "model": provider.served_model,
                 "rejected_links": len(rejected), "passages_not_sent": not_sent,
                 "priorities": len(priorities), "projects": len(projects)})
     return {"deliverable_id": did, "version": version, "warnings": warnings,

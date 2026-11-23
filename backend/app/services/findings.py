@@ -140,7 +140,7 @@ def extract(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
                 reports[f.id] = sub.model_dump(mode="json")
     repo.save_findings(dossier_id, kept)
     repo.audit(user.id, "findings.extract", "dossier", dossier_id,
-               {"saved": len(kept), "rejected": len(rejected), "runs": runs, "model": provider.name,
+               {"saved": len(kept), "rejected": len(rejected), "runs": runs, "model": provider.served_model,
                 "documents_read": len(docs), "chunks_read": read_chunks,
                 "chunks_failed": failed_chunks, "documents_excluded": len(excluded)})
     return {"findings": [{**f.model_dump(mode="json"), "report": reports[f.id]} for f in kept],

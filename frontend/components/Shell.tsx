@@ -1,11 +1,11 @@
 "use client";
 
-import { FileText, FolderOpen, LayoutDashboard, ListChecks, LogOut, Route, Search } from "lucide-react";
+import { Cpu, FileText, FolderOpen, LayoutDashboard, ListChecks, LogOut, Route, Search } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { LangSwitch, Logo } from "@/components/ui";
-import { api } from "@/lib/api";
+import { api, getRole } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { getLastDossier, getRefs, setLastDossier, type DossierRefs } from "@/lib/refs";
 
@@ -30,6 +30,7 @@ export default function Shell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const [last, setLast] = useState<string | null>(null);
   const [refs, setRefs] = useState<DossierRefs>({});
+  const [admin, setAdmin] = useState(false);
   const onDossier = path.startsWith("/dossiers/");
   const dossierId = onDossier ? params.id : path.startsWith("/deliverables/") ? (last ?? undefined) : undefined;
 
@@ -37,6 +38,10 @@ export default function Shell({ children }: { children: ReactNode }) {
     if (onDossier && params.id) setLastDossier(params.id);
     setLast(getLastDossier());
   }, [onDossier, params.id]);
+
+  useEffect(() => {
+    setAdmin(getRole() === "admin");
+  }, [path]);
 
   useEffect(() => {
     if (dossierId) setRefs(getRefs(dossierId));
@@ -59,6 +64,7 @@ export default function Shell({ children }: { children: ReactNode }) {
         </Link>
         <nav className="nav" aria-label="Navigation">
           <NavLink href="/dossiers" icon={LayoutDashboard} label={t.nav.dashboard} exact />
+          {admin && <NavLink href="/admin/models" icon={Cpu} label={t.nav.models} />}
           {dossierId && (
             <>
               <div className="nav-title">{t.nav.dossiers}</div>
