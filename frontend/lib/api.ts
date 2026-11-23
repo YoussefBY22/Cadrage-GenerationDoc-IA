@@ -4,7 +4,10 @@ import type {
   Dossier,
   Finding,
   FindingPatch,
+  ContextBudget,
   LoginResponse,
+  ModelsOverview,
+  TestReport,
   Passage,
   RoadmapGenerated,
   UploadResult,
@@ -13,6 +16,7 @@ import type {
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const PREFIX = "/api/v1";
 const TOKEN_KEY = "cadrage.token";
+const ROLE_KEY = "cadrage.role";
 
 export class ApiError extends Error {
   constructor(
@@ -47,7 +51,15 @@ export function setToken(token: string | null): void {
   const s = storage();
   if (!s) return;
   if (token) s.setItem(TOKEN_KEY, token);
-  else s.removeItem(TOKEN_KEY);
+  else {
+    s.removeItem(TOKEN_KEY);
+    s.removeItem(ROLE_KEY);
+  }
+}
+
+/** Rôle mémorisé à la connexion (sert seulement à afficher le menu ; le serveur contrôle l'accès). */
+export function getRole(): string | null {
+  return storage()?.getItem(ROLE_KEY) ?? null;
 }
 
 async function toError(res: Response): Promise<ApiError> {
@@ -90,6 +102,7 @@ export const api = {
   async login(email: string, password: string): Promise<LoginResponse> {
     const r = await request<LoginResponse>("/auth/login", json("POST", { email, password }));
     setToken(r.token);
+    storage()?.setItem(ROLE_KEY, r.user.role);
     return r;
   },
   async logout(): Promise<void> {
@@ -125,4 +138,11 @@ export const api = {
     request<RoadmapGenerated>(`/dossiers/${dossierId}/roadmap:generate`, json("POST", {})),
   createDeliverable: (dossierId: string, type: "tor" | "cdc", initiative_id?: string) =>
     request<{ deliverable_id: string }>(`/dossiers/${dossierId}/deliverables`, json("POST", { type, initiative_id })),
+  listModels: () => request<ModelsOverview>("/admin/models"),
+  contextBudget: (candidateTokens: number) =>
+    request<ContextBudget>(`/admin/models/context?candidate_tokens=${candidateTokens}`),
+  testModel: (model: string) => request<TestReport>("/admin/models/test", json("POST", { model })),
+  activateModel: (model: string) =>
+    request<{ active: string }>("/admin/models/activate", json("POST", { model })),
+  rollbackModel: () => request<{ active: string }>("/admin/models/rollback", { method: "POST" }),
 };

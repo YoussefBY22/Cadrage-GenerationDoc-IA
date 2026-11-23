@@ -78,7 +78,7 @@ def record_run(repo, provider: LLMProvider, *, dossier_id: str, kind: str, promp
                section_key: str | None = None, output: str = "") -> str:
     return repo.record_run({
         "dossier_id": dossier_id, "deliverable_id": deliverable_id, "section_key": section_key,
-        "kind": kind, "provider": provider.name, "model": getattr(provider, "model", provider.name),
+        "kind": kind, "provider": provider.served_model, "model": provider.served_model,
         "adapter": type(provider).__name__, "config_label": "default",
         "params": {"temperature": 0.0}, "status": status, "attempts": attempts,
         "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(), "latency_ms": latency_ms,
@@ -232,7 +232,7 @@ def generate_section(repo, provider: LLMProvider, search, deliverable_id: str, s
     repo.audit(user.id, "section.generate", "deliverable", deliverable_id,
                {"section": section_key, "version": version, "run_id": run_id, "status": status,
                 "tpv": report.tpv, "relevance": relevance, "blocking": sum(i.severity == "blocking" for i in report.issues),
-                "model": provider.name})
+                "model": provider.served_model})
     return {"version": version, "run_id": run_id, "status": status, "attempts": attempts,
             "section": draft.model_dump(mode="json"), "report": report.model_dump(mode="json"),
             "tpv": report.tpv}
