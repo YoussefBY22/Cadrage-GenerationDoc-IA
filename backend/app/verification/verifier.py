@@ -87,6 +87,31 @@ def _lost_ranges(mentions: list, sources: list[Chunk], lang: Lang, other: Lang) 
     ]
 
 
+def _misattribution(s: Sentence, valid: list[Chunk], decisions: dict[str, str], pool: set,
+                    mentions: list, lang: Lang, other: Lang, add) -> None:
+    """Contenu d'une décision cité comme un passage du diagnostic : fausse attribution, bloquante.
+
+    Vaut pour les décisions que la phrase NE cite PAS. Un nombre (même en lettres) ou une phrase qui
+    vient d'une décision et que le passage cité ne contient pas ne peut pas être sourcé par lui.
+    """
+    chunk_texts = [c.text for c in valid]
+    for did, text in decisions.items():
+        if did in s.decision_ids:
+            continue
+        dnums = {(n.value, n.is_percent) for lg in (lang, other) for n in extract_numbers(text, lg)}
+        stray = [n.raw for n in mentions if (n.value, n.is_percent) in dnums
+                 and (n.value, n.is_percent) not in pool]
+        words = len(s.text.split())
+        sup_dec = lexical_support(s.text, [text], lang)
+        sup_src = lexical_support(s.text, chunk_texts, lang)
+        copied = words >= 4 and sup_dec >= 0.8 and sup_dec - sup_src >= 0.2
+        if stray or copied:
+            what = f"nombre {stray[0]}" if stray else "texte"
+            add("FOREIGN_SOURCE",
+                f"faux ancrage : {what} issu d'une décision humaine, cité comme un passage")
+            return
+
+
 def _check(
     i: int, s: Sentence, passages: dict[str, Chunk], dossier_id: str,
     known: set[str], threshold: float, lang: Lang,
@@ -142,6 +167,8 @@ def _check(
             else:
                 small = n.in_words and not n.is_percent and n.value <= SMALL_COUNT
                 add("NUMBER_NOT_FOUND", f"nombre absent des sources citées : {n.raw}", blocking=not small)
+        if valid:
+            _misattribution(s, valid, decisions, pool, mentions, lang, other, add)
         for raw in _lost_ranges(mentions, valid, lang, other):
             add("RANGE_LOST", f"la source donne une fourchette, la phrase une seule borne : {raw}", False)
 

@@ -147,7 +147,7 @@ export const api = {
   chat: (dossierId: string, message: string, history: ChatTurn[]) =>
     request<ChatReply>(`/dossiers/${dossierId}/chat`, json("POST", { message, history })),
   listDecisions: (dossierId: string) => request<Decision[]>(`/dossiers/${dossierId}/decisions`),
-  createDecision: (dossierId: string, body: { category: DecisionCategory; text: string; status?: "proposed" | "confirmed" }) =>
+  createDecision: (dossierId: string, body: { category: DecisionCategory; text: string }) =>
     request<Decision>(`/dossiers/${dossierId}/decisions`, json("POST", body)),
   patchDecision: (id: string, body: { category?: DecisionCategory; text?: string }) =>
     request<Decision>(`/decisions/${id}`, json("PATCH", body)),

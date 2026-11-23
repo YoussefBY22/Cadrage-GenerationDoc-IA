@@ -11,7 +11,7 @@ from sqlalchemy import select
 
 from app.config import Settings, get_settings
 from app.domain.decisions import category_label
-from app.domain.generation import DeliverableContent, SectionDraft
+from app.domain.generation import DeliverableContent, SectionDraft, Sentence
 from app.domain.retrieval import Passage
 from app.domain.verification import VerificationReport
 from app.domain.workflow import CurrentUser
@@ -219,78 +219,68 @@ def generate_section(repo, provider: LLMProvider, search, deliverable_id: str, s
         draft = SectionDraft(section_key=section_key, status="insufficient_evidence", sentences=[],
                              missing_evidence=f"{head} : {names}")
         status = "refused"
+    elif decision_section:
+        # Une section qui EXIGE une décision est rendue depuis les décisions confirmées seules,
+        # telles quelles et citées, SANS modèle : mesuré sur qwen3:4b, il recopie le diagnostic
+        # ou attribue le texte d'une décision à un passage. Le diagnostic n'y entre jamais.
+        mine = [d for d in confirmed if d.category in spec.requires_decisions]
+        draft = SectionDraft(section_key=section_key, status="ok", sentences=[
+            Sentence(text=d.text, kind="fact", decision_ids=[d.id]) for d in mine])
+        sent_decisions = mine
     else:
-        if decision_section:  # catégories exigées d'abord, puis les autres, dans la fenêtre
-            ordered = ([d for d in confirmed if d.category in spec.requires_decisions]
-                       + [d for d in confirmed if d.category not in spec.requires_decisions])
-            window = getattr(provider, "context_tokens", None) or 4096
-            room, used = int(window * 0.4), 0
-            for d in ordered:
-                cost = decision_cost(d, nonce, lang)
-                if used + cost > room:
-                    dropped_decisions += 1
-                    continue
-                sent_decisions.append(d)
-                used += cost
-            lost = [c for c in spec.requires_decisions
-                    if not any(d.category == c for d in sent_decisions)]
-        else:
-            ordered, lost = [], []
-        if lost:  # fenêtre pleine : refus explicite, jamais de coupe silencieuse
-            names = ", ".join(category_label(c, lang) for c in lost)
+        # Autres sections : décisions confirmées fournies (D1..Dn) dans 40 % de la fenêtre.
+        window = getattr(provider, "context_tokens", None) or 4096
+        room, used = int(window * 0.4), 0
+        for d in confirmed:
+            cost = decision_cost(d, nonce, lang)
+            if used + cost > room:
+                dropped_decisions += 1  # signalé dans la réponse et l'audit, jamais en silence
+                continue
+            sent_decisions.append(d)
+            used += cost
+        passages = search.search(dossier_id, queries, settings.retrieval_k)
+        gated = False
+        if len(passages) >= spec.min_sources:
+            gated, relevance = below_threshold(search, dossier_id, queries,
+                                               resolve_threshold(settings))
+        if len(passages) < spec.min_sources:  # refus SANS appel au modèle
             draft = SectionDraft(
                 section_key=section_key, status="insufficient_evidence", sentences=[],
-                missing_evidence=("fenêtre de contexte pleine : les décisions requises ne tiennent "
-                                  f"pas ({names})" if lang == "fr" else
-                                  f"context window full: required decisions do not fit ({names})"))
+                missing_evidence="Passages insuffisants pour les requêtes : " + " ; ".join(queries))
+            status = "refused"
+        elif gated:  # porte de pertinence : rien d'assez proche, refus SANS appel au modèle
+            draft = SectionDraft(
+                section_key=section_key, status="insufficient_evidence", sentences=[],
+                missing_evidence=("Aucun passage assez proche (pertinence "
+                                  f"{relevance:.2f}) pour les requêtes : " + " ; ".join(queries)
+                                  if relevance is not None else
+                                  "Aucun passage trouvé pour les requêtes : " + " ; ".join(queries)))
             status = "refused"
         else:
-            # Une section de décision tient sur ses décisions ; les passages ne sont que du contexte.
-            passages = search.search(dossier_id, queries, settings.retrieval_k)
-            need = 0 if decision_section else spec.min_sources
-            gated = False
-            if not decision_section and len(passages) >= need:
-                gated, relevance = below_threshold(search, dossier_id, queries,
-                                                   resolve_threshold(settings))
-            if len(passages) < need:  # refus SANS appel au modèle
+            kw = {"findings": findings, "context": ctx, "nonce": nonce, "lang": lang,
+                      "decisions": sent_decisions, "decision_section": False}
+            fixed = system_prompt(lang) + build_section_prompt(spec, [], **kw)
+            budget = passage_budget(getattr(provider, "context_tokens", None), fixed,
+                                    SECTION_REPLY_TOKENS)
+            passages = fit_passages(passages, nonce, budget)  # seuls les passages lus sont citables
+            prompt = build_section_prompt(spec, passages, budget=budget, **kw)
+            llm, attempts, latency, error = call_model(provider, prompt, LLMSection, lang=lang)
+            if llm is None:
+                status = "invalid"
                 draft = SectionDraft(
                     section_key=section_key, status="insufficient_evidence", sentences=[],
-                    missing_evidence="Passages insuffisants pour les requêtes : " + " ; ".join(queries))
-                status = "refused"
-            elif gated:  # porte de pertinence : rien d'assez proche, refus SANS appel au modèle
-                draft = SectionDraft(
-                    section_key=section_key, status="insufficient_evidence", sentences=[],
-                    missing_evidence=("Aucun passage assez proche (pertinence "
-                                      f"{relevance:.2f}) pour les requêtes : " + " ; ".join(queries)
-                                      if relevance is not None else
-                                      "Aucun passage trouvé pour les requêtes : " + " ; ".join(queries)))
-                status = "refused"
+                    missing_evidence=f"Réponse du modèle invalide : {error}")
             else:
-                kw = {"findings": findings, "context": ctx, "nonce": nonce, "lang": lang,
-                          "decisions": sent_decisions, "decision_section": decision_section}
-                fixed = system_prompt(lang) + build_section_prompt(spec, [], **kw)
-                budget = passage_budget(getattr(provider, "context_tokens", None), fixed,
-                                        SECTION_REPLY_TOKENS)
-                # Seuls les passages lus sont citables.
-                passages = fit_passages(passages, nonce, budget) if passages else []
-                prompt = build_section_prompt(spec, passages, budget=budget, **kw)
-                llm, attempts, latency, error = call_model(provider, prompt, LLMSection, lang=lang)
-                if llm is None:
-                    status = "invalid"
-                    draft = SectionDraft(
-                        section_key=section_key, status="insufficient_evidence", sentences=[],
-                        missing_evidence=f"Réponse du modèle invalide : {error}")
-                else:
-                    answer = llm.model_dump_json()
-                    dmap = {f"D{i}": d.id for i, d in enumerate(sent_decisions, 1)}
-                    draft = resolve_labels(llm, passages, section_key=section_key, decisions=dmap)
-                    fmap = {f"F{i}": f.id for i, f in enumerate(findings, 1)}
-                    draft = draft.model_copy(update={"sentences": [
-                        sn.model_copy(update={"finding_ids": [
-                            fmap.get(re.sub(r"\W", "", x).upper(), x) for x in sn.finding_ids]})
-                        for sn in draft.sentences[:spec.max_sentences]]})
-                    if llm.status == "insufficient_evidence":
-                        status = "refused"
+                answer = llm.model_dump_json()
+                dmap = {f"D{i}": d.id for i, d in enumerate(sent_decisions, 1)}
+                draft = resolve_labels(llm, passages, section_key=section_key, decisions=dmap)
+                fmap = {f"F{i}": f.id for i, f in enumerate(findings, 1)}
+                draft = draft.model_copy(update={"sentences": [
+                    sn.model_copy(update={"finding_ids": [
+                        fmap.get(re.sub(r"\W", "", x).upper(), x) for x in sn.finding_ids]})
+                    for sn in draft.sentences[:spec.max_sentences]]})
+                if llm.status == "insufficient_evidence":
+                    status = "refused"
     report: VerificationReport = verify_section(
         draft, {p.chunk.id: p.chunk for p in passages}, dossier_id=dossier_id,
         known_finding_ids={f.id for f in findings}, support_threshold=settings.support_threshold,

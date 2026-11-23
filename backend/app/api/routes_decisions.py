@@ -16,6 +16,7 @@ router = APIRouter(tags=["decisions"])
 class DecisionBody(BaseModel):
     category: DecisionCategory
     text: str = Field(min_length=1, max_length=4000)
+    # « confirmed » est refusé à la création (422) : la confirmation passe par :confirm
     status: Literal["proposed", "confirmed"] = "proposed"
 
 

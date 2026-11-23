@@ -59,8 +59,9 @@ def test_parcours_complet_institution_1(api, repo, tmp_path):
     for spec in load_template("tor", "fr").sections:
         for cat in spec.requires_decisions:
             r = api.post(f"/api/v1/dossiers/{did}/decisions", json={
-                "category": cat, "text": f"Décision retenue pour {spec.key}.", "status": "confirmed"})
+                "category": cat, "text": f"Décision retenue pour {spec.key}."})
             assert r.status_code == 201, r.text
+            assert api.post(f"/api/v1/decisions/{r.json()['id']}:confirm").status_code == 200
     for spec in load_template("tor", "fr").sections:
         r = api.post(f"/api/v1/deliverables/{tor}/sections/{spec.key}:generate")
         assert r.status_code == 200, (spec.key, r.text)

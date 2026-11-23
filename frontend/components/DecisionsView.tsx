@@ -43,7 +43,9 @@ export default function DecisionsView({ dossierId }: { dossierId: string }) {
   const save = (status: "proposed" | "confirmed") => {
     if (!text.trim()) return;
     void act(async () => {
-      await api.createDecision(dossierId, { category, text: text.trim(), status });
+      // La création ne confirme jamais : « confirmer » est un second appel, audité à part.
+      const made = await api.createDecision(dossierId, { category, text: text.trim() });
+      if (status === "confirmed") await api.confirmDecision(made.id);
       setText("");
     });
   };

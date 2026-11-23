@@ -79,7 +79,8 @@ export default function ContextView({ dossierId }: { dossierId: string }) {
   const confirmDecision = async (d: { category: string; text: string }) => {
     setError(null);
     try {
-      await api.createDecision(dossierId, { category: d.category as never, text: d.text, status: "confirmed" });
+      const made = await api.createDecision(dossierId, { category: d.category as never, text: d.text });
+      await api.confirmDecision(made.id);
       ignoreDecision(d.text);
     } catch (err) {
       setError(guard(err));

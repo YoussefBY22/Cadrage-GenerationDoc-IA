@@ -8,6 +8,9 @@ from .generation import GenerationError
 
 def create(repo, dossier_id: str, user: CurrentUser, *, category: str, text: str,
            status: str = "proposed") -> Decision:
+    if status != "proposed":  # la confirmation est une étape distincte, auditée (:confirm)
+        raise GenerationError(422, "CREATE_AS_PROPOSED",
+                              "Une décision est créée « proposée » ; elle se confirme par un appel séparé")
     text = text.strip()
     if not text:
         raise GenerationError(422, "EMPTY_DECISION", "Le texte de la décision est vide")

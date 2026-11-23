@@ -27,7 +27,8 @@ describe("fiche de contexte et chat", () => {
   it("le chat propose : rien n'est enregistré avant le clic de l'utilisateur", async () => {
     vi.spyOn(api, "getContext").mockResolvedValue(sheet);
     const chat = vi.spyOn(api, "chat").mockResolvedValue(reply);
-    const create = vi.spyOn(api, "createDecision").mockResolvedValue({} as never);
+    const create = vi.spyOn(api, "createDecision").mockResolvedValue({ id: "dec_9" } as never);
+    const confirm = vi.spyOn(api, "confirmDecision").mockResolvedValue({} as never);
     const saveCtx = vi.spyOn(api, "saveContext").mockResolvedValue({ ...sheet, confirmed: true });
     render(<ContextView dossierId="d" />);
     const box = within(await screen.findByTestId("chat"));
@@ -43,7 +44,8 @@ describe("fiche de contexte et chat", () => {
     expect(saveCtx).not.toHaveBeenCalled();
     // confirmer une décision crée une décision confirmée
     fireEvent.click(within(screen.getByTestId("proposal-decision")).getByRole("button", { name: /Confirmer la décision/ }));
-    await waitFor(() => expect(create).toHaveBeenCalledWith("d", { category: "budget", text: "Budget de 40 000 euros", status: "confirmed" }));
+    await waitFor(() => expect(create).toHaveBeenCalledWith("d", { category: "budget", text: "Budget de 40 000 euros" }));
+    await waitFor(() => expect(confirm).toHaveBeenCalledWith("dec_9"));
   });
 
   it("confirme la fiche", async () => {

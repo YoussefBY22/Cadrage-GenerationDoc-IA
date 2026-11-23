@@ -34,8 +34,9 @@ describe("décisions humaines", () => {
     fireEvent.change(form.getByLabelText("Catégorie"), { target: { value: "budget" } });
     fireEvent.click(form.getByRole("button", { name: /Enregistrer et confirmer/ }));
     await waitFor(() =>
-      expect(create).toHaveBeenCalledWith("d", { category: "budget", text: "Budget de 40 000 euros", status: "confirmed" }),
+      expect(create).toHaveBeenCalledWith("d", { category: "budget", text: "Budget de 40 000 euros" }),
     );
+    await waitFor(() => expect(confirm).toHaveBeenCalledWith("dec_1")); // second appel, distinct
     fireEvent.click(await screen.findByRole("button", { name: /^Confirmer/ }));
     await waitFor(() => expect(confirm).toHaveBeenCalledWith("dec_1"));
     await waitFor(() => expect(list.mock.calls.length).toBeGreaterThan(1));

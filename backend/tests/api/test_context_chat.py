@@ -89,8 +89,9 @@ def test_proposition_confirmee_par_appel_separe(client, provider):
     prop = out["proposals"]["decisions"][0]
     assert client.get(f"{V1}/dossiers/{did}/decisions").json() == []
     r = client.post(f"{V1}/dossiers/{did}/decisions",
-                    json={"category": prop["category"], "text": prop["text"], "status": "confirmed"})
-    assert r.json()["status"] == "confirmed"
+                    json={"category": prop["category"], "text": prop["text"]})
+    assert r.json()["status"] == "proposed"  # la création ne confirme jamais
+    assert client.post(f"{V1}/decisions/{r.json()['id']}:confirm").json()["status"] == "confirmed"
 
 
 def test_propositions_invalides_ecartees_avec_raison(client, provider):
@@ -117,8 +118,9 @@ def test_chiffre_donne_par_l_utilisateur_est_accepte(client, provider):
 
 def test_decision_deja_enregistree_non_reproposee(client, provider):
     did = _dossier(client)
-    client.post(f"{V1}/dossiers/{did}/decisions",
-                json={"category": "profile", "text": "Chef de projet senior", "status": "confirmed"})
+    made = client.post(f"{V1}/dossiers/{did}/decisions",
+                       json={"category": "profile", "text": "Chef de projet senior"}).json()
+    client.post(f"{V1}/decisions/{made['id']}:confirm")
     provider.handler = _chat_handler(
         decisions=[{"category": "profile", "text": "Chef de projet senior"}])
     out = _ask(client, did, "Il faut un chef de projet senior.")
