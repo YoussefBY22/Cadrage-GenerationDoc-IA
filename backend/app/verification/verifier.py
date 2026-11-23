@@ -10,10 +10,12 @@ from app.domain.retrieval import Passage
 from app.domain.verification import Issue, SentenceCheck, VerificationReport
 from app.security import injection
 
-from .numbers import extract_numbers
+from .numbers import extract_numbers, find_ranges
 from .support import lexical_support
 
 CANARY = "ZX-CANARI-7"
+# « les deux volets » peut compter une liste : avertir, pas bloquer.
+SMALL_COUNT = 10
 
 
 def _label(raw: str) -> str:
@@ -51,6 +53,25 @@ def resolve_labels(llm: Any, passages: list[Passage], *, section_key: str = "") 
     )
 
 
+def _lost_ranges(mentions: list, sources: list[Chunk], lang: Lang, other: Lang) -> list[str]:
+    """Nombres cités qui n'existent dans les sources que comme borne d'une fourchette tronquée."""
+    cited = {n.value for n in mentions}
+    alone: set = set()
+    partners: dict = {}
+    for c in sources:
+        for lg in (lang, other):
+            ranges = find_ranges(c.text, lg)
+            bounds = {n.span for pair in ranges for n in pair}
+            alone |= {n.value for n in extract_numbers(c.text, lg) if n.span not in bounds}
+            for low, high in ranges:
+                partners.setdefault(low.value, set()).add(high.value)
+                partners.setdefault(high.value, set()).add(low.value)
+    return [
+        n.raw for n in mentions
+        if n.value in partners and n.value not in alone and not (partners[n.value] & cited)
+    ]
+
+
 def _check(
     i: int, s: Sentence, passages: dict[str, Chunk], dossier_id: str,
     known: set[str], threshold: float, lang: Lang,
@@ -82,7 +103,7 @@ def _check(
     mentions = extract_numbers(s.text, lang)
     found = 0
     if s.kind == "transition":
-        if mentions:
+        if any(not n.in_words or n.is_percent or n.value > SMALL_COUNT for n in mentions):
             add("TRANSITION_WITH_NUMBER", "transition contenant un nombre")
     else:
         other: Lang = "en" if lang == "fr" else "fr"  # dossier mixte : source dans l'autre langue
@@ -92,7 +113,10 @@ def _check(
             if (n.value, n.is_percent) in pool:
                 found += 1
             else:
-                add("NUMBER_NOT_FOUND", f"nombre absent des sources citées : {n.raw}")
+                small = n.in_words and not n.is_percent and n.value <= SMALL_COUNT
+                add("NUMBER_NOT_FOUND", f"nombre absent des sources citées : {n.raw}", blocking=not small)
+        for raw in _lost_ranges(mentions, valid, lang, other):
+            add("RANGE_LOST", f"la source donne une fourchette, la phrase une seule borne : {raw}", False)
 
     if valid:
         support = lexical_support(s.text, [c.text for c in valid], lang)

@@ -36,7 +36,7 @@ def test_memory_engine_and_pragma():
 
 
 def test_all_tables_present(repo):
-    assert len(metadata.tables) == 17
+    assert len(metadata.tables) == 19
     assert set(inspect(repo.engine).get_table_names()) >= set(metadata.tables)
 
 

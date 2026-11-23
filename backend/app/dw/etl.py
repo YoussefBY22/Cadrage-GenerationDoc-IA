@@ -38,7 +38,7 @@ TYPES = {"findings": (1, "Constats", "Findings"), "roadmap": (2, "Feuille de rou
          "cdc": (4, "Cahier des charges", "Specification")}
 STATES = {"draft": (1, "Brouillon", 1), "in_review": (2, "En relecture", 2),
           "approved": (3, "Approuvé", 3), "rejected": (4, "Rejeté", 3)}
-ISSUE_SEVERITY = {"LOW_SUPPORT": "warning", "TRANSITION_WITH_NUMBER": "warning"}
+ISSUE_SEVERITY = {"LOW_SUPPORT": "warning", "RANGE_LOST": "warning", "TRANSITION_WITH_NUMBER": "warning"}
 MONTHS_FR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août",
              "septembre", "octobre", "novembre", "décembre"]
 SOURCE_ISSUES = {"UNKNOWN_SOURCE", "FOREIGN_SOURCE"}

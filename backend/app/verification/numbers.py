@@ -3,8 +3,11 @@
 import re
 from dataclasses import dataclass
 from decimal import Decimal
+from itertools import pairwise
 
 from app.domain.ids import Lang
+
+from .number_words import find_number_words
 
 # espace, insécable, fine insécable, fine
 _SP = "    "
@@ -46,6 +49,7 @@ class NumberMention:
     value: Decimal
     is_percent: bool
     span: tuple[int, int]
+    in_words: bool = False
 
 
 def _to_decimal(num: str, lang: Lang) -> Decimal:
@@ -87,4 +91,23 @@ def extract_numbers(text: str, lang: Lang = "fr") -> list[NumberMention]:
             if mult:
                 value = value * mult
         out.append(NumberMention(m.group(0).strip(), value.normalize() + 0, is_percent, m.span()))
+    chars = list(masked)
+    for n in out:  # un suffixe déjà lu (« 20 pour cent ») n'est pas un nombre en lettres
+        chars[n.span[0] : n.span[1]] = "_" * (n.span[1] - n.span[0])
+    for number, percent, (start, end) in find_number_words("".join(chars), lang):
+        out.append(NumberMention(text[start:end], Decimal(number), percent, (start, end), True))
+    return sorted(out, key=lambda n: n.span)
+
+
+def find_ranges(text: str, lang: Lang = "fr") -> list[tuple[NumberMention, NumberMention]]:
+    """Fourchettes : « 10 à 20 % », « 2020-2025 », « entre 3 et 5 »."""
+    found = extract_numbers(text, lang)
+    out = []
+    for low, high in pairwise(found):
+        gap = text[low.span[1] : high.span[0]].strip().lower()
+        before = text[: low.span[0]].rstrip().lower()
+        if gap in {"à", "to", "-", "\u2013"} or (
+            gap in {"et", "and"} and before.endswith(("entre", "between"))
+        ):
+            out.append((low, high))
     return out
