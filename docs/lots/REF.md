@@ -26,3 +26,11 @@ Un référentiel est un modèle de plan, pas une source de faits : comme un somm
 
 ## Notions pour le glossaire
 Référentiel, exigence vérifiable (REQ-n), COBIT/ITIL/TOGAF, ISO 31000/23894, AI Act/42001/NIST AI RMF, OWASP LLM (ajoutées à `03`).
+
+## Mesure du 23/11/2026 (qwen3:4b, diagnostic fictif)
+
+- Feuille de route : priorités et projets toujours reliés (5 sur 5) avec ces gabarits.
+- Étiquette `domain` : « APO12 » posée sur les 5 initiatives, formation comprise. **Retirée des consignes du modèle** ;
+  le champ et sa validation restent pour un étiquetage humain, non encore branché dans l'interface.
+- Section « Profil » des TdR : le modèle recopie les constats, sourcés donc acceptés par le vérificateur. Un profil, un
+  budget ou un calendrier relèvent d'une décision humaine (lot B de `docs/15`).
