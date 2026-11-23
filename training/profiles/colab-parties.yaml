@@ -1,0 +1,27 @@
+# UN entraînement en 4 parties qui se suivent, sur GPU gratuit Colab (voir training/parts.py).
+# DONNÉES PUBLIQUES SOUS LICENCE OUVERTE UNIQUEMENT : jamais de document client.
+# Ne change rien ici entre deux parties : la reprise serait refusée.
+name: colab-parties
+public_data_only: true
+base_model: Qwen/Qwen3-1.7B
+base_revision: 70d244cc86ccca08cf5af4e1e306ecf908b1ad5e
+precision: fp16          # T4 : pas de bf16
+compute_dtype: fp16
+quant: nf4_double
+lora: {r: 16, alpha: 32, dropout: 0.05, modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]}
+lr: 2.0e-4
+scheduler: cosine
+warmup_ratio: 0.03
+epochs: 1
+max_train_examples: 800  # 800 / (1 x 4) = 200 pas
+val_examples: 32
+max_seq_len: 1536
+batch_size: 1
+grad_accum: 4
+gradient_checkpointing: true
+optimizer: paged_adamw_8bit
+parts: 4
+save_every_min: 5
+keep_checkpoints: 2
+min_free_gb: 3.0
+max_gpu_temp: 85

@@ -38,3 +38,19 @@ Puis enlever `--simulate`. Le moteur `TorchBackend` (train_lora.py) n'a **jamais
 valider sur le GPU (essai 1 % d'abord). Export réel : cloner llama.cpp, `set LLAMA_CPP_DIR=...`, passer `--base-model-dir`
 dans `export_gguf.py`, puis `ollama create cadrage-lora -f <export>/Modelfile`.
 Tests : `backend\.venv\Scripts\python -m pytest training/tests -q`.
+
+## Entraîner en parties sur Colab (`training/colab/cadrage_entrainement.ipynb`)
+C'est **un seul** entraînement, coupé en morceaux qui reprennent l'un après l'autre depuis Google Drive.
+Colab est un cloud : `training/parts.py` refuse tout exemple qui n'est pas public sous licence ouverte.
+
+1. Cellule « Préparer » : à relancer à chaque nouvelle session Colab.
+2. Partie 0 (obligatoire) : 2 pas, sauvegarde, reprise, export, réponse d'Ollama, invite et jetons identiques.
+   Tant qu'elle échoue, aucune partie ne démarre.
+3. Parties 1 à 4 : 50 pas chacune (profil `colab-parties`), sauvegarde toutes les 5 min. Après une coupure,
+   relancer la même cellule. Ne changer ni les données ni le profil entre deux parties.
+4. Export : modèle fusionné **et** base passée par la même chaîne (q8_0), pour comparer C à B honnêtement.
+
+À savoir :
+- Ollama 0.40 refuse les adaptateurs LoRA : on livre un GGUF complet.
+- Le gabarit Hugging Face de Qwen3 n'est pas celui d'Ollama : l'invite vient de `render_prompt`.
+- Sous Windows, ne pas masquer le GPU (`CUDA_VISIBLE_DEVICES=-1`) pendant une fusion : bitsandbytes plante.
