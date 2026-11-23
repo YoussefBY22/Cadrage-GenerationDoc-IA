@@ -12,6 +12,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     Engine,
+    Float,
     ForeignKey,
     Integer,
     MetaData,
@@ -237,6 +238,124 @@ fact_section_outcome = _t(
     Column("minutes_saved_est", _num(7, 1), nullable=False),
     _demo(),
     UniqueConstraint("deliverable_id", "approved_version", "section_key", name="uq_outcome"),
+)
+
+# --- Situation courante (07 §2.4), reconstruite à chaque ETL -----------------------------------
+# Tables ajoutées sans modifier les précédentes : `create_dw` suffit sur une base existante.
+fact_deliverable = _t(
+    "fact_deliverable",
+    Column("deliverable_id", String(32), primary_key=True),
+    Column("mission_key", Integer, _fk("dim_mission.mission_key"), nullable=False),
+    Column("client_key", Integer, _fk("dim_client.client_key"), nullable=False),
+    Column("type_key", SmallInteger, _fk("dim_deliverable_type.type_key"), nullable=False),
+    Column("author_key", Integer, _fk("dim_user.user_key"), nullable=False),
+    Column("reviewer_key", Integer, _fk("dim_user.user_key")),
+    Column("state", String(12), nullable=False),
+    Column("created_date_key", Integer),
+    Column("submitted_date_key", Integer),
+    Column("approved_date_key", Integer),
+    Column("as_of", String(16), nullable=False),
+    Column("state_age_hours", Float, nullable=False),
+    Column("idle_hours", Float, nullable=False),
+    Column("version", Integer, nullable=False),
+    Column("submissions", Integer, nullable=False),
+    Column("rejections", Integer, nullable=False),
+    Column("returned", Boolean, nullable=False),
+    Column("reason_code", String(20)),  # catégorie du motif, jamais son texte
+    Column("sections", Integer),
+    Column("refused_sections", Integer),
+    Column("sentences", Integer),
+    Column("unchecked_sentences", Integer),
+    Column("blocking_open", Integer),
+    Column("citations_total", Integer),  # NULL = non mesuré
+    Column("citations_invalid", Integer),
+    Column("delay_hours", Float),
+    Column("first_blocking", Integer),
+    Column("first_rejected", Boolean),
+    Column("risk", Float),
+    Column("risk_low", Float),
+    Column("risk_high", Float),
+    Column("risk_n", Integer),
+    _demo(),
+)
+
+fact_section_current = _t(
+    "fact_section_current",
+    Column("deliverable_id", String(32), primary_key=True),
+    Column("section_key", Integer, _fk("dim_section.section_key"), primary_key=True,
+           autoincrement=False),
+    Column("sentences", Integer, nullable=False),
+    Column("blocking", Integer, nullable=False),
+    Column("citations_invalid", Integer, nullable=False),
+    Column("refused", Boolean, nullable=False),
+    Column("priority", Integer, nullable=False),
+    _demo(),
+)
+
+fact_action = _t(
+    "fact_action",
+    Column("deliverable_id", String(32), primary_key=True),
+    Column("rule_code", String(40), primary_key=True),
+    _demo(),
+)
+
+fact_forecast = _t(
+    "fact_forecast",
+    Column("forecast_key", Integer, primary_key=True, autoincrement=False),
+    Column("client_key", Integer),  # NULL = tous
+    Column("type_key", SmallInteger),
+    Column("author_key", Integer),
+    Column("reviewer_key", Integer),  # périmètre d'un responsable (RLS)
+    Column("as_of", String(16), nullable=False),
+    Column("queue", Integer, nullable=False),
+    Column("status", String(16), nullable=False),
+    Column("weeks", Integer, nullable=False),
+    Column("events", Integer, nullable=False),
+    Column("origins", Integer, nullable=False),
+    Column("point", Float),
+    Column("low", Float),
+    Column("high", Float),
+    Column("mae", Float),
+    Column("mae_naive", Float),
+    Column("risk_status", String(16), nullable=False),
+    Column("risk_brier", Float),
+    Column("risk_brier_naive", Float),
+    Column("risk_tested", Integer, nullable=False),
+    _demo(),
+)
+
+fact_forecast_point = _t(
+    "fact_forecast_point",
+    Column("forecast_key", Integer, primary_key=True, autoincrement=False),
+    Column("period_end", String(10), primary_key=True),  # fin de quinzaine, ISO
+    Column("actual", Integer),
+    Column("point", Float),
+    Column("low", Float),
+    Column("high", Float),
+    _demo(),
+)
+
+fact_bench = _t(
+    "fact_bench",
+    Column("config_label", String(1), primary_key=True),
+    Column("model_name", String(120), nullable=False),
+    Column("adapter", String(120)),
+    Column("has_retrieval", Boolean, nullable=False),
+    Column("n_sections", Integer, nullable=False),
+    Column("tpv", Float),
+    Column("tpv_low", Float),
+    Column("tpv_high", Float),
+    Column("delta", Float),
+    Column("delta_low", Float),
+    Column("delta_high", Float),
+    Column("decision", String(16), nullable=False),
+    Column("degraded", String(120), nullable=False, default=""),
+    Column("citation_validity", Float),
+    Column("number_fidelity", Float),
+    Column("attack_success", Float),
+    Column("latency_p95_ms", Float),
+    Column("simulated", Boolean, nullable=False),
+    _demo(),
 )
 
 # --- Techniques ------------------------------------------------------------------------------

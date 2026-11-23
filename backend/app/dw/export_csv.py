@@ -1,4 +1,4 @@
-"""Export CSV des 7 vues (plan B de 07 §8 : Power BI → « Texte/CSV », sans base de données).
+"""Export CSV des vues (plan B de 07 §8 : Power BI → « Texte/CSV », sans base de données).
 
 UTF-8 avec BOM (Excel et Power BI détectent l'encodage), séparateur « ; » et virgule décimale
 (`--locale fr`, défaut) ou séparateur « , » et point décimal (`--locale en`).
@@ -10,6 +10,7 @@ from pathlib import Path
 
 from sqlalchemy import Engine, text
 
+from .schema import create_dw
 from .views_sql import VIEWS, _prefix, create_views
 
 LOCALES = {"fr": (";", ","), "en": (",", ".")}
@@ -32,6 +33,7 @@ def export_csv(engine: Engine, out_dir: str | Path, locale: str = "fr") -> dict[
     delimiter, decimal = LOCALES[locale]
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
+    create_dw(engine)  # une base antérieure n'a pas encore les tables de la situation courante
     create_views(engine)
     counts = {}
     with engine.connect() as conn:

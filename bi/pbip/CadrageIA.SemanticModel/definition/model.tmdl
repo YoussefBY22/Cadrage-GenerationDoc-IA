@@ -8,18 +8,29 @@ annotation __PBI_TimeIntelligenceEnabled = 0
 
 ref table Indicateurs
 ref table Missions
-ref table Configurations
 ref table 'Types de livrable'
+ref table Personnes
 ref table Calendrier
-ref table Cascade
-ref table 'Étapes'
-ref table 'Critères'
+ref table 'Choix de période'
+ref table 'Choix du client'
+ref table 'Choix du type'
+ref table 'Choix du consultant'
+ref table 'Accès'
+ref table 'Règles'
 ref table 'Générations'
 ref table 'Sections approuvées'
-ref table Relectures
-ref table Citations
+ref table Livrables
+ref table 'Sections courantes'
+ref table Actions
+ref table 'Prévisions'
+ref table 'Série de prévision'
+ref table 'Source des données'
+ref table Banc
 ref table Documents
-ref table 'Appels au modèle'
+
+ref role Consultant
+ref role Responsable
+ref role Administration
 
 ref expression Source
 ref expression DossierCsv

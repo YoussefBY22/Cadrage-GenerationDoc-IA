@@ -57,6 +57,9 @@ def add_member(dossier_id: str, body: MemberIn, repo: Repo, user: User):
         return error_response(404, "NOT_FOUND", "Dossier introuvable")
     if user.role != "admin" and dossier["owner_id"] != user.id:
         return error_response(403, "FORBIDDEN_ROLE", "Réservé à l'administrateur ou au propriétaire")
+    if body.role in ("reviewer", "admin") and body.user_id == user.id and user.role != "admin":
+        return error_response(403, "SELF_REVIEWER",
+                              "On ne peut pas se nommer relecteur ni administrateur de son propre dossier")
     repo.add_member(dossier_id, body.user_id, body.role)
     repo.audit(user.id, "member.add", "dossier", dossier_id,
                {"user_id": body.user_id, "role": body.role})

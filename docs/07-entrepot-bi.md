@@ -75,7 +75,24 @@ Dimensions de type 1 (écrasement). Les versions de modèle sont des lignes dist
 `outcome_key BIGINT PK`, `deliverable_id VARCHAR(32)`, `approved_version INT`, `date_key`, `mission_key`, `section_key`, `model_key` (dernière génération de la section), `generated_words INT`, `final_words INT`, `edit_ratio NUMERIC(5,4)`, `unchanged BOOL`, `was_refused BOOL`, `minutes_saved_est NUMERIC(7,1)`, `is_demo`.
 `edit_ratio = 1 − difflib.SequenceMatcher(None, mots_générés, mots_finaux).ratio()` ; `unchanged = edit_ratio = 0`.
 
-### 2.3 Tables techniques
+### 2.3 Situation courante (reconstruite à chaque ETL, `app/dw/snapshot.py`)
+
+Tables ajoutées sans modifier les précédentes : `create_dw` suffit sur une base existante.
+
+| Table | Grain | Contenu |
+|---|---|---|
+| `fact_deliverable` | un livrable | état, auteur, responsable, âge dans l'état, catégorie du motif de renvoi (jamais son texte), phrases bloquantes, **citations sans source dans la version courante ou approuvée**, risque de renvoi |
+| `fact_section_current` | une section de la version courante | blocages, refus, priorité de relecture |
+| `fact_action` | un livrable × une règle déclenchée | recommandations de `app/dw/pilotage.py` |
+| `fact_forecast` | un périmètre (client, type, et cabinet, consultant ou responsable) | prévision à 2 semaines, intervalle, n, test rétrospectif |
+| `fact_forecast_point` | un périmètre × une quinzaine | série réelle, prévue, bornes |
+| `fact_bench` | une configuration du banc | TPV et IC, écart à B et IC, décision de 08 §6 (`app/dw/bench.py`) |
+
+Une phrase est **bloquante** si sa source n'est pas dans le dossier, ou si elle a été rejetée à la génération et n'a
+pas changé, tant qu'elle n'est pas acquittée. Une phrase modifiée n'est pas revérifiée dans l'entrepôt.
+`dim_model.config_label` ne reçoit que A, B, C ou D : le « default » de la production devient NULL.
+
+### 2.4 Tables techniques
 `etl_watermark (source_table VARCHAR PK, last_value VARCHAR, updated_at)` ; `etl_log (id, started_at, ended_at, rows_by_table JSON, status, error)`.
 
 ## 3. Chargement (ETL) — `app/dw/etl.py`
@@ -101,6 +118,13 @@ def run_etl(op_engine: Engine, dw_engine: Engine, *, full: bool = False,
 | `v_citations` | contrôles de citations par code d'anomalie et document |
 | `v_security` | alertes d'injection par mission et document |
 | `v_llm_calls` | appels : latence, jetons/s (`tokens_out * 1000.0 / NULLIF(latency_ms,0)`) |
+| `v_person` | personnes : identifiant, rôle, libellé (pour les pages acteur et la RLS) |
+| `v_deliverable` | situation courante par livrable |
+| `v_section_current` | sections de la version courante, par priorité |
+| `v_action` | règles déclenchées par livrable |
+| `v_forecast` | prévision par périmètre |
+| `v_forecast_point` | série de prévision par quinzaine |
+| `v_bench` | banc d'essai et décision |
 
 Pas de fonctions propres à Postgres dans les vues (pas de `percentile_cont`) : les percentiles se calculent en **DAX** ou dans `kpi.py`.
 
@@ -115,7 +139,7 @@ Pas de fonctions propres à Postgres dans les vues (pas de `percentile_cont`) : 
 | Taux d'invalides | nb status=invalid / nb générations (JSON non conforme après essais) | |
 | Acceptation sans modification | nb outcome.unchanged / nb outcome | |
 | Distance d'édition moyenne | AVG(edit_ratio) | |
-| Temps gagné estimé (min) | Σ baseline_minutes × (1 − edit_ratio) − 0 (temps de relecture non mesuré) | **hypothèse** : `baseline_minutes` par section à faire valider par EY ; affiché « estimation » |
+| Temps gagné estimé (min) | Σ baseline_minutes × (1 − edit_ratio), 0 pour un refus | **hypothèse non mesurée** : conservée dans l'entrepôt, jamais affichée tant qu'aucun chronométrage n'existe |
 | Délai de validation (h) | médiane(heures entre 1ʳᵉ soumission et approbation) | |
 | Taux de refus en relecture | nb transitions →rejected / nb soumissions | |
 | Latence p50 / p95 | percentiles de `fact_llm_call.latency_ms` | DAX `PERCENTILEX.INC`, `kpi.percentile` |
@@ -124,31 +148,17 @@ Pas de fonctions propres à Postgres dans les vues (pas de `percentile_cont`) : 
 
 `kpi.py` : fonctions pures `(rows) -> float` testées contre des jeux de lignes calculés à la main ; les mêmes chiffres doivent sortir des vues SQL (test de cohérence vue ↔ Python).
 
-## 6. Mesures DAX (fichier `bi/measures.dax`)
+## 6. Mesures DAX
 
-```DAX
-TPV = DIVIDE(SUM(v_generation[sentences_verified]), SUM(v_generation[sentences_total]))
-Citations valides = DIVIDE(SUM(v_generation[citations_valid]), SUM(v_generation[citations_total]))
-Fidélité chiffres = IF(SUM(v_generation[numbers_cited]) = 0, 1,
-    DIVIDE(SUM(v_generation[numbers_found]), SUM(v_generation[numbers_cited])))
-Taux refus = DIVIDE(CALCULATE(COUNTROWS(v_generation), v_generation[status] = "refused"), COUNTROWS(v_generation))
-Acceptation sans modif = DIVIDE(CALCULATE(COUNTROWS(v_outcome), v_outcome[unchanged] = TRUE()), COUNTROWS(v_outcome))
-Temps gagné (h) = SUM(v_outcome[minutes_saved_est]) / 60
-Latence p95 (s) = PERCENTILEX.INC(v_llm_calls, v_llm_calls[latency_ms], 0.95) / 1000
-Δ TPV vs B = [TPV] - CALCULATE([TPV], v_generation[config_label] = "B")
-```
+Générées : [`bi/measures.dax`](../bi/measures.dax), définitions dans [`bi/KPI.md`](../bi/KPI.md). Seuils, règles et
+méthode de prédiction : [`app/dw/pilotage.py`](../backend/app/dw/pilotage.py), source unique partagée par l'ETL,
+Power BI et la commande `python -m app.dw.report`.
 
-## 7. Maquette du tableau de bord (Power BI Desktop, 5 pages)
+## 7. Rapport Power BI
 
-| Page | Visuels |
-|---|---|
-| 1. Vue d'ensemble | cartes : TPV, Acceptation sans modif, Temps gagné (h), Livrables approuvés ; courbe TPV par semaine ; segment client / type |
-| 2. Qualité et vérification | barres empilées des anomalies par code ; matrice section × TPV (mise en forme conditionnelle) ; fidélité des chiffres par type |
-| 3. Comparaison des modèles (A/B/C/D) | histogramme groupé TPV, citations, refus par config ; nuage latence p95 × TPV (taille = n) ; table avec Δ vs B |
-| 4. Relecture | entonnoir draft → in_review → approved ; délai médian ; taux de refus en relecture ; top sections les plus réécrites (edit_ratio) |
-| 5. Usage et sécurité | générations par mission et mois ; alertes d'injection par mission ; documents par format |
-
-Charte : couleurs neutres, une couleur d'accent ; libellés en français ; filtre « Données de démonstration » visible en haut de chaque page.
+Quatre pages visibles (Synthèse, Production, Validation, Administration) et une page Rapport masquée.
+Acteurs, règles de conception et audit : [14](14-acteurs-dashboard.md). Publication :
+[`bi/PUBLICATION.md`](../bi/PUBLICATION.md).
 
 ## 8. Connexion Power BI **sans fuite**
 
@@ -159,12 +169,17 @@ Charte : couleurs neutres, une couleur d'accent ; libellés en français ; filtr
 ## 9. Générateur de données de démonstration — `app/dw/demo.py`
 
 ```python
-def generate_demo(op_engine: Engine, *, seed: int = 42, clients: int = 5, missions: int = 12,
-                  days: int = 90, start: date = date(2026, 9, 1)) -> dict[str, int]: ...
+def generate_demo(op_engine: Engine, *, seed: int = 42, clients: int = 5, weeks: int = 38,
+                  as_of: date = date(2026, 11, 20)) -> dict[str, int]: ...
 ```
-- Écrit dans les tables **opérationnelles** (utilisateurs, dossiers, documents, runs, vérifications, transitions, versions) avec la colonne `dossiers.is_demo = TRUE` (définie par B1) ; l'ETL propage `is_demo` à toutes les lignes qui en dérivent ; dossiers nommés « [DÉMO] … ». Puis on lance l'ETL : la démo teste **aussi** la chaîne de chargement.
-- Distributions (graine fixe) : config A TPV ≈ 0,35, B ≈ 0,82, C ≈ 0,86, D ≈ 0,78 ; latence lognormale (B : médiane 9 s) ; 8 % de refus en B ; edit_ratio bêta(2,5) ; 15 % de livrables refusés une fois en relecture. Ce sont des **valeurs inventées** pour la démonstration, signalées comme telles dans le tableau de bord et le rapport.
-- Commande : `python -m app.dw.demo --seed 42` ; test : deux exécutions avec la même graine → mêmes indicateurs.
+- Écrit en lot dans les tables **opérationnelles**, avec `dossiers.is_demo = TRUE` et des noms « [DÉMO] … », puis
+  lance l'ETL : la démo teste aussi le chargement.
+- Rejoue le produit : 4 consultants, 2 responsables (rôle `reviewer`), transitions de la machine à états, motifs,
+  acquittements, formats acceptés à l'import. L'histoire s'arrête à `as_of` : il reste des brouillons, une file et
+  des renvois. Scénario : un responsable absent en fin de période.
+- Production = recherche + modèle de base, sans étiquette de configuration. Aucun banc A/B/C/D n'est inventé :
+  `fact_bench` reste vide jusqu'au chargement de résultats réels.
+- Toutes les valeurs sont **inventées**. Commande : `python -m app.dw.demo --seed 42`.
 
 ## 10. Alternative libre : Metabase
 

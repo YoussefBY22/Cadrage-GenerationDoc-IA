@@ -38,8 +38,11 @@ def version_author(repo, deliverable_id: str, version: int) -> str | None:
 
 def verify_content(repo, dossier_id: str, content: DeliverableContent,
                    support_threshold: float = 0.3) -> list[VerificationReport]:
-    """Re-vérifie chaque section contre les passages du dossier (jamais d'autre dossier)."""
-    known = {f.id for f in repo.list_findings(dossier_id)}
+    """Re-vérifie chaque section contre les passages du dossier (jamais d'autre dossier).
+
+    Seuls les constats VALIDÉS sont connus : citer un constat non validé est un défaut de preuve.
+    """
+    known = {f.id for f in repo.list_findings(dossier_id, validated_only=True)}
     reports = []
     for sec in content.sections:
         ids = sorted({i for sent in sec.sentences for i in sent.source_ids})
@@ -49,6 +52,33 @@ def verify_content(repo, dossier_id: str, content: DeliverableContent,
                                       support_threshold=support_threshold,
                                       lang=content.language))
     return reports
+
+
+def initiative_issues(repo, dossier_id: str, content: DeliverableContent) -> list[dict]:
+    """Initiatives d'une feuille de route dont le constat est absent, inconnu ou non validé.
+
+    Une initiative approuvée doit reposer sur des constats qui existent dans CE dossier ET sont validés.
+    """
+    if content.roadmap is None:
+        if content.type == "roadmap":
+            return [{"initiative_id": None, "code": "ROADMAP_MISSING", "finding_id": None}]
+        return []
+    findings = {f.id: f for f in repo.list_findings(dossier_id)}
+    out: list[dict] = []
+    if content.type == "roadmap" and not content.roadmap.items:
+        out.append({"initiative_id": None, "code": "EMPTY_ROADMAP", "finding_id": None})
+    for item in content.roadmap.items:
+        ini = item.initiative
+        if not ini.finding_ids:
+            out.append({"initiative_id": ini.id, "code": "INITIATIVE_WITHOUT_FINDING",
+                        "finding_id": None})
+        for fid in ini.finding_ids:
+            if fid not in findings:
+                out.append({"initiative_id": ini.id, "code": "UNKNOWN_FINDING", "finding_id": fid})
+            elif not findings[fid].validated:
+                out.append({"initiative_id": ini.id, "code": "FINDING_NOT_VALIDATED",
+                            "finding_id": fid})
+    return out
 
 
 def add_comment(repo, deliverable_id: str, section_key: str, user_id: str, text: str) -> str:
@@ -81,7 +111,48 @@ def list_audit(repo, object_id: str | None = None, limit: int = 500) -> list[dic
 
 
 def acknowledgements(repo, deliverable_id: str, version: int) -> set[tuple[str, int]]:
-    """Acquittements (section, index de phrase ; -1 = refus de la section) de cette version."""
+    """Acquittements (section, index de phrase ; -1 = refus de la section) de cette version.
+
+    Un acquittement sans motif (ancien format) ne compte pas.
+    """
     rows = [a for a in list_audit(repo, deliverable_id, limit=100000)
-            if a["action"] == "sentence.acknowledge" and a["details"].get("version") == version]
+            if a["action"] == "sentence.acknowledge" and a["details"].get("version") == version
+            and str(a["details"].get("reason") or "").strip()]
     return {(a["details"]["section_key"], a["details"]["sentence_index"]) for a in rows}
+
+
+# --- verrou d'approbation ------------------------------------------------------------------------
+# Un défaut de preuve ne s'acquitte pas : il se corrige. Les autres échecs exigent un motif.
+NON_ACKNOWLEDGEABLE = frozenset({"UNKNOWN_SOURCE", "FOREIGN_SOURCE", "FACT_WITHOUT_SOURCE",
+                                 "UNKNOWN_FINDING", "INSTRUCTION_ECHO"})
+
+
+def unsupported_recommendations(content: DeliverableContent) -> set[tuple[str, int]]:
+    """Recommandations sans source ni constat : à acquitter avec motif avant approbation."""
+    return {(sec.section_key, i) for sec in content.sections for i, sn in enumerate(sec.sentences)
+            if sn.kind == "recommendation" and not sn.source_ids and not sn.finding_ids}
+
+
+def evidence_status(repo, dossier_id: str, content: DeliverableContent,
+                    support_threshold: float = 0.3):
+    """(rapports, phrases au défaut de preuve, phrases à acquitter) ; clés (section, index)."""
+    reports = verify_content(repo, dossier_id, content, support_threshold)
+    hard: set[tuple[str, int]] = set()
+    soft: set[tuple[str, int]] = set(unsupported_recommendations(content))
+    for sec, rep in zip(content.sections, reports, strict=True):
+        for issue in rep.issues:
+            if issue.code in NON_ACKNOWLEDGEABLE:
+                hard.add((sec.section_key, issue.sentence_index))
+        for ck in rep.checks:
+            if ck.status == "failed":
+                soft.add((sec.section_key, ck.index))
+    return reports, hard, soft - hard
+
+
+def evidence_problems(repo, dossier_id: str, content: DeliverableContent) -> list[str]:
+    """Défauts qui interdisent l'export, même d'un livrable approuvé avant ce contrôle."""
+    _, hard, _ = evidence_status(repo, dossier_id, content)
+    out = [f"phrase {i + 1} de « {key} » sans preuve valide" for key, i in sorted(hard)]
+    out += [f"initiative {x['initiative_id'] or '—'} : {x['code']}"
+            for x in initiative_issues(repo, dossier_id, content)]
+    return out

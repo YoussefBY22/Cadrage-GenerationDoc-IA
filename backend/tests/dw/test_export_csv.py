@@ -75,7 +75,7 @@ def test_demo_roundtrip(tmp_path):
 
     engine = create_engine(f"sqlite+pysqlite:///{(tmp_path / 'x.db').as_posix()}")
     sc.metadata.create_all(engine)
-    generate_demo(engine, missions=3)
+    generate_demo(engine, weeks=3)
     counts = export_csv(engine, tmp_path / "out")
     cols, rows = view_rows(engine, "v_quality_by_model")
     table = read(tmp_path / "out" / "v_quality_by_model.csv", ";")

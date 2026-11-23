@@ -42,7 +42,7 @@ def test_etl_counts(repo, ops):
     assert n["fact_review"] == 3 and n["fact_section_outcome"] == 2
     assert n["dim_client"] == 2 and n["dim_mission"] == 2 and n["dim_document"] == 2
     assert n["dim_user"] == 2 and n["dim_model"] == 4
-    assert n["dim_date"] == 1461 and n["dim_state"] == 4 and n["dim_issue"] == 9
+    assert n["dim_date"] == 1461 and n["dim_state"] == 4 and n["dim_issue"] == 10
     assert n["dim_deliverable_type"] == 4
     assert n["etl_log"] == 1
     eng = bind_dw(repo.engine)

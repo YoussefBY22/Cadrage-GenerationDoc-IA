@@ -1,0 +1,22 @@
+table Personnes
+
+	column 'Clé de personne'
+		dataType: int64
+		isHidden
+		sourceColumn: user_key
+		summarizeBy: none
+
+	column Consultant
+		dataType: string
+		sourceColumn: user_label
+		summarizeBy: none
+
+	partition Personnes = m
+		mode: import
+		source =
+				let
+				    Gens = Table.TransformColumnTypes(Table.SelectColumns(Vue("v_person"), {"user_key", "user_label"}), {{"user_key", Int64.Type}, {"user_label", type text}}, CultureCsv),
+				    Auteurs = List.Buffer(List.Combine({Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_deliverable"), {"author_key"}), {{"author_key", Int64.Type}}, CultureCsv), "author_key"), Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_generation"), {"author_key"}), {{"author_key", Int64.Type}}, CultureCsv), "author_key")})),
+				    Resultat = Table.SelectRows(Gens, each List.Contains(Auteurs, [user_key]))
+				in
+				    Resultat

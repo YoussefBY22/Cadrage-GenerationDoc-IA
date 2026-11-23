@@ -1,6 +1,6 @@
 # Cadrage — assistant IA local pour feuilles de route, termes de référence et cahiers des charges
 
-> **In short (EN).** Cadrage drafts roadmaps, terms of reference and specifications from a client's diagnostic documents. Every sentence cites its source, and a checker rejects any citation or figure that does not exist in the evidence. Everything runs on the client's own server with an open-weight model: no cloud, no API. A consultant reviews and edits, a manager approves (two different people), then the deliverable is exported to Word, PowerPoint or PDF. Works in French and English; measured on a real local model (Qwen3 4B) and a 103-document open-licence corpus.
+> **In short (EN).** Cadrage drafts roadmaps, terms of reference and specifications from a client's diagnostic documents. Every sentence cites its source, and a checker blocks unknown citations and flags figures absent from the cited evidence (it does not prove that a source supports the sentence). Everything runs on the client's own server with an open-weight model: no cloud, no API. A consultant reviews and edits, a manager approves (two different people), then the deliverable is exported to Word, PowerPoint or PDF. Works in French and English; runs on a real local model (Qwen3 4B); first quality measurements are being redone after a context-truncation bug.
 
 **À partir d'un diagnostic confidentiel, Cadrage prépare un premier jet cité et vérifié, que le consultant relit, corrige et fait valider.**
 
@@ -13,7 +13,7 @@ Projet étudiant — non affilié à EY. Sujet : *Stages & PFE Book 2026-2027*, 
 
 ## Ce que fait l'outil
 
-- **Lit** les documents d'un dossier client (PDF, DOCX, PPTX, texte), en français et en anglais, et neutralise les consignes cachées dans les documents.
+- **Lit** les documents d'un dossier client (PDF, DOCX, PPTX, texte), en français et en anglais, et repère les consignes cachées connues dans les documents (une détection par motifs, pas une garantie).
 - **Rédige** constats, feuille de route priorisée, termes de référence et cahier des charges, **section par section**, uniquement à partir des passages retrouvés : sans preuve, il refuse de répondre.
 - **Vérifie** chaque phrase : la source citée existe-t-elle, le chiffre figure-t-il dans le passage ? Dans l'éditeur, chaque phrase est colorée selon sa preuve, avec la source à côté.
 - **Fait valider** à deux personnes (le consultant rédige, le manager approuve), garde l'historique des versions et exporte en Word, PowerPoint ou PDF. Un entrepôt de données alimente un tableau de bord Power BI (usage, qualité, temps gagné).
@@ -40,29 +40,31 @@ Mesurés sur un PC portable (GTX 1650, 4 Go de VRAM), modèle de génération **
 | Mesure | Résultat | Nature |
 |---|---|---|
 | Corpus public | **103 documents** sous licence CC BY (Banque mondiale, Commission européenne), 82 EN / 21 FR, licences et SHA-256 tracés | réel |
-| Jeu d'entraînement | **3 105 exemples** vérifiés (2 457 / 288 / 360), séparés par document | réel (entraînement non encore lancé) |
-| Jeu or | **34 questions** annotées à la main (29 faits, 5 « sans preuve ») sur des documents jamais utilisés pour l'entraînement | réel |
-| Latence par section | **18,2 s** (p50), 23,1 s (p95) ; débit 40 jetons/s | réel, 31 sections |
+| Jeu d'entraînement | 3 105 exemples générés par script : jeu **rejeté** le 22/11/2026 après lecture : réponses presque toutes recopiées des passages (2 061 sur 2 067), questions faites de mots-clés, 83 % en anglais, aucune feuille de route ni TdR ni cahier des charges | **non utilisable**, nouveau jeu à valider |
+| Jeu or | **34 questions** rédigées par une IA, repères contrôlés par script, **non relues par un humain** (29 faits, 5 « sans preuve ») sur des documents jamais utilisés pour l'entraînement | réel |
+| Latence par section | **18,2 s** (p50), 23,1 s (p95) ; débit 40 jetons/s | réel, 31 sections, **à remesurer** (invites possiblement tronquées) |
 | Mémoire vidéo | **3,1 Go** de pic sur 4 Go | réel |
 | Rappel@10 de la recherche (bge-m3 + BM25) | **1,000** | réel, 1 institution, 31 sections : petit échantillon |
-| Faux refus / refus manqués | **0 % / 0 %** avec la porte de pertinence (seuil cosinus 0,45) ; 10 % / 10 % sans elle | réel, une passe, 10 sections par catégorie ; seuil calibré sur ce même échantillon synthétique : à recalibrer sur corpus réel |
+| Faux refus / refus manqués | **0 % / 0 %** avec la porte de pertinence (seuil cosinus 0,45) ; 10 % / 10 % sans elle | **à remesurer** (invites possiblement tronquées) ; une passe, 10 sections par catégorie ; seuil calibré sur ce même échantillon synthétique : à recalibrer sur corpus réel |
 | PostgreSQL + pgvector, export PDF LibreOffice, parcours navigateur Playwright | exécutés et verts | réel |
 | Tests | 436 backend, 33 entraînement, 22 interface | automatisés |
 | Rappel@10, 23/23 erreurs détectées, TPV 0,85 du banc d'évaluation | | **simulé** (corpus fictif, faux modèle) : valide la mécanique, pas la qualité |
 | Entraînement LoRA (modèle « C ») | | **à faire** (T5) |
 | Valeurs du tableau de bord Power BI | | **inventées** (démonstration) |
 
+> **Correction du 22/11/2026** : Ollama coupait sans erreur le début des invites de plus de 4 096 jetons. Les mesures de génération ci-dessus ont pu en souffrir et ne valent pas preuve de qualité.
+
 Le TPV (taux de phrases vérifiées) mesure l'ancrage dans les sources, pas la vérité : il ne remplace pas la relecture humaine. Détails et limites : [`docs/lots/T2.md`](docs/lots/T2.md), [`docs/lots/T4.md`](docs/lots/T4.md).
 
 ## Tableau de bord Power BI
 
-Cinq pages, une question de pilotage chacune : le verdict sur les critères de réussite, la qualité des preuves, le temps gagné, le choix du modèle, la sécurité et l'usage. Les valeurs affichées sont **inventées** (jeu de démonstration).
+Un rapport pour les deux acteurs de l'application, le **consultant** qui rédige et le **responsable** qui valide : constat, recommandations par règles, prédiction testée contre une référence naïve, rapport PDF. Les valeurs affichées sont **inventées** (jeu de démonstration).
 
-| Accueil : le verdict | Qualité et preuves |
+| Synthèse | Validation |
 |---|---|
-| ![Accueil du tableau de bord Power BI](docs/img/powerbi-accueil.png) | ![Qualité et preuves](docs/img/powerbi-qualite.png) |
+| ![Synthèse du rapport Power BI](docs/img/powerbi-synthese.png) | ![Page Validation, pour le responsable](docs/img/powerbi-validation.png) |
 
-Chaque indicateur est défini (formule, intérêt, cible, limite) dans [`bi/KPI.md`](bi/KPI.md). Ouverture du projet et autres pages : [`bi/README.md`](bi/README.md).
+Qui voit quoi : [`docs/14`](docs/14-acteurs-dashboard.md). Indicateurs (formule, décision, cible, limite) : [`bi/KPI.md`](bi/KPI.md). Ouverture du projet et autres pages : [`bi/README.md`](bi/README.md).
 
 ## Démo en 3 commandes (Windows, PowerShell)
 
