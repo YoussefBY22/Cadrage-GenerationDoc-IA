@@ -51,7 +51,7 @@ _SEVERITY = {DEPENDENCY_ORDER: "blocking", INHERITED_PRIORITY: "info", SCORE_TIE
 _FINDING_WEIGHT = {"high": 3, "medium": 2, "low": 1}
 # Projets que l'initiative risque de dupliquer : tout sauf « done ».
 DUPLICATE_STATES = ("existing", "in_progress", "planned")
-DUPLICATE_THRESHOLD = 0.6
+DUPLICATE_THRESHOLD = 0.75  # « Recruter des agents de formation » ≠ « Formation agents » (0,67)
 
 
 class Issue(BaseModel):

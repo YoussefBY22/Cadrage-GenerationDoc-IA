@@ -276,3 +276,41 @@ def test_8_template_excluded_even_with_explicit_ids_or_only_templates(make):  # 
     tchunk = next(iter(c.app.state.repo.iter_chunks(did, [t]))).id
     r = c.post(f"{V1}/dossiers/{did}/priorities", json={"title": "X", "source_ids": [tchunk]})
     assert r.status_code == 422 and r.json()["error"]["code"] == "TEMPLATE_SOURCE"
+
+
+# --- écarts mineurs (2e audit) ---------------------------------------------------------------
+def test_m1_initiative_containing_all_words_of_a_short_project_is_not_a_duplicate():
+    assert coh.similarity("Recruter des agents de formation", "Formation agents") < \
+        coh.DUPLICATE_THRESHOLD
+    assert coh.similarity("Migration de la messagerie vers le nuage",
+                          "Migration messagerie vers nuage") >= coh.DUPLICATE_THRESHOLD
+
+
+def test_m2_reviewer_cannot_validate_their_own_priority_admin_can(repo):
+    rid = repo.create_user("r@x.fr", "Hugo", "h", "reviewer")
+    admin = repo.create_user("a@x.fr", "Root", "h", "admin")
+    did = repo.create_dossier("D", "C", "fr", rid)
+    p = repo.create_priority(did, title="P", description="", rank=1, status="proposed",
+                             source_ids=[], author_id=rid)
+    with pytest.raises(GenerationError) as exc:
+        coeur.decide(repo, p, CurrentUser(id=rid, role="reviewer"), "validated")
+    assert exc.value.status == 403 and exc.value.code == "SELF_VALIDATION"
+    other = repo.create_user("r2@x.fr", "Autre", "h", "reviewer")
+    assert coeur.decide(repo, p, CurrentUser(id=other, role="reviewer"), "validated").status \
+        == "validated"
+    q = repo.create_priority(did, title="Q", description="", rank=2, status="proposed",
+                             source_ids=[], author_id=admin)
+    assert coeur.decide(repo, q, CurrentUser(id=admin, role="admin"), "validated").status \
+        == "validated"
+
+
+def test_m3_numbers_are_compared_by_value_digits_or_words():
+    f = proposals.unsourced_numbers
+    assert f("Former deux agents", ["Il y a 2 agents."]) == []
+    assert f("Former 2 agents", ["Il y a deux agents."]) == []
+    assert f("Atteindre vingt jours", ["Délai de 20 jours."]) == []
+    assert f("Atteindre 30 jours", ["Délai de trente jours."]) == []
+    assert f("Atteindre quinze jours", ["Délai de 15 jours."]) == []
+    assert f("Atteindre 12 jours", ["Délai de douze jours."]) == []
+    assert f("Former trois agents", ["Il y a 2 agents."]) == ["trois"]
+    assert f("Former 3 agents", ["Il y a deux agents."]) == ["3"]

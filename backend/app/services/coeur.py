@@ -83,6 +83,9 @@ def decide(repo, p: Priority, user: CurrentUser, status: str) -> Priority:
     if not can_validate(repo, p.dossier_id, user):
         raise GenerationError(403, "VALIDATION_RESERVED",
                               "Valider ou rejeter est réservé à un relecteur ou à un administrateur")
+    if p.author_id == user.id and user.role != "admin":
+        raise GenerationError(403, "SELF_VALIDATION",
+                              "Quatre yeux : on ne valide pas une priorité qu'on a créée")
     from app.storage.schema import utcnow
 
     updated = repo.update_priority(p.id, status=status, validated_by=user.id,

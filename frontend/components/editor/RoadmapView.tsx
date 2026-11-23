@@ -429,7 +429,8 @@ export default function RoadmapView({ id }: { id: string }) {
                   ))}
                 </span>
               </div>
-              <div className="chain-row">
+              {(ch.objective || ch.expected_result || ch.indicator) && (
+              <div className="chain-row" data-testid={`proposal-${ini.id}`}>
                 <span>{t.coeur.proposal}</span>
                 <span className="row" style={{ gap: 8 }}>
                   <span className={`badge ${ch.proposal_status === "accepted" ? "approved" : "warn"}`}>
@@ -456,6 +457,7 @@ export default function RoadmapView({ id }: { id: string }) {
                   )}
                 </span>
               </div>
+              )}
               <div className="chain-row">
                 <span>{cc.objective}</span>
                 <span>{ch.objective || "–"}</span>

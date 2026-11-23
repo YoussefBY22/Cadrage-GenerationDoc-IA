@@ -200,4 +200,17 @@ describe("feuille de route : cohérence", () => {
     expect(await screen.findByText(/quatre tableurs\./)).toBeInTheDocument(); // panneau de source
     expect(screen.getByText("audit.pdf")).toBeInTheDocument();
   });
+
+  it("masque le bloc Proposition IA quand objectif, résultat et indicateur sont vides", async () => {
+    const empty = { ...coherence, chains: [{ ...coherence.chains[0], objective: "", expected_result: "", indicator: "", proposal_flags: [] }] };
+    vi.spyOn(deliverables, "get").mockResolvedValue(roadmapDeliverable);
+    vi.spyOn(deliverables, "coherence").mockResolvedValue(empty);
+    vi.spyOn(api, "listFindings").mockResolvedValue([]);
+    vi.spyOn(api, "listPriorities").mockResolvedValue([]);
+    vi.spyOn(api, "listProjects").mockResolvedValue([]);
+    render(<RoadmapView id="r1" />);
+    const chain = within(await screen.findByTestId("chain-I1"));
+    expect(screen.queryByTestId("proposal-I1")).toBeNull();
+    expect(chain.queryByText("Accepter")).toBeNull();
+  });
 });
