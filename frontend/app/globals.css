@@ -311,3 +311,4 @@ details > summary { cursor: pointer; color: var(--grey); font-size: 12.5px; marg
 .tech { margin-top: 6px; }
 .btn:disabled { cursor: not-allowed; }
 .btn-primary:disabled { background: #ececf1; border-color: var(--line); color: var(--grey); opacity: 1; }
+.toast.warn { background: var(--warn-bg); color: var(--warn); }

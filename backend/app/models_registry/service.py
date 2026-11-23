@@ -37,6 +37,16 @@ class RegistryService:
         self.store = store or RegistryStore(settings.models_registry_path)
         self._factory = provider_factory or (lambda name: _candidate(settings, name))
 
+    @property
+    def demo(self) -> bool:
+        """Fournisseur « fake » ou « demo » : le modèle de langage n'est pas utilisé, activer ne changerait rien."""
+        return self.settings.llm_provider != "ollama"
+
+    def _refuse_in_demo(self) -> None:
+        if self.demo:
+            raise RegistryError(409, "DEMO_MODE",
+                                "Mode démonstration : le modèle de langage n'est pas utilisé.")
+
     # --- lecture ----------------------------------------------------------------------------------
     @property
     def base_model(self) -> str | None:
@@ -72,7 +82,7 @@ class RegistryService:
             models.append(card)
         active_card = next((m for m in models if m["active"]), None)
         return {
-            "engine": {"reachable": reachable, "provider": self.settings.llm_provider},
+            "engine": {"reachable": reachable, "provider": self.settings.llm_provider, "demo": self.demo},
             "active": current, "configured": self.base_model,
             "embedding_model": self.settings.ollama_embedding_model or None,
             "previous": self.store.previous_model(current),
@@ -97,6 +107,7 @@ class RegistryService:
 
     # --- test -------------------------------------------------------------------------------------
     def test(self, name: str) -> dict:
+        self._refuse_in_demo()
         card = self._installed(name)
         allocated = self.settings.ollama_num_ctx or _default_ctx()
         report = run_probe(self._factory(name), card, allocated)
@@ -107,6 +118,7 @@ class RegistryService:
 
     # --- activation et retour arrière -------------------------------------------------------------
     def activate(self, name: str, *, by: str | None = None, role: str = "generation") -> dict:
+        self._refuse_in_demo()
         if role == "embedding":
             raise RegistryError(409, "REINDEX_REQUIRED", REINDEX_MESSAGE)
         card = self._installed(name)
@@ -122,6 +134,7 @@ class RegistryService:
         return {"active": name, "previous": previous, "entry": entry}
 
     def rollback(self, *, by: str | None = None) -> dict:
+        self._refuse_in_demo()
         current = self.current()
         target = self.store.previous_model(current)
         if not target:

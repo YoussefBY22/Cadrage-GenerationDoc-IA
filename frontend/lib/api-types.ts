@@ -173,7 +173,7 @@ export interface HistoryEntry {
 }
 
 export interface ModelsOverview {
-  engine: { reachable: boolean; provider: string };
+  engine: { reachable: boolean; provider: string; /** fournisseur fake ou demo : aucun modèle de langage utilisé. */ demo: boolean };
   active: string | null;
   configured: string | null;
   embedding_model: string | null;

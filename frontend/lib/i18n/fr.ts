@@ -18,6 +18,7 @@ export const fr = {
   models: {
     title: "Modèles",
     sub: "Modèle de langage en service et limites en vigueur",
+    demo: "Mode démonstration : le modèle de langage n'est pas utilisé.",
     engineDown: "Moteur local injoignable : la liste est indisponible.",
     active: "Modèle actif",
     none: "Aucun",

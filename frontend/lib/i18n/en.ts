@@ -19,6 +19,7 @@ export const en: Messages = {
   models: {
     title: "Models",
     sub: "Language model in service and limits in force",
+    demo: "Demonstration mode: the language model is not used.",
     engineDown: "Local engine unreachable: the list is unavailable.",
     active: "Active model",
     none: "None",

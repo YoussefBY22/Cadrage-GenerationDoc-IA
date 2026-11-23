@@ -228,6 +228,7 @@ def test_context_budget_adds_up_and_reports_unsent(svc):
 @pytest.fixture
 def api(settings, repo, provider, monkeypatch):
     monkeypatch.setenv("AUTH_MODE", "dev")
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
     monkeypatch.setenv("OLLAMA_BASE_URL", settings.ollama_base_url)
     monkeypatch.setenv("OLLAMA_GENERATION_MODEL", "qwen-good:4b")
     monkeypatch.setenv("MODELS_REGISTRY_PATH", settings.models_registry_path)
@@ -336,3 +337,22 @@ def test_ingestion_stores_embedding_model_label(repo, settings, svc, monkeypatch
     ingestion.ingest(repo, provider, did, "a.txt", "Un texte assez long sur la clôture.".encode(),
                      CurrentUser(id="usr_dev", role="admin"), settings=st)
     assert seen["m"] == "ollama:bge-m3:latest"
+
+
+# --- mode démonstration (fournisseur fake ou demo) -------------------------------------------------------
+@pytest.mark.parametrize("provider_name", ["fake", "demo"])
+def test_api_refuses_test_activate_rollback_in_demo_mode(api, monkeypatch, provider_name):
+    monkeypatch.setenv("LLM_PROVIDER", provider_name)
+    get_settings.cache_clear()
+    overview = api.get("/api/v1/admin/models").json()
+    assert overview["engine"]["demo"] is True
+    for url, body in [("/api/v1/admin/models/test", {"model": "qwen-good:4b"}),
+                      ("/api/v1/admin/models/activate", {"model": "qwen-good:4b"}),
+                      ("/api/v1/admin/models/rollback", None)]:
+        r = api.post(url, **({"json": body} if body else {}))
+        assert r.status_code == 409 and r.json()["error"]["code"] == "DEMO_MODE", url
+    assert RegistryStore(get_settings().models_registry_path).active() is None   # rien n'a été écrit
+
+
+def test_overview_is_not_demo_with_ollama(api):
+    assert api.get("/api/v1/admin/models").json()["engine"]["demo"] is False

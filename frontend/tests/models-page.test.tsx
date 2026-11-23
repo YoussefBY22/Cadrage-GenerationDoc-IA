@@ -17,7 +17,7 @@ const card = (name: string, over: Partial<ModelCard> = {}): ModelCard => ({
 });
 
 const overview: ModelsOverview = {
-  engine: { reachable: true, provider: "ollama" },
+  engine: { reachable: true, provider: "ollama", demo: false },
   active: "a:1", configured: "a:1", embedding_model: null, previous: null,
   models: [card("a:1", { active: true }), card("b:2")],
   history: [],
@@ -49,5 +49,20 @@ describe("page Modèles", () => {
     const buttons = await screen.findAllByRole("button", { name: "Activer" });
     expect(buttons).toHaveLength(1);
     expect((buttons[0] as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("en mode démonstration : message clair, Tester et Activer désactivés", async () => {
+    vi.spyOn(api, "listModels").mockResolvedValue({
+      ...overview,
+      active: null,
+      engine: { reachable: true, provider: "fake", demo: true },
+      models: [card("a:1"), card("b:2", { test: { passed: true, up_to_date: true, checks: [], tokens_per_second: 40, at: "2026-11-22T10:00:00" } })],
+    });
+    const { container } = render(<ModelsPage />);
+    await waitFor(() => expect(container.textContent).toContain("Mode démonstration : le modèle de langage n'est pas utilisé"));
+    expect(container.textContent).not.toContain("Aucun");
+    const buttons = [...screen.getAllByRole("button", { name: /Tester|Activer/ })] as HTMLButtonElement[];
+    expect(buttons.length).toBeGreaterThanOrEqual(3);
+    expect(buttons.every((b) => b.disabled)).toBe(true);
   });
 });

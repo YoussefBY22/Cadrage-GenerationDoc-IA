@@ -159,15 +159,16 @@ export default function ModelsPage() {
       </div>
       {error && <Alert>{error}</Alert>}
       {notice && <div className="toast ok">{notice}</div>}
-      {data && !data.engine.reachable && <Alert>{t.models.engineDown}</Alert>}
+      {data?.engine.demo && <div className="toast warn">{t.models.demo}</div>}
+      {data && !data.engine.demo && !data.engine.reachable && <Alert>{t.models.engineDown}</Alert>}
       {!data && !error && <p className="muted">{t.common.loading}</p>}
       {data && (
         <>
           <section className="card active-card">
             <div>
               <div className="kpi-label">{t.models.active}</div>
-              <div className="active-name">{data.active ?? t.models.none}</div>
-              {active && (
+              <div className="active-name">{data.engine.demo ? "—" : (data.active ?? t.models.none)}</div>
+              {active && !data.engine.demo && (
                 <div className="row">
                   {[active.parameter_size, active.quantization, gb(active.size_bytes)].filter(Boolean).map((x) => (
                     <span key={x} className="tag">
@@ -177,7 +178,7 @@ export default function ModelsPage() {
                 </div>
               )}
             </div>
-            {data.previous && (
+            {data.previous && !data.engine.demo && (
               <button type="button" className="btn" disabled={busy !== null} onClick={() => run("rollback", () => api.rollbackModel(), t.models.rollbackDone)}>
                 <RotateCcw size={15} />
                 {t.models.rollback} {data.previous}
@@ -240,7 +241,7 @@ export default function ModelsPage() {
                         <span className="muted small">{t.models.embedding}</span>
                       ) : (
                         <>
-                          <button type="button" className="btn btn-sm" disabled={busy !== null} onClick={() => run(`t:${m.name}`, () => api.testModel(m.name))}>
+                          <button type="button" className="btn btn-sm" disabled={busy !== null || data.engine.demo} onClick={() => run(`t:${m.name}`, () => api.testModel(m.name))}>
                             <Play size={13} />
                             {busy === `t:${m.name}` ? t.models.testing : t.models.test}
                           </button>
@@ -248,7 +249,7 @@ export default function ModelsPage() {
                             <button
                               type="button"
                               className="btn btn-sm btn-primary"
-                              disabled={busy !== null || !m.test?.passed || !m.test.up_to_date}
+                              disabled={busy !== null || data.engine.demo || !m.test?.passed || !m.test.up_to_date}
                               onClick={() => run(`a:${m.name}`, () => api.activateModel(m.name), t.models.activated)}
                             >
                               {t.models.activate}
