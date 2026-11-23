@@ -123,7 +123,9 @@ def test_pptx_diapositives_et_vagues(world, tmp_path):
     titles = [s.shapes.title.text for s in prs.slides if s.shapes.title is not None]
     assert len(prs.slides) >= 2
     assert sum(t.startswith("Vague") for t in titles) == 3
-    assert any("Gantt" in t for t in titles) and any("Matrice" in t for t in titles)
+    # durées incomplètes : ni barre ni date, un ordre seulement
+    assert any("Ordre d'exécution" in t for t in titles) and not any("Gantt" in t for t in titles)
+    assert any("Matrice" in t for t in titles)
 
 
 def test_export_non_approuve_interdit(world, tmp_path):

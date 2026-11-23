@@ -42,6 +42,8 @@ class Settings(BaseSettings):
     ollama_repeat_penalty: float | None = None
     ollama_embedding_query_prefix: str = ""     # bge-m3 : aucun préfixe (e5 : "query: ")
     ollama_embedding_passage_prefix: str = ""   # e5 : "passage: "
+    # Registre de modèles (C1) : fichier local ignoré par Git, écrit atomiquement
+    models_registry_path: str = "./data/models.json"
     # Garde-fou : le serveur de modèle doit être local ou dans cette liste (séparée par des virgules)
     llm_allowed_hosts: str = "localhost,127.0.0.1,::1,ollama,host.docker.internal"
 

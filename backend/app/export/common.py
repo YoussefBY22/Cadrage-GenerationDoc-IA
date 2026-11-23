@@ -28,6 +28,7 @@ LABELS: dict[str, dict[str, str]] = {
         "section": "Section", "excerpt": "Extrait", "summary": "Synthèse",
         "wave_slide": "Vague {wave}", "score_inline": "score {score}",
         "gantt": "Calendrier (Gantt, semaines)", "weeks": "sem.",
+        "gantt_order": "Ordre d'exécution", "no_dates": "Durées non saisies : ordre seulement, aucune date.",
         "priority_matrix": "Matrice de priorité ({x} × {y})", "unknown": "inconnu",
     },
     "en": {
@@ -39,6 +40,7 @@ LABELS: dict[str, dict[str, str]] = {
         "section": "Section", "excerpt": "Excerpt", "summary": "Executive summary",
         "wave_slide": "Wave {wave}", "score_inline": "score {score}",
         "gantt": "Timeline (Gantt, weeks)", "weeks": "wk.",
+        "gantt_order": "Execution order", "no_dates": "Durations not entered: order only, no dates.",
         "priority_matrix": "Priority matrix ({x} × {y})", "unknown": "unknown",
     },
 }

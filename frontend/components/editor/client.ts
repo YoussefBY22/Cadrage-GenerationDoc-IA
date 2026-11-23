@@ -1,6 +1,7 @@
 import { API_URL, ApiError, getToken, setToken } from "@/lib/api";
 import type {
   CommentInfo,
+  Coherence,
   Deliverable,
   DeliverableContent,
   DeliverableState,
@@ -43,6 +44,7 @@ export type ExportFormat = "docx" | "pptx" | "pdf";
 export const deliverables = {
   me: () => call<{ id: string; role: Role }>("/auth/me"),
   get: (id: string) => call<Deliverable>(`/deliverables/${id}`),
+  coherence: (id: string) => call<Coherence>(`/deliverables/${id}/coherence`),
   versions: (id: string) => call<VersionInfo[]>(`/deliverables/${id}/versions`),
   saveContent: (id: string, content: DeliverableContent) =>
     call<{ version: number }>(`/deliverables/${id}/content`, body("PUT", content)),
@@ -66,6 +68,12 @@ export const deliverables = {
       scores?: { key: string; value: number }[];
       duration_weeks?: number;
       depends_on?: string[];
+      objective?: string;
+      expected_result?: string;
+      indicator?: string;
+      priority_ids?: string[];
+      depends_on_projects?: string[];
+      accept_proposal?: boolean;
     }[],
   ) => call<unknown>(`/deliverables/${id}/roadmap`, body("PATCH", { initiatives })),
   async exportFile(id: string, format: ExportFormat): Promise<{ blob: Blob; filename: string }> {
