@@ -15,7 +15,13 @@ from app.domain.retrieval import Passage
 from app.domain.verification import VerificationReport
 from app.domain.workflow import CurrentUser
 from app.generation.llm_schemas import LLMSection
-from app.generation.prompting import build_section_prompt, estimate_tokens, system_prompt
+from app.generation.prompting import (
+    build_section_prompt,
+    estimate_tokens,
+    fit_passages,
+    passage_budget,
+    system_prompt,
+)
 from app.generation.relevance import below_threshold, resolve_threshold
 from app.generation.template_loader import SectionSpec, Template, load_template
 from app.llm.base import LLMError, LLMProvider
@@ -62,6 +68,9 @@ def call_model(provider: LLMProvider, prompt: str, schema, *, lang: str = "fr",
         except LLMError as exc:
             error = str(exc)[:300]
     return None, 2, int((time.perf_counter() - start) * 1000), error
+
+
+SECTION_REPLY_TOKENS = 700  # place gardée pour la réponse
 
 
 def record_run(repo, provider: LLMProvider, *, dossier_id: str, kind: str, prompt: str,
@@ -183,9 +192,13 @@ def generate_section(repo, provider: LLMProvider, search, deliverable_id: str, s
                               "Aucun passage trouvé pour les requêtes : " + " ; ".join(queries)))
         status = "refused"
     else:
+        nonce = new_nonce()
+        fixed = system_prompt(content.language) + build_section_prompt(
+            spec, [], findings=findings, context=ctx, nonce=nonce, lang=content.language)
+        budget = passage_budget(getattr(provider, "context_tokens", None), fixed, SECTION_REPLY_TOKENS)
+        passages = fit_passages(passages, nonce, budget)  # seuls les passages lus sont citables
         prompt = build_section_prompt(spec, passages, findings=findings, context=ctx,
-                                      nonce=new_nonce(),
-                                      lang=content.language)
+                                      nonce=nonce, budget=budget, lang=content.language)
         llm, attempts, latency, error = call_model(provider, prompt, LLMSection,
                                                    lang=content.language)
         if llm is None:
