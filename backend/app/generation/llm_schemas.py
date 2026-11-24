@@ -100,18 +100,29 @@ def build_initiatives_schema(finding_labels: list[str], priority_labels: list[st
     return create_model("LLMInitiatives", initiatives=(list[ini], Field(json_schema_extra={"maxItems": 4})))
 
 
-def build_axes_schema(finding_labels: list[str]):
-    """Schéma de `LLMAxes` : UNE ligne par constat F1..Fn de ce lot (constat, axe), exactement n lignes.
+MAX_NEW_AXES = 7
 
-    Une ligne par constat oblige le modèle à lire chaque constat (un regroupement libre l'incitait à couper
-    la liste en blocs consécutifs sans la lire).
+
+def build_axes_schema(finding_labels: list[str], n_known: int = 0):
+    """Schéma de `LLMAxes` pour CE lot.
+
+    ``new_axes`` : les axes nouveaux, déclarés une fois (identifiants A{k+1}…, k = axes déjà créés) ;
+    ``assignments`` : UNE ligne par constat F1..Fn, qui renvoie à un identifiant d'axe (A1…). Une ligne par constat
+    oblige à lire chaque constat ; le titre n'est écrit qu'une fois, la réponse reste courte.
     """
     from pydantic import ConfigDict, create_model
 
     cfg = ConfigDict(json_schema_extra=_all_required)
     n = len(finding_labels)
+    new_ids = [f"A{k}" for k in range(n_known + 1, n_known + MAX_NEW_AXES + 1)]
+    all_ids = [f"A{k}" for k in range(1, n_known + 1)] + new_ids
+    axis = create_model("LLMNewAxis", __config__=cfg,
+                        id=(str, Field(json_schema_extra={"enum": new_ids})), name=(str, ...))
     row = create_model(
         "LLMAxisRow", __config__=cfg,
-        finding=(str, Field(json_schema_extra={"enum": list(finding_labels)})), axis=(str, ...))
-    return create_model("LLMAxes", __config__=cfg,
-                        assignments=(list[row], Field(json_schema_extra={"minItems": n, "maxItems": n})))
+        finding=(str, Field(json_schema_extra={"enum": list(finding_labels)})),
+        axis=(str, Field(json_schema_extra={"enum": all_ids})))
+    return create_model(
+        "LLMAxes", __config__=cfg,
+        new_axes=(list[axis], Field(json_schema_extra={"maxItems": MAX_NEW_AXES})),
+        assignments=(list[row], Field(json_schema_extra={"minItems": n, "maxItems": n})))

@@ -45,7 +45,13 @@ def _handler(prompt, schema):
     """Axes : F impairs → Gouvernance, F pairs → Données. Initiatives : une par axe, + un titre commun."""
     labels = re.findall(r"^F(\d+):", prompt, re.MULTILINE)
     if schema.__name__ == "LLMAxes":
-        return {"assignments": [{"finding": f"F{n}", "axis": "Gouvernance" if int(n) % 2 else "données"}
+        known = re.findall(r"^A(\d+): (.+)$", prompt, re.MULTILINE)
+        ids = {name: f"A{k}" for k, name in known}
+        new_axes = [{"id": f"A{len(ids) + 1 + j}", "name": nm}
+                    for j, nm in enumerate(x for x in ("Gouvernance", "données") if x not in ids)]
+        ids |= {a["name"]: a["id"] for a in new_axes}
+        return {"new_axes": new_axes,
+                "assignments": [{"finding": f"F{n}", "axis": ids["Gouvernance" if int(n) % 2 else "données"]}
                                 for n in labels]}
     if schema.__name__ == "LLMInitiatives":
         axis = re.search(r"AXE DE LA FEUILLE DE ROUTE : (.+?) \(", prompt).group(1)
@@ -138,3 +144,18 @@ def test_tdr_d_une_initiative_ne_recoit_que_ses_constats(repo, tmp_path):
     mine = {f"sujet {words[int(x[4:]) - 1]}" for x in ini["finding_ids"]}
     others = {f"sujet {w}" for w in words} - mine
     assert all(m in prompts[0] for m in mine) and not any(o in prompts[0] for o in others)
+
+
+def test_lots_suivants_reutilisent_les_axes_par_identifiant(repo, tmp_path, monkeypatch):
+    monkeypatch.setattr(roadmap_service, "AXES_BATCH", 4)
+    p = FakeProvider(handler=_handler)
+    did, _s, _st = _setup(repo, p, tmp_path)
+    words = ["budget", "paie", "archives", "achats", "marchés", "formation", "sécurité", "réseau",
+             "courrier", "contrats", "stocks"]
+    repo.save_findings(did, [_f(i, f"Constat distinct sur le sujet {w}.", theme=w)
+                             for i, w in enumerate(words, 1)])
+    r = roadmap_service.generate(repo, p, did, USER)
+    axes_prompts = [c["prompt"] for c in p.calls if c.get("schema") == "LLMAxes"]
+    assert len(axes_prompts) == 3
+    assert "A1: Gouvernance" in axes_prompts[1] and "A2: Données" in axes_prompts[1]
+    assert {it["initiative"]["axis"] for it in r["roadmap"]["items"]} == {"Gouvernance", "Données"}
