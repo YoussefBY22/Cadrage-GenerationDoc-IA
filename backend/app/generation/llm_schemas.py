@@ -96,4 +96,22 @@ def build_initiatives_schema(finding_labels: list[str], priority_labels: list[st
         objective=(str, ""), expected_result=(str, ""), indicator=(str, ""),
         priorities=(list[str], labels(priority_labels)),
         depends_on_projects=(list[str], labels(project_labels)))
-    return create_model("LLMInitiatives", initiatives=(list[ini], ...))
+    # au plus 4 initiatives par appel : réponse courte, jamais tronquée par la fenêtre (vu sur un vrai rapport)
+    return create_model("LLMInitiatives", initiatives=(list[ini], Field(json_schema_extra={"maxItems": 4})))
+
+
+def build_axes_schema(finding_labels: list[str]):
+    """Schéma de `LLMAxes` : UNE ligne par constat F1..Fn de ce lot (constat, axe), exactement n lignes.
+
+    Une ligne par constat oblige le modèle à lire chaque constat (un regroupement libre l'incitait à couper
+    la liste en blocs consécutifs sans la lire).
+    """
+    from pydantic import ConfigDict, create_model
+
+    cfg = ConfigDict(json_schema_extra=_all_required)
+    n = len(finding_labels)
+    row = create_model(
+        "LLMAxisRow", __config__=cfg,
+        finding=(str, Field(json_schema_extra={"enum": list(finding_labels)})), axis=(str, ...))
+    return create_model("LLMAxes", __config__=cfg,
+                        assignments=(list[row], Field(json_schema_extra={"minItems": n, "maxItems": n})))

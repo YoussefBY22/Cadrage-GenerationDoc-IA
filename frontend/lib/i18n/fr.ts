@@ -377,6 +377,8 @@ export const fr = {
     roadmapCols: {
       rank: "Rang",
       wave: "Vague",
+      axis: "Axe",
+      noAxis: "Sans axe",
       title: "Initiative",
       score: "Score",
       explain: "Critères",

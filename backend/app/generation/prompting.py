@@ -96,6 +96,17 @@ _L = {
         "projects_hdr": "PROJETS EXISTANTS (cite PJ1..PJn dans depends_on_projects) :",
         "validated_short": "CONSTATS VALIDÉS :",
         "reply_ini": "Réponds par un JSON LLMInitiatives.",
+        "task_axes": ("TÂCHE : regrouper les constats en AXES de transformation, comme dans une feuille de route "
+                      "de cabinet de conseil (par exemple gouvernance, processus, systèmes d'information, "
+                      "données, ressources humaines, conformité ; choisis les noms d'après les constats). "
+                      "Pour tout le dossier : 3 à 7 axes au total. Réutilise un AXE DÉJÀ CRÉÉ dès qu'un constat "
+                      "s'y rattache (même nom exact) ; crée un nouvel axe seulement si aucun ne convient. "
+                      "Lis chaque constat et donne UNE ligne par constat F1..Fn (constat, axe) selon son SENS, jamais selon sa position dans la liste. Nom d'axe : 1 à 4 mots."),
+        "axes_known": "AXES DÉJÀ CRÉÉS :",
+        "axes_none": "(aucun pour l'instant)",
+        "reply_axes": "Réponds par un JSON LLMAxes.",
+        "axis_hdr": "AXE DE LA FEUILLE DE ROUTE : {} (propose les initiatives de cet axe seulement ; "
+                    "chaque constat F doit être traité par au moins une initiative)",
     },
     "en": {
         "section": "SECTION: {}", "instr": "INSTRUCTION: {}",
@@ -142,6 +153,16 @@ _L = {
         "projects_hdr": "EXISTING PROJECTS (cite PJ1..PJn in depends_on_projects):",
         "validated_short": "VALIDATED FINDINGS:",
         "reply_ini": "Reply with a JSON LLMInitiatives.",
+        "task_axes": ("TASK: group the findings into transformation AXES, as in a consulting firm roadmap "
+                      "(for instance governance, processes, information systems, data, human resources, "
+                      "compliance; choose names from the findings). For the whole engagement: 3 to 7 axes in "
+                      "total. Reuse an EXISTING AXIS whenever a finding fits it (same exact name); create a new "
+                      "axis only if none fits. Read each finding and give ONE row per finding F1..Fn (finding, axis) based on its MEANING, never on its position in the list. Axis name: 1 to 4 words."),
+        "axes_known": "EXISTING AXES:",
+        "axes_none": "(none yet)",
+        "reply_axes": "Reply with a JSON LLMAxes.",
+        "axis_hdr": "ROADMAP AXIS: {} (propose initiatives for this axis only; every finding F must be "
+                    "addressed by at least one initiative)",
     },
 }
 
@@ -151,6 +172,7 @@ def _t(lang: Lang) -> dict[str, str]:
 
 
 # Budget de contexte (08 §4.3) : passages 10 x 350 = 3 500 jetons sur un modèle de 4 k.
+NL = chr(10)
 DEFAULT_PASSAGE_BUDGET = 3500
 _WORD_FACTOR = 1.3
 # Mesuré sur qwen3 en français : 1 190 mots = 1 998 jetons, soit 1,68. Marge pour chiffres et sigles.
@@ -317,6 +339,7 @@ def build_initiatives_prompt(
     lang: Lang = "fr",
     priorities: Sequence[Priority] = (),
     projects: Sequence[ExistingProject] = (),
+    axis: str | None = None,
 ) -> str:
     """Message utilisateur pour proposer des initiatives notées (JSON ``LLMInitiatives``).
 
@@ -329,8 +352,10 @@ def build_initiatives_prompt(
         extra += [t["priorities_hdr"], _render_priorities(priorities, nonce)]
     if projects:
         extra += [t["projects_hdr"], _render_projects(projects, nonce)]
+    head = [t["axis_hdr"].format(neutralize(axis, nonce))] if axis else []
     return "\n".join(
         [
+            *head,
             t["task_ini"].format(crit=crit),
             t["validated_short"],
             _render_findings(findings, nonce),
@@ -340,3 +365,18 @@ def build_initiatives_prompt(
             t["reply_ini"],
         ]
     )
+
+
+def render_axis_findings(findings: Sequence[Finding], nonce: str) -> str:
+    """F1..Fn avec gravité et thème d'extraction (indice seulement) : une ligne courte par constat."""
+    return NL.join(f"F{i}: [{f.severity}; {neutralize(f.theme, nonce)}] {neutralize(f.text, nonce)}"
+                   for i, f in enumerate(findings, 1))
+
+
+def build_axes_prompt(findings: Sequence[Finding], known_axes: Sequence[str], *, nonce: str,
+                      lang: Lang = "fr") -> str:
+    """Un LOT de constats à ranger dans des axes ; les axes déjà créés sont rappelés pour rester cohérent."""
+    t = _t(lang)
+    known = NL.join(f"- {neutralize(a, nonce)}" for a in known_axes) or t["axes_none"]
+    return NL.join([t["task_axes"], t["axes_known"], known, t["validated_short"],
+                    render_axis_findings(findings, nonce), t["reply_axes"]])

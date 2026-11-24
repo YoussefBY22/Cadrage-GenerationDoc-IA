@@ -42,6 +42,7 @@ class Initiative(BaseModel):
     proposal_status: Literal["proposed", "accepted"] = "proposed"
     proposal_flags: list[str] = []  # nombres de la proposition absents des sources
     domain: str | None = None  # domaine COBIT 2019 / pratique ITIL 4 (étiquette facultative)
+    axis: str | None = None  # axe de transformation (gouvernance, processus…) trouvé par le modèle
 
 
 class ScoredInitiative(BaseModel):
