@@ -90,7 +90,7 @@ Détail : [`lots/R2.md`](lots/R2.md).
 - Feuille de route : 5 initiatives sur 5 reliées à la bonne priorité.
 - Latence par section : 21,7 s (p50). GPU : 89 à 91 °C en charge continue.
 
-## 5. Entraînement : où on en est
+## 5. Entraînement : où on en est (au 23/11 après-midi ; suite dans [`19-entrainement-et-tests-reels.md`](19-entrainement-et-tests-reels.md))
 
 - Aucun entraînement n'a abouti.
 - Chaîne d'export (fusion LoRA, GGUF, import Ollama) prouvée sur Ollama 0.40.16 puis 0.40.17.
