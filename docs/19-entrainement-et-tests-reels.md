@@ -1,4 +1,4 @@
-# 19 — Entraînement du modèle et tests sur un vrai rapport (23/11 soir → 24/11/2026)
+# 19 — Entraînement du modèle, tests sur un vrai rapport, feuille de route par axes (23/11 soir → 24/11/2026)
 
 > Lecteur : toi, ton encadrant, ou un technicien qui reprend le projet. Suite de
 > [`18-rapport-technique-detaille.md`](18-rapport-technique-detaille.md) (21 au 23/11). Les mots techniques sont
@@ -14,7 +14,8 @@
 | Combien de temps ? | 21 min d'entraînement sur le GPU gratuit de Colab (T4), arrêt automatique au bon moment. |
 | Est-il meilleur ? | Oui, nettement, sur ce qu'on lui a appris : refuser sans preuve, extraire des constats, lire la position d'une institution, citer juste. |
 | Qu'est-ce qui ne marche pas encore ? | Détecter un vrai conflit entre une recommandation et une stratégie ; calibrer la gravité ; traiter un rapport réel de 100 pages en une seule feuille de route. |
-| Le produit marche-t-il sur un vrai rapport ? | Jusqu'aux constats, oui. La feuille de route **bloque** : trop de constats pour la mémoire de travail du modèle (§6). Agrandir cette mémoire à 8 192 jetons a été essayé : trop lent sur ce PC. La solution est de traiter les constats par thème (§7). |
+| Le produit marche-t-il sur un vrai rapport ? | Oui depuis la feuille de route **par axes** (§9, PR #21) : 55 constats traités en 27 min dans la fenêtre de 4 096 jetons. Avant, elle **bloquait** (§6) ; agrandir la fenêtre à 8 192 jetons était trop lent sur ce PC (§7). |
+| Et ensuite ? | Le modèle trouve encore trop peu d'axes : la tâche « axes » est ajoutée au jeu d'entraînement (paquet v5, §10, PR #22). Prochain entraînement : Kaggle. |
 
 ## 1. Les mots à connaître
 
@@ -234,12 +235,65 @@ notre modèle tourne sur une carte de 4 Go, sur site, sans rien envoyer dehors.
 
 | # | Action | Type | Pourquoi |
 |---|---|---|---|
-| 1 | Regrouper les constats par thème avant la feuille de route (§7, solution 3) | code | seul vrai blocage sur un rapport réel |
+| 1 | ~~Regrouper les constats par thème avant la feuille de route~~ **fait** (§9, PR #21) | code | seul vrai blocage sur un rapport réel |
 | 2 | Activer le cache 8 bits et mesurer 8 192 jetons sur le banc | réglage + mesure | double la fenêtre sans racheter de matériel |
 | 3 | Ne pas extraire de constats des réponses de l'institution | code | elles servent à la position |
-| 4 | Interdire deux initiatives au même titre ; rattacher chaque constat | code | défauts vus en 6.3 |
-| 5 | Entraînement suivant (Kaggle, quota hebdomadaire plus large) : plus de vrais conflits, gravité équilibrée, « phrase de méthode ≠ constat », objectifs tirés des recommandations, corriger les 2 étiquettes | données + entraînement | points faibles vus en 4, 6.1, 6.2, 6.4 |
+| 4 | ~~Interdire deux initiatives au même titre~~ **fait** (§9) ; rattacher chaque constat (6 sur 55 encore sans initiative) | code | défauts vus en 6.3 et 9 |
+| 5 | Entraînement suivant (Kaggle, quota hebdomadaire plus large) : tâche « axes » **prête** (§10) ; à ajouter : plus de vrais conflits, gravité équilibrée, « phrase de méthode ≠ constat », objectifs tirés des recommandations, corriger les 2 étiquettes | données + entraînement | points faibles vus en 4, 6.1, 6.2, 6.4 |
 | 6 | Tester sur tes propres rapports, puis recalibrer le filtre de pertinence (seuil 0,45) sur ces données | mesure | le seuil a été réglé sur des données fictives |
 
 **Proposition (à valider par Youssef)** : utiliser le modèle entraîné (`cadrage-4b-lora`) par défaut pour
 l'extraction, la position et le refus, en gardant la base (`cadrage-4b-base`) importée à côté pour comparer.
+
+## 9. Feuille de route par axes (24/11, PR #21)
+
+**Ce que font les cabinets** (sources publiques : McKinsey, guide PEFA de la Banque mondiale, cabinets français ;
+rien de public sur la méthode propre à EY) : une feuille de route se lit sur deux dimensions, des **axes** (chantiers :
+gouvernance, processus, systèmes d'information, données…) et des **horizons** (gains rapides, fondations,
+transformation), ordonnés selon la valeur, la faisabilité, les dépendances, en commençant par les bases.
+
+**Ce que fait maintenant l'application** : au lieu d'une seule grosse question, plusieurs petites, chacune sous la
+fenêtre de 4 096 jetons.
+
+| Étape | Qui | Détail |
+|---|---|---|
+| 1. Doublons | code | constats quasi identiques fusionnés (≥ 85 % de mots communs), sans rien perdre |
+| 2. Axes | modèle, lots de 25 constats | il déclare les axes nouveaux une fois (A1 : titre), puis donne l'axe de chaque constat selon son sens ; les axes déjà créés lui sont rappelés |
+| 3. Initiatives | modèle, axe par axe | au plus 8 constats et 4 initiatives par appel ; une partie ratée est signalée, les autres sont gardées |
+| 4. Classement, vagues | code | inchangé : score, rang, vagues, chemin critique |
+| TdR / CdC | code | une section ne reçoit que les constats de **son** initiative (avant : les 55, soit 17 000 caractères, refus d'Ollama) |
+| Écran | interface | tableau **axes × vagues** |
+
+**Mesure sur le vrai rapport** (cadrage-4b-lora, 55 constats, fenêtre 4 096) :
+
+| | Avant | Après |
+|---|---|---|
+| Feuille de route | refusée ; à 8 192 jetons, coupée après 604 s | **produite** en 1 651 s (~27 min), 12 initiatives |
+| Appels au modèle | 1 (trop gros) | 3 « axes » (30-60 s) + 9 « initiatives » (2-4 min) |
+| TdR « contexte » | TPV 0,7, puis refus d'Ollama | **TPV 1,0** en 70 s |
+| Défauts restants | — | 2 axes seulement ; 1 partie sur 9 ratée ; 6 constats sans initiative ; une initiative nommée « Données » |
+
+Tests : 726 backend, 12 interface. Détail : `docs/lots/AXES.md` (branche de la PR #21).
+
+## 10. Tâche « axes » pour le prochain entraînement (24/11, PR #22)
+
+**Problème** : le modèle entraîné n'a jamais appris à ranger des constats en axes (2 axes au lieu de 3 à 7).
+
+**Vérité utilisée** : le **sommaire** de chaque rapport de la Cour. Les observations y sont découpées en grandes
+parties, chacune avec sa plage de points (ex. « 18 - 32 », « 33 - 56 »). Un constat recopié du point 40 appartient
+à la partie 33-56. Ce sont les auditeurs qui ont fait ce regroupement : rien n'est inventé. Les constats sont
+**mélangés** pour que le modèle range selon le sens, pas selon la place dans la liste (son défaut sur le vrai rapport).
+
+| | Valeur |
+|---|---|
+| Rapports téléchargés (Cour des comptes UE 2023-2026, CC BY 4.0) | 89 ; sommaire lu sur 84 (formats 2022-2024 et 2025) |
+| Exemples « axes » | 140 : 100 entraînement, 4 validation, 36 test |
+| Paquet v5 | v4 inchangé (535) + 140 = **675 exemples**, **même découpage par rapport** (comparable à v4) |
+| Longueur | 471 à 1 038 jetons par exemple (limite d'entraînement : 2 048) |
+| Contrôles | aucun défaut ; invite identique à celle de l'application ; exemples relus par l'orchestrateur |
+| Note au test final | paires de constats rangées ensemble ou séparées comme dans le sommaire ; axes obtenus / attendus |
+| Carnets | Colab et Kaggle épinglés : CODE e20ddf3, DONNEES 5909f70d… |
+
+**Limites** : les titres d'axe sont ceux des auditeurs (phrases jusqu'à 30 mots), pas des noms courts de cabinet ;
+une source du pilote v3 a un certificat de sécurité expiré, la vérification n'a pas été contournée : le paquet v4 est
+repris tel quel au lieu d'être reconstruit ; l'entraînement v5 n'a pas encore tourné.
