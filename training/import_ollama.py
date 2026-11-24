@@ -71,7 +71,7 @@ def import_one(kind: str, folder: Path, sums: Path | None = None, say=print) -> 
     shown = export_gguf._run(["ollama", "show", "--modelfile", tag], "relecture du modèle importé")
     if f"sha256-{sha}" not in shown.replace("\\", "/").lower():
         raise ExportError(f"{tag} : le fichier importé par Ollama n'a pas l'empreinte du GGUF")
-    if export_gguf.template_body(shown) != export_gguf.template_body(export_gguf.base_modelfile_text()):
+    if not export_gguf.same_template(shown, export_gguf.base_modelfile_text()):
         raise ExportError(f"{tag} : le gabarit importé n'est pas celui de {BASE_TAG}")
     say(f"[{tag}] importé, empreinte et gabarit relus dans Ollama")
     reply = _control(tag)

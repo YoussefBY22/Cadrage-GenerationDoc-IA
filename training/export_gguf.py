@@ -44,6 +44,15 @@ def template_body(modelfile: str) -> str:
     return "\n".join(kept).strip() + "\n"
 
 
+def same_template(a: str, b: str) -> bool:
+    """Même gabarit et mêmes paramètres ; l'ordre des lignes PARAMETER (qu'Ollama réordonne) ne compte pas."""
+    def split(modelfile: str) -> tuple[list[str], list[str]]:
+        lines = template_body(modelfile).splitlines()
+        params = sorted(x for x in lines if x.startswith("PARAMETER "))
+        return [x for x in lines if not x.startswith("PARAMETER ")], params
+    return split(a) == split(b)
+
+
 def modelfile_text(base_modelfile: str, gguf_name: str, licence: str = LICENCE_BASE) -> str:
     """Modelfile du modèle de base (gabarit, paramètres), avec FROM vers le GGUF fusionné."""
     return f'FROM ./{gguf_name}\n{template_body(base_modelfile).strip()}\nLICENSE "{licence}"\n'
@@ -90,8 +99,8 @@ def _run(cmd: list[str], what: str, cwd: Path | None = None) -> str:
 
 def check_template(base_tag: str = "qwen3:4b") -> None:
     """Le gabarit figé dans le dépôt doit être celui que cet Ollama donne à `base_tag` (lecture seule)."""
-    live = template_body(_run(["ollama", "show", "--modelfile", base_tag], "lecture du gabarit Ollama"))
-    if live != template_body(base_modelfile_text()):
+    live = _run(["ollama", "show", "--modelfile", base_tag], "lecture du gabarit Ollama")
+    if not same_template(live, base_modelfile_text()):
         raise ExportError(f"le gabarit de {base_tag} dans Ollama diffère de training/ollama/qwen3-4b.Modelfile")
 
 
