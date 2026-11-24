@@ -101,7 +101,7 @@ _L = {
                       "données, ressources humaines, conformité ; choisis les noms d'après les constats). "
                       "Pour tout le dossier : 3 à 7 axes au total. Réutilise un AXE DÉJÀ CRÉÉ dès qu'un constat "
                       "s'y rattache (même nom exact) ; crée un nouvel axe seulement si aucun ne convient. "
-                      "Lis chaque constat et donne UNE ligne par constat F1..Fn (constat, axe) selon son SENS, jamais selon sa position dans la liste. Nom d'axe : 1 à 4 mots."),
+                      "Lis chaque constat et donne UNE ligne par constat F1..Fn (constat, axe) selon son SENS, jamais selon sa position dans la liste. Nom d'axe : un titre court (au plus 20 mots), le même pour tous les constats de l'axe."),
         "axes_known": "AXES DÉJÀ CRÉÉS :",
         "axes_none": "(aucun pour l'instant)",
         "reply_axes": "Réponds par un JSON LLMAxes.",
@@ -157,7 +157,7 @@ _L = {
                       "(for instance governance, processes, information systems, data, human resources, "
                       "compliance; choose names from the findings). For the whole engagement: 3 to 7 axes in "
                       "total. Reuse an EXISTING AXIS whenever a finding fits it (same exact name); create a new "
-                      "axis only if none fits. Read each finding and give ONE row per finding F1..Fn (finding, axis) based on its MEANING, never on its position in the list. Axis name: 1 to 4 words."),
+                      "axis only if none fits. Read each finding and give ONE row per finding F1..Fn (finding, axis) based on its MEANING, never on its position in the list. Axis name: a short title (at most 20 words), the same for every finding of the axis."),
         "axes_known": "EXISTING AXES:",
         "axes_none": "(none yet)",
         "reply_axes": "Reply with a JSON LLMAxes.",
