@@ -24,7 +24,7 @@ Aucune méthode propre à EY n'est publique.
 | Étape | Qui | Détail |
 |---|---|---|
 | 1. Doublons | code (`app/roadmap/axes.py`) | constats quasi identiques (≥ 85 % de mots communs) fusionnés ; le doublon suit son représentant |
-| 2. Axes | modèle, par lots de 25 | une ligne (constat, axe) par constat, selon son sens ; les axes déjà créés sont rappelés ; noms fusionnés sans casse ni accents |
+| 2. Axes | modèle, par lots de 25 | les axes nouveaux sont déclarés une fois (A1 : titre), puis une ligne (constat, A…) par constat, selon son sens ; les axes déjà créés sont rappelés par identifiant |
 | 3. Initiatives | modèle, axe par axe | au plus 8 constats et 4 initiatives par appel (réponse jamais tronquée) ; un axe trop gros est découpé ; une partie ratée est signalée (« constats à reprendre ») sans effacer les autres |
 | 4. Fusion | code | même titre proposé deux fois : une seule initiative ; dépendances résolues entre tous les axes |
 | 5. Classement, vagues | code (inchangé) | score, rang, vagues, chemin critique |

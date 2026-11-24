@@ -109,9 +109,9 @@ _L = {
         "task_axes": ("TÂCHE : regrouper les constats en AXES de transformation, comme dans une feuille de route "
                       "de cabinet de conseil (par exemple gouvernance, processus, systèmes d'information, "
                       "données, ressources humaines, conformité ; choisis les noms d'après les constats). "
-                      "Pour tout le dossier : 3 à 7 axes au total. Réutilise un AXE DÉJÀ CRÉÉ dès qu'un constat "
-                      "s'y rattache (même nom exact) ; crée un nouvel axe seulement si aucun ne convient. "
-                      "Lis chaque constat et donne UNE ligne par constat F1..Fn (constat, axe) selon son SENS, jamais selon sa position dans la liste. Nom d'axe : un titre court (au plus 20 mots), le même pour tous les constats de l'axe."),
+                      "Pour tout le dossier : 2 à 7 axes au total. Réutilise un AXE DÉJÀ CRÉÉ (son identifiant A…) dès qu'un constat "
+                      "s'y rattache ; crée un nouvel axe seulement si aucun ne convient. "
+                      "Déclare d'abord dans new_axes chaque axe NOUVEAU (identifiant {first} puis suivants, et son titre, au plus 30 mots) ; puis lis chaque constat et donne UNE ligne par constat F1..Fn (constat, identifiant d'axe A…) selon son SENS, jamais selon sa position dans la liste."),
         "axes_known": "AXES DÉJÀ CRÉÉS :",
         "axes_none": "(aucun pour l'instant)",
         "reply_axes": "Réponds par un JSON LLMAxes.",
@@ -174,9 +174,9 @@ _L = {
         "reply_ini": "Reply with a JSON LLMInitiatives.",
         "task_axes": ("TASK: group the findings into transformation AXES, as in a consulting firm roadmap "
                       "(for instance governance, processes, information systems, data, human resources, "
-                      "compliance; choose names from the findings). For the whole engagement: 3 to 7 axes in "
-                      "total. Reuse an EXISTING AXIS whenever a finding fits it (same exact name); create a new "
-                      "axis only if none fits. Read each finding and give ONE row per finding F1..Fn (finding, axis) based on its MEANING, never on its position in the list. Axis name: a short title (at most 20 words), the same for every finding of the axis."),
+                      "compliance; choose names from the findings). For the whole engagement: 2 to 7 axes in "
+                      "total. Reuse an EXISTING AXIS (its identifier A…) whenever a finding fits it; create a new "
+                      "axis only if none fits. First declare in new_axes each NEW axis (identifier {first} onwards, and its title, at most 30 words); then read each finding and give ONE row per finding F1..Fn (finding, axis identifier A…) based on its MEANING, never on its position in the list."),
         "axes_known": "EXISTING AXES:",
         "axes_none": "(none yet)",
         "reply_axes": "Reply with a JSON LLMAxes.",
@@ -413,6 +413,7 @@ def build_axes_prompt(findings: Sequence[Finding], known_axes: Sequence[str], *,
                       lang: Lang = "fr") -> str:
     """Un LOT de constats à ranger dans des axes ; les axes déjà créés sont rappelés pour rester cohérent."""
     t = _t(lang)
-    known = NL.join(f"- {neutralize(a, nonce)}" for a in known_axes) or t["axes_none"]
-    return NL.join([t["task_axes"], t["axes_known"], known, t["validated_short"],
+    known = NL.join(f"A{i}: {neutralize(a, nonce)}" for i, a in enumerate(known_axes, 1)) or t["axes_none"]
+    return NL.join([t["task_axes"].format(first=f"A{len(known_axes) + 1}"), t["axes_known"], known,
+                    t["validated_short"],
                     render_axis_findings(findings, nonce), t["reply_axes"]])

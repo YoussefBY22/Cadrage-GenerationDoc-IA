@@ -103,8 +103,9 @@ def _find_axes(repo, provider, dossier_id, reps, language, ctx_tokens) -> tuple[
     for lot in lots:
         prompt = build_axes_prompt(lot, book.names, nonce=nonce, lang=language)
         labels = [f"F{i}" for i in range(1, len(lot) + 1)]
-        llm, attempts, latency, error = call_model(provider, prompt, build_axes_schema(labels),
-                                                   lang=language)
+        known = list(book.names)
+        llm, attempts, latency, error = call_model(provider, prompt,
+                                                   build_axes_schema(labels, len(known)), lang=language)
         calls += 1
         record_run(repo, provider, dossier_id=dossier_id, kind="axes", prompt=prompt,
                    status="ok" if llm else "invalid", attempts=attempts, latency_ms=latency,
@@ -112,11 +113,14 @@ def _find_axes(repo, provider, dossier_id, reps, language, ctx_tokens) -> tuple[
         if llm is None:
             failed.append(error or "")
             continue
+        names = {f"A{i}": n for i, n in enumerate(known, 1)}
+        names |= {_lbl(a.id): a.name for a in llm.new_axes if _lbl(a.id) not in names}
         for row in llm.assignments:
             num = _lbl(row.finding)[1:]
             k = int(num) if num.isdigit() else 0
-            if 1 <= k <= len(lot):
-                book.assign(lot[k - 1].id, row.axis)
+            name = names.get(_lbl(row.axis))
+            if 1 <= k <= len(lot) and name:  # axe non déclaré : constat laissé « Autres constats »
+                book.assign(lot[k - 1].id, name)
     return book.groups(reps), failed, calls
 
 
