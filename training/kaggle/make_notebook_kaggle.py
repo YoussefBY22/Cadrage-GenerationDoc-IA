@@ -26,9 +26,9 @@ def put(cell, text: str) -> None:
 INTRO = """
 # Cadrage : entraîner la LoRA de Qwen3-4B sur Kaggle
 
-Tu vas entraîner un petit « supplément » (une LoRA) sur environ 340 exemples publics (rapports de la Cour des comptes
+Tu vas entraîner un petit « supplément » (une LoRA) sur environ 440 exemples publics (rapports de la Cour des comptes
 européenne et pièces de marché), puis fabriquer **deux modèles** pour Ollama, passés par exactement la même chaîne :
-la **base** et la **base + LoRA**. La LoRA apprend le **format**, la citation, le refus, la position et le conflit.
+la **base** et la **base + LoRA**. La LoRA apprend le **format**, la citation, le refus, la position, le conflit et le rangement des constats en axes.
 Elle n'apprend aucun fait de client. Aucun mot de passe ni jeton n'est demandé dans ce carnet.
 
 ## Avant de commencer (une seule fois)

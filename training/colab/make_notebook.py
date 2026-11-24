@@ -19,7 +19,7 @@ def code(text):
 md("""
 # Cadrage : entraîner la LoRA de Qwen3-4B
 
-Tu vas entraîner un petit « supplément » (une LoRA) sur environ 340 exemples publics (rapports de la Cour des comptes européenne et pièces de marché), puis fabriquer
+Tu vas entraîner un petit « supplément » (une LoRA) sur environ 440 exemples publics (rapports de la Cour des comptes européenne et pièces de marché), puis fabriquer
 **deux modèles** pour Ollama, passés par exactement la même chaîne : la **base** et la **base + LoRA**.
 La LoRA apprend le **format**, la citation et le refus. Elle n'apprend aucun fait de client.
 
