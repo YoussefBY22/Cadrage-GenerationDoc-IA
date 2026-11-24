@@ -14,7 +14,7 @@
 | Combien de temps ? | 21 min d'entraînement sur le GPU gratuit de Colab (T4), arrêt automatique au bon moment. |
 | Est-il meilleur ? | Oui, nettement, sur ce qu'on lui a appris : refuser sans preuve, extraire des constats, lire la position d'une institution, citer juste. |
 | Qu'est-ce qui ne marche pas encore ? | Détecter un vrai conflit entre une recommandation et une stratégie ; calibrer la gravité ; traiter un rapport réel de 100 pages en une seule feuille de route. |
-| Le produit marche-t-il sur un vrai rapport ? | Jusqu'aux constats, oui. La feuille de route **bloque** : trop de constats pour la mémoire de travail du modèle (§6). Solution identifiée et en cours de mesure. |
+| Le produit marche-t-il sur un vrai rapport ? | Jusqu'aux constats, oui. La feuille de route **bloque** : trop de constats pour la mémoire de travail du modèle (§6). Agrandir cette mémoire à 8 192 jetons a été essayé : trop lent sur ce PC. La solution est de traiter les constats par thème (§7). |
 
 ## 1. Les mots à connaître
 
