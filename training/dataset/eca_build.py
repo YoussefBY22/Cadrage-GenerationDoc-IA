@@ -32,9 +32,10 @@ from training.dataset import schema_order
 from training.dataset.v3_build import LANG, _chunk, assemble, contains
 
 MAX_PASSAGE_WORDS = 480  # l'entraînement coupe à 2048 jetons : invite (~400) + passages (~480 mots = ~900 jetons)
-TASKS = ("extraction", "position", "conflit", "feuille_de_route", "refus")
+TASKS = ("extraction", "position", "conflit", "feuille_de_route", "refus", "axes")
 KIND = {"extraction": "extraction de constats", "position": "position sur une recommandation",
-        "conflit": "conflit avec une contrainte", "feuille_de_route": "feuille de route", "refus": "refus"}
+        "conflit": "conflit avec une contrainte", "feuille_de_route": "feuille de route", "refus": "refus",
+        "axes": "axes de la feuille de route"}
 LICENCE_REP = "CC BY 4.0 (Cour des comptes européenne, décision n° 6-2019) ; réponses : décision 2011/833/UE, CC BY 4.0"
 LICENCE = "CC BY 4.0 (Cour des comptes européenne, décision n° 6-2019)"
 PREUVE = "https://www.eca.europa.eu/fr/legal-notice"
@@ -356,4 +357,8 @@ def build_report(report: dict, seed: int = 7) -> list[dict]:
     for kind in ("echeance", "position", "contrainte"):
         out.append(b.refusal(kind, recs, paras))
         out.append(b.refusal(kind, recs, paras))
+    from training.dataset import (
+        eca_axes,  # axes : vérité = parties du sommaire du rapport
+    )
+    out += [e for e in eca_axes.build_examples(report, rng) if not eca_axes.check(e, report["text"])]
     return [e for e in out if e]

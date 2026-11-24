@@ -199,6 +199,9 @@ def verify_example(example: dict) -> tuple[float, list[str]]:
 def rerender(example: dict) -> str:
     """Reconstruit l'invite utilisateur depuis ``meta.rendu`` : doit être identique à celle du fichier."""
     r = example["meta"]["rendu"]
+    if r["tache"] == "axes":  # ``app.generation.prompting.build_axes_prompt``
+        from training.dataset import eca_axes
+        return eca_axes.render(r["constats"], r["axes_connus"], r["nonce"])
     spec = SectionSpec(**r["spec"]) if r["spec"] else None
     ps = [Passage(label=p["label"], chunk=_chunk(example["meta"]["source"], example["meta"]["id"], i, p["texte"], p["titre"]),
                   score=1.0 / (i + 1), ranks={"bm25": i + 1}) for i, p in enumerate(r["passages"])]

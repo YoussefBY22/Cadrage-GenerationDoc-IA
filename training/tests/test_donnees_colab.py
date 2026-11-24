@@ -42,9 +42,12 @@ def _all(rows):
 
 # ---------------------------------------------------------------- effectifs et séparation par document
 def test_effectifs(rows):
-    assert {p: len(v) for p, v in rows.items()} == {"train": 341, "val": 25, "test": 169}
+    # v5 = v4 (341 / 25 / 169) + tâche « axes » (100 / 4 / 36), même découpage par rapport
+    assert {p: len(v) for p, v in rows.items()} == {"train": 441, "val": 29, "test": 205}
     lots = Counter(r["meta"]["lot"] for r in _all(rows))
-    assert lots == {"eca-2023-2026": 482, "pilote-v2": 28, "pilote-v3": 25}
+    assert lots == {"eca-2023-2026": 622, "pilote-v2": 28, "pilote-v3": 25}
+    axes = Counter(r["meta"]["split"] for r in _all(rows) if r["meta"]["task_type"] == "axes")
+    assert axes == {"train": 100, "val": 4, "test": 36}
     assert {r["meta"]["split"] for r in rows["train"]} == {"train"}
 
 
@@ -97,7 +100,7 @@ def test_le_paquet_ne_contient_que_du_public(rows):
             assert hashlib.sha256(z.read(name)).hexdigest() == sha
     assert "aucun document client" in manifest["contenu"]
     assert all(d["licence"].startswith(assemble.OPEN) for d in manifest["documents"].values())
-    assert manifest["effectifs"]["total"] == 535
+    assert manifest["effectifs"]["total"] == 675
     assert len(manifest["rapports_cour"]) >= 90 and all(r["url"].startswith("https://www.eca.europa.eu/") for r in manifest["rapports_cour"])
 
 
@@ -131,7 +134,11 @@ def test_les_constats_utilisent_la_tache_constats_de_l_application(rows):
 
 
 def test_chaque_exemple_passe_le_verificateur_de_l_application(rows):
+    from training.dataset import eca_axes
     for r in _all(rows):
+        if r["meta"]["task_type"] == "axes":  # pas de phrase à vérifier : contrôle propre à la tâche
+            assert eca_axes.check(r) == [], r["meta"]["id"]
+            continue
         tpv, blocking = v3_build.verify_example(r)
         assert blocking == [] and tpv == 1.0, r["meta"]["id"]
 

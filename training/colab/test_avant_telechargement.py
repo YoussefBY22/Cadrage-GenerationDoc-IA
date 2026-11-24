@@ -3,14 +3,15 @@
 # Les exemples de test viennent de rapports jamais vus à l'entraînement. Mesure par type de tâche (meta.task_type) :
 # JSON valide, bonne décision (répondre ou refuser), phrases vérifiées par le vérificateur de l'application,
 # et pour les tâches « position » et « conflit », étiquette (accept / partial / reject ; conflict / aligned) notée
-# comme une classification contre la position officielle de la Commission.
+# comme une classification contre la position officielle de la Commission ; pour « axes », paires de constats
+# rangées ensemble ou séparément comme dans le sommaire du rapport (les noms d'axes peuvent différer).
 import json, re, sys, time, urllib.request, zipfile
 from collections import Counter, defaultdict
 sh(f"{sys.executable} -m pip install -q snowballstemmer pydantic")
 sys.path.insert(0, "/content/cadrage/backend")
 from app.domain.documents import Chunk
 from app.domain.generation import SectionDraft, Sentence
-from app.generation.llm_schemas import LLMFindings, LLMSection, LLMStance
+from app.generation.llm_schemas import LLMFindings, LLMSection, LLMStance, build_axes_schema
 from app.verification import verify_section
 
 z = zipfile.ZipFile(STOCK / "cadrage-donnees-publiques.zip")
@@ -21,6 +22,9 @@ print(f"{len(tests)} exemples de test :", dict(Counter(e["meta"].get("task_type"
 
 def schema_de(ex):
     t = ex["meta"]["rendu"]["tache"]
+    if t == "axes":
+        r = ex["meta"]["rendu"]
+        return build_axes_schema([f"F{i}" for i in range(1, len(r["constats"]) + 1)], len(r["axes_connus"]))
     return LLMFindings if t == "constats" else LLMStance if t in ("position", "conflict") else LLMSection
 
 def demander(modele, messages, schema):
@@ -33,7 +37,26 @@ def demander(modele, messages, schema):
     r = json.loads(urllib.request.urlopen(req, timeout=600).read())
     return r["message"]["content"], time.time() - t
 
+def groupes(ex, reponse):
+    """Axe de chaque constat F1..Fn (identifiant), d'après une réponse LLMAxes."""
+    par_f = {x.get("finding"): x.get("axis") for x in reponse.get("assignments", [])}
+    return [par_f.get(f"F{i}") for i in range(1, len(ex["meta"]["rendu"]["constats"]) + 1)]
+
+def noter_axes(ex, texte):
+    attendu = groupes(ex, json.loads(ex["messages"][2]["content"]))
+    try:
+        obtenu = groupes(ex, json.loads(texte))
+    except ValueError:
+        return {"json": 0}
+    paires = [(i, j) for i in range(len(attendu)) for j in range(i + 1, len(attendu))]
+    ok = sum((attendu[i] == attendu[j]) == (obtenu[i] is not None and obtenu[i] == obtenu[j]) for i, j in paires)
+    return {"json": 1, "statut_juste": int(None not in obtenu), "phrases": 0, "verifiees": 0, "bloquantes": 0,
+            "francais": 1, "paires_justes": ok, "paires_n": len(paires),
+            "axes_attendus": len(set(attendu)), "axes_obtenus": len(set(x for x in obtenu if x))}
+
 def noter(ex, texte):
+    if ex["meta"]["rendu"]["tache"] == "axes":
+        return noter_axes(ex, texte)
     passages = dict(re.findall(r"<<PASSAGE id=(P\d+)[^>]*>>\n(.*?)\n<<FIN", ex["messages"][1]["content"], re.S))
     attendu = json.loads(ex["messages"][2]["content"])
     try:
@@ -82,6 +105,9 @@ for modele, (par_tache, temps) in resultats.items():
         t = par_tache[tache]
         total.update(t)
         et = f" | étiquette juste {t['etiquette_juste']}/{t['etiquette_n']}" if t["etiquette_n"] else ""
+        if t["paires_n"]:
+            et += (f" | paires bien rangées {t['paires_justes']}/{t['paires_n']} | axes obtenus "
+                   f"{t['axes_obtenus']} pour {t['axes_attendus']} attendus")
         print(f"{tache:18s} n={t['n']:3d} | JSON {t['json']}/{t['n']} | statut juste {t['statut_juste']}/{t['n']} | "
               f"phrases vérifiées {t['verifiees']}/{t['phrases']} | bloquantes {t['bloquantes']}{et}")
     print(f"{'TOTAL':18s} n={total['n']:3d} | JSON {total['json']}/{total['n']} | statut juste {total['statut_juste']}/{total['n']} | "
