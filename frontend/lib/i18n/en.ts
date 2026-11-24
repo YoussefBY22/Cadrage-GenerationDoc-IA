@@ -372,6 +372,8 @@ export const en: Messages = {
     roadmapCols: {
       rank: "Rank",
       wave: "Wave",
+      axis: "Axis",
+      noAxis: "No axis",
       title: "Initiative",
       score: "Score",
       explain: "Criteria",

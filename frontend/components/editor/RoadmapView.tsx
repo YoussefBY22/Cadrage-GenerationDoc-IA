@@ -94,6 +94,9 @@ export default function RoadmapView({ id }: { id: string }) {
   const sorted = [...roadmap.items].sort((a, b) => a.rank - b.rank);
   const title = (iid: string) => roadmap.items.find((x) => x.initiative.id === iid)?.initiative.title ?? iid;
   const waves = [...new Set(sorted.map((x) => x.wave))].sort((a, b) => a - b);
+  // Feuille de route par axes (lignes) et vagues (colonnes), comme dans un cabinet de conseil
+  const axes = [...new Set(sorted.map((x) => x.initiative.axis || c.noAxis))];
+  const byAxis = sorted.some((x) => x.initiative.axis);
   const maxScore = Math.max(...sorted.map((x) => x.score), 1);
   const cc = t.coeur.coherence;
   const validPriorities = priorities.filter((p) => p.status === "validated");
@@ -223,7 +226,39 @@ export default function RoadmapView({ id }: { id: string }) {
       </div>
 
       <div className="card" style={{ marginBottom: 20, display: "grid", gap: 12 }}>
-        {waves.map((w) => (
+        {byAxis && (
+          <div className="table-wrap" data-testid="axis-matrix">
+            <table>
+              <thead>
+                <tr>
+                  <th>{c.axis}</th>
+                  {waves.map((w) => (
+                    <th key={w}>{c.wave} {w}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {axes.map((a) => (
+                  <tr key={a}>
+                    <td style={{ fontWeight: 600 }}>{a}</td>
+                    {waves.map((w) => (
+                      <td key={w}>
+                        {sorted
+                          .filter((x) => x.wave === w && (x.initiative.axis || c.noAxis) === a)
+                          .map((x) => (
+                            <span key={x.initiative.id} className={`chip${roadmap.critical_path.includes(x.initiative.id) ? " crit-path" : ""}`}>
+                              {x.initiative.title}
+                            </span>
+                          ))}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {!byAxis && waves.map((w) => (
           <div key={w} className="wave-lane">
             <span className="wave">{c.wave} {w}</span>
             {sorted
@@ -268,6 +303,11 @@ export default function RoadmapView({ id }: { id: string }) {
                 </td>
                 <td style={{ fontWeight: 600, minWidth: 200 }}>
                   {ini.title}
+                  {ini.axis && (
+                    <div className="muted" style={{ fontWeight: 400, fontSize: 12 }}>
+                      {c.axis} : {ini.axis}
+                    </div>
+                  )}
                   <details className="picker" style={{ fontWeight: 400 }}>
                     <summary>{c.explain}</summary>
                     <div className="crit">
