@@ -3,10 +3,10 @@
   "name": "synthese_logo_carre",
   "position": {
     "x": 24,
-    "y": 28,
+    "y": 24,
     "z": 100,
-    "width": 30,
-    "height": 30,
+    "width": 28,
+    "height": 28,
     "tabOrder": -2
   },
   "visual": {

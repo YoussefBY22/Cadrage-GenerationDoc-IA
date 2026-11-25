@@ -1,0 +1,30 @@
+table 'Choix du projet'
+
+	column 'Projet choisi'
+		dataType: string
+		sourceColumn: choix
+		sortByColumn: Rang
+		summarizeBy: none
+
+	column Cible
+		dataType: string
+		isHidden
+		sourceColumn: cible
+		summarizeBy: none
+
+	column Rang
+		dataType: int64
+		isHidden
+		sourceColumn: rang
+		summarizeBy: none
+
+	partition 'Choix du projet' = m
+		mode: import
+		source =
+				let
+				    Valeurs = List.Buffer(List.Sort(List.Distinct(List.RemoveNulls(Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_project"), {"mission_name"}), {{"mission_name", type text}}, CultureCsv), "mission_name"))))),
+				    Toutes = List.Transform(Valeurs, each {"Tous", _, 0}),
+				    Chacune = List.Transform(List.Positions(Valeurs), each {Valeurs{_}, Valeurs{_}, _ + 1}),
+				    Resultat = #table(type table [choix = text, cible = text, rang = Int64.Type], Toutes & Chacune)
+				in
+				    Resultat

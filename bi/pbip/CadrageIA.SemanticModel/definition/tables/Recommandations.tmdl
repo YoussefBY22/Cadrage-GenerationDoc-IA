@@ -1,0 +1,66 @@
+table Recommandations
+
+	column 'Identifiant de la recommandation'
+		dataType: string
+		isHidden
+		sourceColumn: recommendation_id
+		summarizeBy: none
+
+	column 'Clé de document'
+		dataType: int64
+		isHidden
+		sourceColumn: document_key
+		summarizeBy: none
+
+	column 'Numéro'
+		dataType: int64
+		isHidden
+		sourceColumn: number
+		summarizeBy: none
+
+	column Page
+		dataType: int64
+		isHidden
+		sourceColumn: page
+		summarizeBy: none
+
+	column 'Code du statut'
+		dataType: string
+		isHidden
+		sourceColumn: status
+		summarizeBy: none
+
+	column 'Code de l''origine'
+		dataType: string
+		isHidden
+		sourceColumn: origin
+		summarizeBy: none
+
+	column Statut
+		dataType: string
+		sourceColumn: statut
+		summarizeBy: none
+
+	column Origine
+		dataType: string
+		sourceColumn: origine
+		summarizeBy: none
+
+	column Active
+		dataType: int64
+		isHidden
+		sourceColumn: active
+		summarizeBy: none
+
+	partition Recommandations = m
+		mode: import
+		source =
+				let
+				    Brut = Vue("v_recommendation"),
+				    Choix = Table.SelectColumns(Brut, {"recommendation_id", "document_key", "number", "page", "status", "origin"}),
+				    Typage = Table.TransformColumnTypes(Choix, {{"recommendation_id", type text}, {"document_key", Int64.Type}, {"number", Int64.Type}, {"page", Int64.Type}, {"status", type text}, {"origin", type text}}, CultureCsv),
+				    AvecStatut = Table.AddColumn(Typage, "statut", each if [status] = null then "Inconnu" else Record.FieldOrDefault([#"proposed" = "À valider", #"validated" = "Validée", #"deleted" = "Supprimée", #"merged" = "Fusionnée"], [status], "Inconnu"), type text),
+				    AvecOrigine = Table.AddColumn(AvecStatut, "origine", each if [origin] = null then "Inconnue" else Record.FieldOrDefault([#"rules" = "Relevée dans le rapport", #"consultant" = "Ajoutée par le consultant"], [origin], "Inconnue"), type text),
+				    AvecActive = Table.AddColumn(AvecOrigine, "active", each if List.Contains({"proposed", "validated"}, [status]) then 1 else 0, Int64.Type)
+				in
+				    AvecActive

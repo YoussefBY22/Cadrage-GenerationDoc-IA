@@ -3,10 +3,10 @@
   "name": "synthese_filtres",
   "position": {
     "x": 24,
-    "y": 358,
+    "y": 302,
     "z": 1000,
     "width": 220,
-    "height": 22,
+    "height": 20,
     "tabOrder": -11
   },
   "visual": {

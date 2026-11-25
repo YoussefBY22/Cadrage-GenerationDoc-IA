@@ -3,11 +3,11 @@
   "name": "impression_titre",
   "position": {
     "x": 74,
-    "y": 46,
-    "z": 500,
-    "width": 500,
-    "height": 56,
-    "tabOrder": 500
+    "y": 42,
+    "z": 800,
+    "width": 520,
+    "height": 52,
+    "tabOrder": 800
   },
   "visual": {
     "visualType": "shape",
@@ -69,14 +69,14 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Rapport de pilotage'"
+                  "Value": "'Cadrage · rapport de direction'"
                 }
               }
             },
             "fontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "22D"
+                  "Value": "21D"
                 }
               }
             },
@@ -240,7 +240,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Rapport de pilotage'"
+                  "Value": "'Cadrage · rapport de direction'"
                 }
               }
             }

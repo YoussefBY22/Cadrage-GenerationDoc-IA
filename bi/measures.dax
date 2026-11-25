@@ -1,144 +1,219 @@
 // Mesures du rapport Power BI. GÉNÉRÉ par bi/pbip/build_pbip.py : modifier bi/pbip/indicateurs.py.
 // Les noms de tables et de colonnes sont ceux du modèle CadrageIA ; définitions dans bi/KPI.md.
 
-// Formule : livrables en brouillon ou renvoyés, dont les renvois pas encore resoumis.
-// Décision : Par quel livrable commencer
-// Cible : aucun seuil dans H7
-// Situation à la date des données : ne suit pas la période.
-Livrables à traiter =
-CALCULATE(COUNTROWS(Livrables), KEEPFILTERS(Livrables[Code d'état] IN {"draft", "rejected"})) + 0
+// Projets (dossiers) dans le périmètre des filtres.
+Projets =
+COUNTROWS(Projets) + 0
 
-Renvois à reprendre =
-CALCULATE(COUNTROWS(Livrables), KEEPFILTERS(Livrables[Code d'état] IN {"draft", "rejected"}), KEEPFILTERS(Livrables[Renvoyé] = 1)) + 0
+Projets de démonstration =
+CALCULATE(COUNTROWS(Projets), Projets[Données] = "Démonstration") + 0
 
-// Formule : phrases des livrables chez le consultant dont la source est absente du dossier, ou rejetées par le vérificateur et inchangées depuis.
-// Décision : Quoi corriger avant de soumettre
-// Cible : 0 avant de soumettre (règle du produit)
-// Situation à la date des données : ne suit pas la période.
-// Limite : une phrase modifiée n'est pas revérifiée ici : seule sa source est contrôlée.
-Phrases bloquantes à corriger =
-CALCULATE(SUM(Livrables[Phrases bloquantes]), KEEPFILTERS(Livrables[Code d'état] IN {"draft", "rejected"})) + 0
+Projets réels =
+CALCULATE(COUNTROWS(Projets), Projets[Données] = "Réelles") + 0
 
-Sections rédigées puis approuvées =
-CALCULATE(COUNTROWS('Sections approuvées'), KEEPFILTERS('Sections approuvées'[Refusée] = 0)) + 0
+Documents =
+SUM(Projets[Documents]) + 0
 
-Nombre de sections sans retouche =
-CALCULATE(COUNTROWS('Sections approuvées'), KEEPFILTERS('Sections approuvées'[Refusée] = 0), KEEPFILTERS('Sections approuvées'[Sans retouche] = 1)) + 0
+// Livrables créés dans la période.
+Livrables =
+COUNTROWS(Livrables)
 
-// Formule : sections approuvées mot pour mot ÷ sections rédigées puis approuvées (refus exclus).
-// Décision : Partir du premier jet ou le retravailler
-// Cible : au moins 50 % (H7)
-// Flux : suit la période.
-// Limite : H7 raisonne par phrase, l'entrepôt par section (plus sévère). Pas de taux sous 30 sections.
-Sections acceptées sans retouche =
-VAR vN = [Sections rédigées puis approuvées]
-RETURN IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF(vN >= 30, DIVIDE([Nombre de sections sans retouche], vN)))
+Brouillons =
+CALCULATE(COUNTROWS(Livrables), Livrables[Code d'état] = "draft") + 0
 
-// Formule : livrables en relecture, dont ceux qui attendent depuis plus de 48 h.
-// Décision : Qui relit quoi aujourd'hui
-// Cible : 0 au-delà de 48 h (règle de pilotage, hors H7)
-// Situation à la date des données : ne suit pas la période.
-Livrables à valider =
-CALCULATE(COUNTROWS(Livrables), KEEPFILTERS(Livrables[Code d'état] IN {"in_review"})) + 0
+En relecture =
+CALCULATE(COUNTROWS(Livrables), Livrables[Code d'état] = "in_review") + 0
 
-Relectures en retard =
-CALCULATE(COUNTROWS(Livrables), KEEPFILTERS(Livrables[Code d'état] IN {"in_review"}), KEEPFILTERS(Livrables[Heures dans l'état] > 48)) + 0
+Approuvés =
+CALCULATE(COUNTROWS(Livrables), Livrables[Code d'état] = "approved") + 0
 
-// Formule : phrases bloquantes, non acquittées, des livrables en relecture.
-// Décision : Quoi vérifier en premier
-// Cible : 0 à l'approbation (règle du produit)
-// Situation à la date des données : ne suit pas la période.
-Phrases bloquantes à vérifier =
-CALCULATE(SUM(Livrables[Phrases bloquantes]), KEEPFILTERS(Livrables[Code d'état] IN {"in_review"})) + 0
+Renvoyés =
+CALCULATE(COUNTROWS(Livrables), Livrables[Code d'état] = "rejected") + 0
 
-Livrables avec délai =
-CALCULATE(COUNT(Livrables[Délai en heures]), KEEPFILTERS(Livrables[Code d'état] IN {"approved"}), USERELATIONSHIP(Livrables[Clé d'approbation], Calendrier[Clé de date])) + 0
+Constats =
+COUNTROWS(Constats)
 
-// Formule : médiane des heures entre la première soumission et l'approbation.
-// Décision : Renforcer ou répartir la relecture
-// Cible : aucun seuil dans H7
-// Flux : suit la période.
-// Limite : heures calendaires ; pas de valeur sous 30 livrables ; ne voit pas ce qui attend encore.
-Délai de validation =
-IF([Livrables avec délai] >= 30, CALCULATE(MEDIAN(Livrables[Délai en heures]), KEEPFILTERS(Livrables[Code d'état] IN {"approved"}), USERELATIONSHIP(Livrables[Clé d'approbation], Calendrier[Clé de date])))
+Constats à valider =
+CALCULATE(COUNTROWS(Constats), Constats[Validé] = 0) + 0
 
-Premières relectures décidées =
-CALCULATE(COUNT(Livrables[Renvoyé en première relecture]), USERELATIONSHIP(Livrables[Clé de soumission], Calendrier[Clé de date])) + 0
+Initiatives =
+COUNTROWS(Initiatives)
 
-Nombre de renvois en première relecture =
-CALCULATE(SUM(Livrables[Renvoyé en première relecture]), USERELATIONSHIP(Livrables[Clé de soumission], Calendrier[Clé de date])) + 0
+Constats traités =
+SUM(Initiatives[Constats traités])
 
-// Formule : livrables renvoyés à leur première relecture ÷ livrables dont la première relecture est décidée.
-// Décision : Revoir la préparation avant soumission
-// Cible : aucun seuil dans H7
-// Flux : suit la période.
-// Limite : pas de taux sous 30 décisions.
-Renvois à la première relecture =
-VAR vN = [Premières relectures décidées]
-RETURN IF(vN >= 30, DIVIDE([Nombre de renvois en première relecture], vN))
+// Chaque appel : une section, une extraction de constats, un regroupement en axes, des initiatives.
+Appels au modèle =
+COUNTROWS('Générations')
 
-Livrables approuvés =
-CALCULATE(COUNTROWS(Livrables), KEEPFILTERS(Livrables[Code d'état] IN {"approved"}), USERELATIONSHIP(Livrables[Clé d'approbation], Calendrier[Clé de date])) + 0
+// Durée moyenne d'un appel au modèle, en secondes, sur le PC local.
+Temps moyen par appel =
+DIVIDE(AVERAGE('Générations'[Durée en ms]), 1000)
 
-Livrables mesurés =
-CALCULATE(COUNT(Livrables[Citations finales]), KEEPFILTERS(Livrables[Code d'état] IN {"approved"}), USERELATIONSHIP(Livrables[Clé d'approbation], Calendrier[Clé de date])) + 0
+Appels en erreur =
+SUM('Générations'[En erreur]) + 0
 
-Citations approuvées =
-CALCULATE(SUM(Livrables[Citations finales]), KEEPFILTERS(Livrables[Code d'état] IN {"approved"}), USERELATIONSHIP(Livrables[Clé d'approbation], Calendrier[Clé de date]))
-
-// Formule : citations de la version approuvée dont la source n'est pas dans le dossier.
-// Décision : Autoriser ou bloquer l'envoi au client
-// Cible : 0 (H7)
-// Flux : suit la période.
-// Limite : « non mesuré » si la version approuvée n'a pas de sections lisibles ; qu'une source existe ne prouve pas qu'elle soutient la phrase.
-Citations sans source après approbation =
-IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF([Livrables mesurés] > 0, CALCULATE(SUM(Livrables[Citations sans source]), KEEPFILTERS(Livrables[Code d'état] IN {"approved"}), USERELATIONSHIP(Livrables[Clé d'approbation], Calendrier[Clé de date])) + 0))
-
-Citations générées =
-CALCULATE(SUM('Générations'[Citations produites]), KEEPFILTERS('Générations'[Statut] = "ok"), KEEPFILTERS('Générations'[Code du type] <> "findings")) + 0
-
-Nombre de citations sans source avant relecture =
-[Citations générées] - CALCULATE(SUM('Générations'[Citations valides en nombre]), KEEPFILTERS('Générations'[Statut] = "ok"), KEEPFILTERS('Générations'[Code du type] <> "findings"))
-
-// Formule : citations générées dont la source n'est pas dans le dossier ÷ citations générées.
-// Décision : Régler la recherche ou le modèle
-// Cible : aucune : le critère H7 porte sur ce qui reste après approbation
-// Flux : suit la période.
-Citations sans source avant relecture =
-IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF([Citations générées] >= 30, DIVIDE([Nombre de citations sans source avant relecture], [Citations générées])))
+// Part des appels avec au moins une erreur : refus, sortie invalide, phrase non vérifiée ou citation sans source. Un refus peut être la bonne réponse : il est compté pour être regardé.
+Taux d'erreur de l'IA =
+DIVIDE([Appels en erreur], [Appels au modèle])
 
 Phrases générées =
-CALCULATE(SUM('Générations'[Phrases produites]), KEEPFILTERS('Générations'[Statut] = "ok"), KEEPFILTERS('Générations'[Code du type] <> "findings")) + 0
+SUM('Générations'[Phrases produites]) + 0
 
-Nombre de phrases vérifiées =
-CALCULATE(SUM('Générations'[Phrases validées]), KEEPFILTERS('Générations'[Statut] = "ok"), KEEPFILTERS('Générations'[Code du type] <> "findings")) + 0
-
-// Formule : phrases validées par le vérificateur ÷ phrases générées (TPV).
-// Décision : Effort de relecture à prévoir
-// Cible : aucune : H7 ne fixe pas de seuil sur le TPV
-// Flux : suit la période.
-// Limite : mesure l'ancrage dans les sources, pas la vérité.
 Phrases vérifiées =
-IF(MAX('Source des données'[Est une démonstration]) = 1, BLANK(), IF([Phrases générées] >= 30, DIVIDE([Nombre de phrases vérifiées], [Phrases générées])))
+SUM('Générations'[Phrases validées]) + 0
 
-// Formule : consignes cachées détectées dans les documents importés.
-// Décision : Examiner chaque passage signalé
-// Cible : examiner toutes les alertes
-// Situation à la date des données : ne suit pas la période.
-// Limite : une alerte est une détection, pas une attaque réussie.
-Alertes d'injection =
-SUM(Documents[Alertes]) + 0
+// Phrases retrouvées dans leur source par le vérificateur ÷ phrases générées.
+Taux de phrases vérifiées =
+DIVIDE([Phrases vérifiées], [Phrases générées])
 
-Documents analysés =
-COUNTROWS(Documents)
+Phrases non vérifiées =
+SUM('Générations'[Phrases non vérifiées]) + 0
 
-Nombre de documents signalés =
-IF([Documents analysés] > 0, CALCULATE(COUNTROWS(Documents), KEEPFILTERS(Documents[Alertes] > 0)) + 0)
+Taux de phrases non vérifiées =
+DIVIDE([Phrases non vérifiées], [Phrases générées])
 
-// Formule : documents avec au moins une alerte d'injection ÷ documents importés.
-// Décision : Revoir une source documentaire
-// Cible : examiner toutes les alertes
-// Situation à la date des données : ne suit pas la période.
-// Limite : pas de taux sous 30 documents.
-Documents signalés =
-IF([Documents analysés] >= 30, DIVIDE([Nombre de documents signalés], [Documents analysés]))
+Phrases à revoir =
+SUM('Générations'[Phrases à revoir]) + 0
+
+Citations générées =
+SUM('Générations'[Citations produites]) + 0
+
+Citations sans source =
+SUM('Générations'[Citations produites]) - SUM('Générations'[Citations valides]) + 0
+
+Taux de citations sans source =
+DIVIDE([Citations sans source], [Citations générées])
+
+Sections générées =
+COUNTROWS(FILTER('Générations', NOT 'Générations'[Code de section] IN {"_findings", "_axes", "_initiatives"})) + 0
+
+Sections refusées =
+CALCULATE(COUNTROWS('Générations'), 'Générations'[Statut] = "refused") + 0
+
+// Sections où le modèle répond « preuves insuffisantes » ÷ sections demandées.
+Taux de refus =
+DIVIDE([Sections refusées], [Sections générées])
+
+Sorties invalides =
+CALCULATE(COUNTROWS('Générations'), 'Générations'[Statut] = "invalid") + 0
+
+Appels feuille de route =
+CALCULATE(COUNTROWS('Générations'), 'Générations'[Code de section] IN {"_axes", "_initiatives"}) + 0
+
+// Erreurs du type choisi (table Types d'erreur).
+Erreurs =
+SWITCH(SELECTEDVALUE('Types d''erreur'[Code d'erreur]), "failed", [Phrases non vérifiées], "warning", [Phrases à revoir], "citation", [Citations sans source], "refused", [Sections refusées], "invalid", [Sorties invalides])
+
+Rapports d'audit =
+COUNTROWS(Rapports) + 0
+
+// Numéros « Recommandation n° … » que le rapport annonce (plus grand numéro cité).
+Recommandations annoncées =
+SUM(Rapports[Annoncées]) + 0
+
+// Version corrigée par le consultant : supprimées et fusionnées exclues.
+Recommandations retenues =
+CALCULATE(COUNTROWS(Recommandations), Recommandations[Active] = 1)
+
+Recommandations validées =
+CALCULATE(COUNTROWS(Recommandations), Recommandations[Code du statut] = "validated")
+
+Recommandations à valider =
+CALCULATE(COUNTROWS(Recommandations), Recommandations[Code du statut] = "proposed")
+
+// Numéros annoncés par le rapport mais absents des recommandations retenues.
+Recommandations manquantes =
+SUM(Rapports[Manquantes])
+
+// Rapports avec un écart de numérotation (trou, doublon) ou sans aucune recommandation détectée.
+Rapports en alerte =
+SUM(Rapports[En alerte]) + 0
+
+Entraînements =
+COUNTROWS('Entraînements') + 0
+
+Entraînements adoptés =
+CALCULATE(COUNTROWS('Entraînements'), 'Entraînements'[Adopté] = 1) + 0
+
+Modèle adopté =
+CALCULATE(SELECTEDVALUE('Entraînements'[Essai], "Aucun"), REMOVEFILTERS('Entraînements'), 'Entraînements'[Adopté] = 1)
+
+Meilleure erreur du modèle adopté =
+CALCULATE(MIN('Entraînements'[Meilleure erreur de validation]), REMOVEFILTERS('Entraînements'), 'Entraînements'[Adopté] = 1)
+
+Exemples d'entraînement =
+MAX('Entraînements'[Exemples d'entraînement])
+
+// Erreur sur les exemples mis de côté, mesurée tous les 20 pas : elle doit baisser.
+Erreur de validation =
+AVERAGE('Courbe de validation'[Erreur de validation])
+
+Erreur au meilleur pas =
+CALCULATE([Erreur de validation], 'Courbe de validation'[Meilleur] = 1)
+
+Exemples réussis =
+SUM(Scores[Réussis]) + 0
+
+Exemples testés =
+SUM(Scores[Total]) + 0
+
+// Exemples de test réussis ÷ exemples de test, par tâche et par modèle.
+Taux de réussite =
+DIVIDE(SUM(Scores[Réussis]), SUM(Scores[Total]))
+
+Mention données =
+VAR d = [Projets de démonstration]
+VAR r = [Projets réels]
+RETURN IF(d = 0, "Données réelles", IF(r = 0, "[DÉMO] projets de démonstration", "[DÉMO] " & r & " projet(s) réel(s) + " & d & " de démonstration"))
+
+Liste des actions =
+VAR t = FILTER({
+    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
+    (2, IF(DIVIDE([Sorties invalides], [Appels feuille de route]) >= 0.1, "Relancer la feuille de route : " & [Sorties invalides] & " réponse(s) du modèle au mauvais format sur " & [Appels feuille de route] & " appels." & "  [" & "Consultant" & "]", BLANK())),
+    (3, IF([Taux de phrases non vérifiées] >= 0.1, "Revoir les sources de « " & [Section la moins vérifiée] & " » : " & FORMAT([Taux de phrases non vérifiées], "0 %") & " des phrases non vérifiées sur le périmètre." & "  [" & "Consultant" & "]", BLANK())),
+    (4, IF([Taux de refus] >= 0.2, "Compléter les documents : le modèle refuse " & FORMAT([Taux de refus], "0 %") & " des sections faute de preuves, surtout « " & [Section la plus refusée] & " »." & "  [" & "Consultant" & "]", BLANK())),
+    (5, IF([En relecture] > 0, "Relire " & [En relecture] & " livrable(s) en attente de validation." & "  [" & "Responsable" & "]", BLANK())),
+    (6, IF([Renvoyés] > 0, "Reprendre " & [Renvoyés] & " livrable(s) renvoyé(s) par le responsable." & "  [" & "Consultant" & "]", BLANK())),
+    (7, IF([Constats à valider] > 0, "Valider " & [Constats à valider] & " constat(s) avant de produire la feuille de route." & "  [" & "Consultant" & "]", BLANK()))
+}, NOT ISBLANK([Value2]))
+RETURN IF(COUNTROWS(t) = 0, "Rien d'urgent : aucune règle ne se déclenche sur ce périmètre.", CONCATENATEX(t, [Value2], " / ", [Value1], ASC))
+
+Action 1 =
+VAR t = FILTER({
+    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
+    (2, IF(DIVIDE([Sorties invalides], [Appels feuille de route]) >= 0.1, "Relancer la feuille de route : " & [Sorties invalides] & " réponse(s) du modèle au mauvais format sur " & [Appels feuille de route] & " appels." & "  [" & "Consultant" & "]", BLANK())),
+    (3, IF([Taux de phrases non vérifiées] >= 0.1, "Revoir les sources de « " & [Section la moins vérifiée] & " » : " & FORMAT([Taux de phrases non vérifiées], "0 %") & " des phrases non vérifiées sur le périmètre." & "  [" & "Consultant" & "]", BLANK())),
+    (4, IF([Taux de refus] >= 0.2, "Compléter les documents : le modèle refuse " & FORMAT([Taux de refus], "0 %") & " des sections faute de preuves, surtout « " & [Section la plus refusée] & " »." & "  [" & "Consultant" & "]", BLANK())),
+    (5, IF([En relecture] > 0, "Relire " & [En relecture] & " livrable(s) en attente de validation." & "  [" & "Responsable" & "]", BLANK())),
+    (6, IF([Renvoyés] > 0, "Reprendre " & [Renvoyés] & " livrable(s) renvoyé(s) par le responsable." & "  [" & "Consultant" & "]", BLANK())),
+    (7, IF([Constats à valider] > 0, "Valider " & [Constats à valider] & " constat(s) avant de produire la feuille de route." & "  [" & "Consultant" & "]", BLANK()))
+}, NOT ISBLANK([Value2]))
+VAR r = IF(COUNTROWS(t) >= 1, MAXX(TOPN(1, t, [Value1], ASC), [Value1]))
+RETURN IF(ISBLANK(r), "Rien d'urgent : aucune règle ne se déclenche sur ce périmètre.", MAXX(FILTER(t, [Value1] = r), [Value2]))
+
+Action 2 =
+VAR t = FILTER({
+    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
+    (2, IF(DIVIDE([Sorties invalides], [Appels feuille de route]) >= 0.1, "Relancer la feuille de route : " & [Sorties invalides] & " réponse(s) du modèle au mauvais format sur " & [Appels feuille de route] & " appels." & "  [" & "Consultant" & "]", BLANK())),
+    (3, IF([Taux de phrases non vérifiées] >= 0.1, "Revoir les sources de « " & [Section la moins vérifiée] & " » : " & FORMAT([Taux de phrases non vérifiées], "0 %") & " des phrases non vérifiées sur le périmètre." & "  [" & "Consultant" & "]", BLANK())),
+    (4, IF([Taux de refus] >= 0.2, "Compléter les documents : le modèle refuse " & FORMAT([Taux de refus], "0 %") & " des sections faute de preuves, surtout « " & [Section la plus refusée] & " »." & "  [" & "Consultant" & "]", BLANK())),
+    (5, IF([En relecture] > 0, "Relire " & [En relecture] & " livrable(s) en attente de validation." & "  [" & "Responsable" & "]", BLANK())),
+    (6, IF([Renvoyés] > 0, "Reprendre " & [Renvoyés] & " livrable(s) renvoyé(s) par le responsable." & "  [" & "Consultant" & "]", BLANK())),
+    (7, IF([Constats à valider] > 0, "Valider " & [Constats à valider] & " constat(s) avant de produire la feuille de route." & "  [" & "Consultant" & "]", BLANK()))
+}, NOT ISBLANK([Value2]))
+VAR r = IF(COUNTROWS(t) >= 2, MAXX(TOPN(2, t, [Value1], ASC), [Value1]))
+RETURN IF(ISBLANK(r), "", MAXX(FILTER(t, [Value1] = r), [Value2]))
+
+Action 3 =
+VAR t = FILTER({
+    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
+    (2, IF(DIVIDE([Sorties invalides], [Appels feuille de route]) >= 0.1, "Relancer la feuille de route : " & [Sorties invalides] & " réponse(s) du modèle au mauvais format sur " & [Appels feuille de route] & " appels." & "  [" & "Consultant" & "]", BLANK())),
+    (3, IF([Taux de phrases non vérifiées] >= 0.1, "Revoir les sources de « " & [Section la moins vérifiée] & " » : " & FORMAT([Taux de phrases non vérifiées], "0 %") & " des phrases non vérifiées sur le périmètre." & "  [" & "Consultant" & "]", BLANK())),
+    (4, IF([Taux de refus] >= 0.2, "Compléter les documents : le modèle refuse " & FORMAT([Taux de refus], "0 %") & " des sections faute de preuves, surtout « " & [Section la plus refusée] & " »." & "  [" & "Consultant" & "]", BLANK())),
+    (5, IF([En relecture] > 0, "Relire " & [En relecture] & " livrable(s) en attente de validation." & "  [" & "Responsable" & "]", BLANK())),
+    (6, IF([Renvoyés] > 0, "Reprendre " & [Renvoyés] & " livrable(s) renvoyé(s) par le responsable." & "  [" & "Consultant" & "]", BLANK())),
+    (7, IF([Constats à valider] > 0, "Valider " & [Constats à valider] & " constat(s) avant de produire la feuille de route." & "  [" & "Consultant" & "]", BLANK()))
+}, NOT ISBLANK([Value2]))
+VAR r = IF(COUNTROWS(t) >= 3, MAXX(TOPN(3, t, [Value1], ASC), [Value1]))
+RETURN IF(ISBLANK(r), "", MAXX(FILTER(t, [Value1] = r), [Value2]))

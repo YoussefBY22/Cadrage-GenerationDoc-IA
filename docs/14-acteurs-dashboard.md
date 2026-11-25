@@ -1,96 +1,71 @@
 # 14 — Acteurs du tableau de bord
 
-> Qui voit quoi, pour décider quoi. Indicateurs : [`bi/KPI.md`](../bi/KPI.md). Ouverture : [`bi/README.md`](../bi/README.md).
-> Mise en ligne (préparée, non faite) : [`bi/PUBLICATION.md`](../bi/PUBLICATION.md).
-> Les chiffres du jeu de démonstration sont **inventés**.
+> Qui voit quoi, pour décider quoi. Pages : [`bi/pages.md`](../bi/pages.md). Indicateurs et règles d'action :
+> [`bi/KPI.md`](../bi/KPI.md). Ouverture : [`bi/README.md`](../bi/README.md). Mise en ligne (préparée, non faite) :
+> [`bi/PUBLICATION.md`](../bi/PUBLICATION.md).
 
-## 1. À qui sert le rapport
+## 1. Pourquoi Power BI, et pas des statistiques dans l'application
 
-Deux acteurs d'abord, ceux de l'application ([01 §4](01-cahier-des-charges.md), H6) : le **consultant** rédige avec
-l'assistant, le **responsable** valide. Deux lecteurs secondaires : le **profil technique** et la **direction**.
+L'application montre déjà, dossier par dossier, ce qu'il faut corriger. Le rapport Power BI sert à ce qu'elle ne fait
+pas :
 
-| Acteur | Ses questions | Page | KPI (4 au plus) | Décision | Ce qu'il ne doit pas voir |
-|---|---|---|---|---|---|
-| **Consultant** | Que reprendre ? Pourquoi m'a-t-on renvoyé ? Quoi corriger avant de soumettre ? | Production | livrables à traiter · phrases bloquantes · sections sans retouche | quel livrable commencer, quoi corriger, garder ou retravailler le premier jet | les livrables, clients et prévisions des autres consultants |
-| **Responsable** | Que valider d'abord ? Qu'est-ce qui attend trop ? Qui est chargé ? | Validation | livrables à valider · délai · renvois en 1re relecture · phrases bloquantes à vérifier | ordre de relecture, répartition, renvoi avec motif | les dossiers dont il n'est pas le responsable ; un classement des personnes |
-| Les deux, et la **direction du cabinet** | Où en est-on ? Que faire en premier ? Quelle charge arrive ? | Synthèse | livrables à valider · à traiter · citations sans source après approbation · délai | priorités, envoi au client, renfort de relecture | le texte des livrables et des documents (absent de l'entrepôt) |
-| **Profil technique** | Le modèle tient-il ? Faut-il en changer ? Des documents sont-ils piégés ? | Administration | phrases vérifiées · sans source avant relecture · alertes · documents signalés | régler la recherche, garder B, examiner un document | le texte des documents (absent de l'entrepôt) |
-| **Direction d'un client** | Où en sont mes livrables ? | **aucune** | aucun pour l'instant | — | ce rapport, même filtré : il est interne au cabinet |
+- **analyser dans le temps et entre projets** : courbes par jour et par mois, comparaison de projets, de modèles,
+  d'entraînements ;
+- **explorer** : filtres croisés (cliquer une barre filtre la page), sept filtres synchronisés, info-bulles qui
+  expliquent chaque section et chaque type d'erreur ;
+- **rendre compte** : une page imprimable pour la direction ;
+- **décider** : un panneau « Que faire ensuite » qui donne trois actions calculées par des règles explicites.
 
-La page **Rapport** est masquée et s'ouvre par le bouton « Rapport imprimable » : constat, recommandations, critères
-H7, indicateurs, prédiction, limites, date. Elle suit les quatre filtres.
+La refonte du 25/11/2026 part d'un constat de l'utilisateur sur la version précédente : que des phrases et des
+tableaux de texte, aucune courbe, des colonnes tronquées, des clés techniques (`chg_parties`) et des titres flous.
+Chaque page porte désormais au moins un vrai graphique, aucune clé technique ne s'affiche, et chaque section a son
+libellé et son rôle (lus dans les gabarits).
+
+## 2. À qui sert chaque page
+
+| Acteur | Ses questions | Page | Décision |
+|---|---|---|---|
+| **Direction du cabinet** | Combien de projets, à quel rythme, avec quelle qualité ? Que faire en premier ? | Synthèse, Rapport imprimable | priorités, renfort, envoi au client |
+| **Consultant** | Mes rapports ont-ils été bien lus ? Quelles recommandations manquent ? Quelle section reprendre ? | Projet, Qualité de l'IA | compléter les recommandations, revoir les sources, compléter les documents |
+| **Responsable** | Qu'est-ce qui attend ma validation ? Qu'ai-je renvoyé ? | Synthèse (livrables par état), Projet (avancement) | ordre de relecture |
+| **Profil technique, jury** | Où le modèle se trompe-t-il ? L'entraînement a-t-il servi ? Quel modèle garder ? | Qualité de l'IA, Entraînement | garder v4, refaire un entraînement, corriger par le code |
+| **Direction d'un client** | Où en sont mes livrables ? | **aucune** | ce rapport est interne au cabinet, même filtré |
 
 ### Un rôle choisi à l'écran n'est pas une sécurité
 
-- Dans Power BI Desktop, choisir une page ou son nom dans un segment est un **filtre de confort**. Qui a le fichier
-  a toutes les données.
-- Les rôles RLS du modèle (`Consultant`, `Responsable`, `Administration`) ne s'appliquent dans le Service qu'aux
-  **Lecteurs** de l'espace de travail, pas aux administrateurs, membres et contributeurs.
-- La RLS filtre des **lignes**, elle ne cache pas une page.
-- Pour la direction d'un client, **ne jamais partager le rapport ni son PDF**, même filtrés : ils contiennent des
-  recommandations et des indicateurs internes. Un tableau de bord client demande une publication validée et un jeu
-  de données par client. Ni l'un ni l'autre n'existe encore.
+- Dans Power BI Desktop, un filtre est un confort : qui a le fichier a toutes les données.
+- Les rôles RLS du modèle (`Consultant` : projets où il a rédigé ou généré ; `Responsable` : projets où il relit ;
+  `Administration`) ne s'appliquent dans le Service qu'aux **Lecteurs** de l'espace de travail.
+- Ne jamais transmettre le rapport ni son PDF à un client.
 
-## 2. Ce que disent les pages
+## 3. Démonstration et données réelles
 
-- **Titre** nominal, **sous-titre** avec périmètre et période, **constat** d'une ligne dans sa propre zone.
-- **Peu de texte** : décisions, formules, seuils et tests sont dans ce document et dans `bi/KPI.md`.
-- **Période** : elle porte sur les flux (générations, soumissions, approbations). La file, les recommandations et la
-  prédiction décrivent la situation à la date des données.
-- **Effectif** : un taux va avec son n et disparaît sous 30 cas. Un critère non mesuré n'a pas de verdict. « Zéro
-  citation sans source » ne vaut « atteint » qu'à partir de 30 livrables mesurés, alors qu'une seule suffit pour
-  « non atteint ».
+- Valeurs **réelles** : le projet « Recours aux consultants externes (RS 17/2022) » (rapport spécial de la Cour des
+  comptes européenne, 74 constats, feuilles de route, TdR, CdC) et les trois entraînements (registre
+  `training/registre/`).
+- Valeurs **inventées** : cinq projets « [DÉMO] », pour montrer les courbes et la comparaison entre projets. Leur
+  client porte « (démo) », leur nom « [DÉMO] », et tout visuel qui les inclut le dit dans son sous-titre. Le filtre
+  **Données** permet de n'afficher que le réel.
+- Aucune mesure de qualité inventée n'est présentée comme réelle : sans filtre, le sous-titre l'annonce ; avec le
+  filtre « Réelles », il ne reste que le projet réel.
 
-- **Démonstration** : seuls les volumes et les délais s'affichent. La qualité du modèle (phrases vérifiées, sans
-  retouche, citations sans source), le risque de renvoi, la fiabilité de la prévision et le banc sont « non mesuré ».
+## 4. Que faire ensuite : règles explicites
 
-## 3. Recommandations
+Sept règles, sans modèle de langue, évaluées sur le périmètre filtré ; les trois premières qui se déclenchent
+s'affichent. Exemples : un rapport d'audit annonce les recommandations 1 à 4 mais le n° 3 manque → « Contrôler 1
+rapport d'audit » ; plus de 20 % de sections refusées → « Compléter les documents », avec la section la plus
+refusée. Table complète : [`bi/KPI.md`](../bi/KPI.md#que-faire-ensuite--règles-daction).
 
-Sept règles déterministes, sans LLM : constat chiffré, acteur, action (le seuil reste dans `KPI.md`). Elles sont définies une seule fois dans
-[`pilotage.py`](../backend/app/dw/pilotage.py). L'ETL les évalue par livrable (`fact_action`), puis Power BI et la
-commande de rapport ne font que compter dans le périmètre filtré. Table complète :
-[`bi/KPI.md`](../bi/KPI.md#recommandations).
+## 5. Détecter vite une erreur de l'IA
 
-## 4. Prédiction
+Le cas typique : le rapport numérote « Recommandation n° 1 à 4 », mais seulement 3 sont retenues. L'application
+relève les titres numérotés par des règles, le consultant valide, fusionne, ajoute ou supprime, et le contrôle de
+cohérence compare à ce que le rapport annonce (trous, doublons). Un rapport sans aucun titre numéroté n'est jamais un
+« 0 » silencieux : il est marqué « recommandations non détectées : à saisir ou valider par le consultant » et compté
+dans les alertes. Le tableau de bord affiche la version corrigée.
 
-| | Charge de relecture | Risque de renvoi |
-|---|---|---|
-| Question | combien de soumissions dans les 2 prochaines semaines ? | ce livrable en attente sera-t-il renvoyé ? |
-| Méthode | moyenne des 8 dernières semaines × 2 | taux observé selon la présence d'une phrase bloquante |
-| Intervalle | 80 %, erreurs des prévisions passées | 80 %, Wilson, avec n |
-| Référence naïve | répéter les 2 dernières semaines | taux de renvoi global |
-| Publiée si | ≥ 30 soumissions, ≥ 10 prévisions testées, erreur plus faible | ≥ 20 cas par groupe, ≥ 30 testés, Brier meilleur |
-| Sinon | « historique insuffisant » ou « pas de prévision fiable » | « non publié » |
-| Sur la démo | estimation affichée, fiabilité **non mesurée** | **non mesuré** |
-
-La série affichée est régulière, au pas de 14 jours, celui de la prévision. Il n'y a pas de visuel d'IA : le volume
-ne le justifie pas, et la méthode doit pouvoir s'expliquer en une phrase. Les fenêtres des tests se chevauchent, donc
-l'intervalle est indicatif. Sur la démo, la méthode bat sa référence **par construction du générateur** : cela teste le
-mécanisme et ne mesure aucun pouvoir prédictif.
-
-## 5. Audit du 22/11/2026 : avant, après
-
-| # | Avant | Après | Preuve |
-|---|---|---|---|
-| 1 | A/B/C/D de la démo contredisait [08 §6](08-modele-rag-evaluation.md) (LoRA en D, modèles 7, 8 et 14 B inventés) | banc séparé, protocole affiché, **non mesuré** sans résultat réel ; production sans étiquette | `test_demo_invents_no_experiment_result` |
-| 2 | 13 fichiers Excel, format refusé à l'import | uniquement les formats de `app/ingest` | `test_only_formats_the_ingestion_accepts` |
-| 3 | « Excel le plus signalé », faux en taux | taux, n et nombre par format, titre neutre | page Administration |
-| 4 | novembre à 7 générations, tendances artefacts | 38 semaines régulières, n affiché, aucun taux sous 30 | `pilotage.MIN_SAMPLE` |
-| 5 | citations détectées présentées comme le critère H7 | deux mesures : avant relecture, et **après approbation** (version approuvée) | `test_snapshot_measures_what_remains_after_approval` |
-| 6 | « plancher 50 % » avec coche verte, temps gagné présenté comme acquis | coche retirée, **temps gagné retiré** tant qu'il n'est pas chronométré | cartes, rapport |
-| 7 | « aucune donnée client », segments « All » | « Traitement local · confidentiel » hors démo, vraie valeur « Tous » | `modele.py` |
-| 8 | « retenir C » sans intervalle ni règle | IC 95 % et règle de 08 §6, même calcul que le banc d'évaluation ; aucun résultat en démo | `test_bench_decision_is_the_one_of_the_eval_harness` |
-| 9 | pages qui jugent le produit, ni auteur ni relecteur | pages par acteur, KPI liés à une décision, auteur et responsable exposés | `v_deliverable` |
-| 10 | 16 livrables approuvés sur 16, rien à piloter | brouillons, file, renvois avec motif, transitions conformes au circuit | `test_there_is_work_to_steer` |
-
-Trouvé en chemin :
-
-- `services/generation.py` écrit `config_label = "default"`, trop long pour `dim_model.config_label` (1 caractère) :
-  l'ETL aurait échoué sur PostgreSQL. Corrigé dans l'ETL, avec un test.
-- Le rapport Python arrondissait au pair (2,25 → 2,2) et Power BI vers le haut (2,3). Aligné sur Power BI.
-
-Le premier jet de ce lot avait sept pages et des titres en forme de question. Il a été ramené à quatre pages visibles
-et des titres nominaux avant livraison.
+Étape suivante, non faite : une extraction par le modèle, en secours, pour les rapports qui ne numérotent pas leurs
+recommandations.
 
 ## 6. Règles de conception : source, application
 
@@ -99,17 +74,17 @@ Sources lues le 22/11/2026. **Non vérifié** : la source primaire n'a pas pu ê
 | Règle | Source | Statut | Application |
 |---|---|---|---|
 | Un rapport a des pages et des filtres ; un tableau de bord est une page de tuiles du Service, sans segment, avec alertes | [Learn, dashboards](https://learn.microsoft.com/en-us/power-bi/create-reports/service-dashboards) | lu | ceci est un rapport ; tuiles à épingler dans `PUBLICATION.md` |
-| Ne pas mêler des sujets ou objectifs opposés sur une page ; l'important en haut à gauche ; répétition | [Learn, mise en page](https://learn.microsoft.com/en-us/training/modules/power-bi-effective-reports/2-design-layout) | lu | une page par acteur, même grille |
-| Retirer le superflu ; cartes pour les nombres clés, avec contexte ; échelles et couleurs constantes | [Learn, conseils de conception](https://learn.microsoft.com/en-us/power-bi/create-reports/service-dashboards-design-tips) | lu | 4 cartes au plus, n sous chaque taux |
-| Ne garder que les visuels nécessaires | [Learn, optimisation](https://learn.microsoft.com/en-us/power-bi/guidance/power-bi-optimization) | lu ; aucun maximum chiffré n'y figure | « 4 pages, 4 KPI » est un choix du projet |
-| Noms de pages courts et nominaux | exemples officiels [Competitive Marketing](https://learn.microsoft.com/en-us/power-bi/create-reports/sample-competitive-marketing-analysis) (« Executive Overview »), [Corporate Spend](https://learn.microsoft.com/en-us/power-bi/create-reports/sample-corporate-spend) (« IT Spend Trend »), [Store Sales](https://learn.microsoft.com/en-us/power-bi/create-reports/sample-store-sales) (« Store Sales Overview ») | lu : aucun titre interrogatif | Synthèse, Production, Validation, Administration |
+| Ne pas mêler des sujets ou objectifs opposés sur une page ; l'important en haut à gauche ; répétition | [Learn, mise en page](https://learn.microsoft.com/en-us/training/modules/power-bi-effective-reports/2-design-layout) | lu | une page par question (synthèse, projet, qualité, entraînement), même grille |
+| Retirer le superflu ; cartes pour les nombres clés, avec contexte ; échelles et couleurs constantes | [Learn, conseils de conception](https://learn.microsoft.com/en-us/power-bi/create-reports/service-dashboards-design-tips) | lu | 4 ou 5 cartes, effectif sous chaque taux |
+| Ne garder que les visuels nécessaires | [Learn, optimisation](https://learn.microsoft.com/en-us/power-bi/guidance/power-bi-optimization) | lu ; aucun maximum chiffré n'y figure | « 4 pages, 5 cartes au plus » est un choix du projet |
+| Noms de pages courts et nominaux | exemples officiels [Competitive Marketing](https://learn.microsoft.com/en-us/power-bi/create-reports/sample-competitive-marketing-analysis) (« Executive Overview »), [Corporate Spend](https://learn.microsoft.com/en-us/power-bi/create-reports/sample-corporate-spend) (« IT Spend Trend »), [Store Sales](https://learn.microsoft.com/en-us/power-bi/create-reports/sample-store-sales) (« Store Sales Overview ») | lu : aucun titre interrogatif | Synthèse, Projet, Qualité de l'IA, Entraînement |
 | Texte alternatif (250 caractères au plus), décor hors tabulation, titres de même taille, pas de jargon | [Learn, accessibilité](https://learn.microsoft.com/en-us/power-bi/create-reports/desktop-accessibility-creating-reports) | lu | texte alternatif sur les objets porteurs, `tabOrder` négatif pour le décor, titres en 13 |
-| Contraste d'au moins 4,5:1 ; pas d'information par la seule couleur ; pas de vert contre rouge | même page | lu, contrastes calculés | texte gris `#5F5F6B` (5,8:1 sur le fond), formes de points, plus de vert |
-| Ne pas mettre l'essentiel dans une info-bulle | même page | lu | n écrit sur la carte |
-| Prévision native : courbe avec données de temps | [Learn, volet Analytique](https://learn.microsoft.com/en-us/power-bi/transform-model/desktop-analytics-pane) | lu ; « une seule série » n'y figure pas | prévision calculée par l'ETL pour porter le test rétrospectif |
+| Contraste d'au moins 4,5:1 ; pas d'information par la seule couleur ; pas de vert contre rouge | même page | lu, contrastes calculés | texte gris `#5F5F6B` (5,8:1 sur le fond), rouge réservé à ce qui demande une action et toujours légendé, pas de vert |
+| Ne pas mettre l'essentiel dans une info-bulle | même page | lu | effectif écrit sur la carte ; l'info-bulle n'ajoute que des explications (rôle d'une section, sens d'un type d'erreur) |
+| Prévision native : courbe avec données de temps | [Learn, volet Analytique](https://learn.microsoft.com/en-us/power-bi/transform-model/desktop-analytics-pane) | lu ; « une seule série » n'y figure pas | pas de prévision affichée dans cette version |
 | RLS limitée aux Lecteurs ; rôles additifs ; sans rôle, aucune ligne | [Learn, RLS](https://learn.microsoft.com/en-us/fabric/security/service-admin-row-level-security), [guide](https://learn.microsoft.com/en-us/power-bi/guidance/rls-guidance) | lu | trois rôles, un par personne |
 | L'export PDF de Desktop exclut les pages masquées | [Learn, export PDF](https://learn.microsoft.com/en-us/power-bi/collaborate-share/end-user-pdf) | lu | le fichier officiel vient de `app.dw.report` |
 | Alertes sur cartes, KPI et jauges numériques | [Learn, alertes](https://learn.microsoft.com/en-us/power-bi/create-reports/service-set-data-alerts) | lu | cartes en mesures numériques |
 | ISO 24896 « Notation for business reporting » publiée en juin 2026, IBCS 2.0 aligné dessus | [IBCS](https://www.ibcs.com/iso-24896/) | lu chez IBCS seulement ; iso.org a refusé la lecture | — |
-| Titre « qui, quoi, quand » ; message séparé du titre | IBCS 2.0 | **non vérifié** : le texte des règles n'est pas publié sur les pages lisibles | sous-titre périmètre et période ; zone Constat |
+| Titre « qui, quoi, quand » ; message séparé du titre | IBCS 2.0 | **non vérifié** : le texte des règles n'est pas publié sur les pages lisibles | sous-titre périmètre et période ; message dans « Que faire ensuite » |
 | Contenu de la norme ISO 24896 (notations, échelles, surlignage) | ISO | **non vérifié** : norme payante, non lue | aucune conformité revendiquée |

@@ -92,7 +92,24 @@ Une phrase est **bloquante** si sa source n'est pas dans le dossier, ou si elle 
 pas changé, tant qu'elle n'est pas acquittée. Une phrase modifiée n'est pas revérifiée dans l'entrepôt.
 `dim_model.config_label` ne reçoit que A, B, C ou D : le « default » de la production devient NULL.
 
-### 2.4 Tables techniques
+### 2.4 Projets, recommandations des rapports, feuille de route, entraînements (`app/dw/projet.py`)
+
+Reconstruites à chaque ETL, comme la situation courante. Le tableau de bord lit la version **corrigée** par le
+consultant : recommandations supprimées ou fusionnées exclues.
+
+| Table | Grain | Colonnes utiles |
+|---|---|---|
+| `dim_project` | un projet (dossier) | résumé de la demande (200 car. au plus), dates de début et de fin, logo (image PNG en data URI, 100 Ko au plus), nombre de documents et de rapports d'audit |
+| `fact_report_check` | un rapport d'audit | nom lisible, pages, recommandations annoncées / retenues / validées, manquantes, doublons, numéros manquants, statut du contrôle (`ok`, `ecart`, `non_detectees`) |
+| `fact_audit_recommendation` | une recommandation relevée ou ajoutée | numéro, page, statut, origine (règles ou consultant) ; **aucun texte** |
+| `fact_finding` | un constat | gravité, axe (celui de l'initiative qui le traite, sinon « Non rattaché à un axe »), validé |
+| `fact_initiative` | une initiative de la dernière feuille de route | axe, vague, rang, constats traités |
+| `fact_training_run`, `fact_training_point`, `fact_training_score` | un entraînement, un point de la courbe de validation, un score de test par tâche et par modèle | copie du registre des entraînements (`training/registre/*.json`) |
+
+Le seul champ long de l'entrepôt est le logo : une image, pas un texte du client (exception unique et testée,
+`test_no_free_text_columns`). La demande complète du client reste dans l'application.
+
+### 2.5 Tables techniques
 `etl_watermark (source_table VARCHAR PK, last_value VARCHAR, updated_at)` ; `etl_log (id, started_at, ended_at, rows_by_table JSON, status, error)`.
 
 ## 3. Chargement (ETL) — `app/dw/etl.py`
@@ -125,6 +142,12 @@ def run_etl(op_engine: Engine, dw_engine: Engine, *, full: bool = False,
 | `v_forecast` | prévision par périmètre |
 | `v_forecast_point` | série de prévision par quinzaine |
 | `v_bench` | banc d'essai et décision |
+| `v_project` | fiche projet : client, secteur, demande résumée, dates, logo, documents |
+| `v_report_check` | contrôle de cohérence par rapport d'audit |
+| `v_recommendation` | recommandations des rapports (numéro, page, statut, origine) |
+| `v_finding` | constats par gravité et par axe |
+| `v_initiative` | initiatives par axe et vague |
+| `v_training_run`, `v_training_point`, `v_training_score` | registre des entraînements, courbes de validation, scores de test |
 
 Pas de fonctions propres à Postgres dans les vues (pas de `percentile_cont`) : les percentiles se calculent en **DAX** ou dans `kpi.py`.
 
@@ -156,9 +179,12 @@ Power BI et la commande `python -m app.dw.report`.
 
 ## 7. Rapport Power BI
 
-Quatre pages visibles (Synthèse, Production, Validation, Administration) et une page Rapport masquée.
-Acteurs, règles de conception et audit : [14](14-acteurs-dashboard.md). Publication :
-[`bi/PUBLICATION.md`](../bi/PUBLICATION.md).
+Quatre pages d'analyse (Synthèse, Projet, Qualité de l'IA, Entraînement) et une page « Rapport imprimable »
+masquée, ouverte par un bouton. Contenu des pages : [`bi/pages.md`](../bi/pages.md). Acteurs et règles de
+conception : [14](14-acteurs-dashboard.md). Publication : [`bi/PUBLICATION.md`](../bi/PUBLICATION.md).
+
+Les pages Production, Validation et Administration de la version précédente ont été retirées le 25/11/2026 : elles
+n'affichaient que des tableaux de texte. La file de validation se lit désormais dans « Livrables par état ».
 
 ## 8. Connexion Power BI **sans fuite**
 
@@ -166,14 +192,33 @@ Acteurs, règles de conception et audit : [14](14-acteurs-dashboard.md). Publica
 - **Plan B sans base** : `python -m app.dw.export_csv --out bi/export/` écrit une CSV UTF-8 (séparateur `;`, décimale `,` pour Excel FR — option `--locale en`) par vue ; Power BI → « Texte/CSV ». Testable cette nuit.
 - Ne **pas** publier sur Power BI Service (cloud Microsoft) : contraire à C1. Power BI Report Server sur site : licence **à vérifier**.
 
+### 8.1 « Temps réel » : ce qui est vrai
+
+L'entrepôt n'est pas alimenté en continu : il se met à jour quand l'ETL tourne. Trois niveaux possibles :
+
+| Mode | Fraîcheur | État |
+|---|---|---|
+| **Import + actualisation manuelle** (démo) | celle du dernier `python -m app.dw.etl` puis « Actualiser » dans Power BI | **fait et vérifié** (CSV) |
+| Import + actualisation planifiée | ETL en tâche planifiée (toutes les 15 min par exemple), puis actualisation planifiée de Power BI Report Server sur site | **non fait** : pas de serveur de rapports dans le projet |
+| DirectQuery sur PostgreSQL | chaque clic interroge les vues `dw` ; fraîcheur = dernier passage de l'ETL, pas la saisie dans l'application | **non testé** : demande le pilote Npgsql et le port 5432 en local ; certaines mesures DAX (TOPN dans les actions) seraient plus lentes |
+
+Pour une démonstration, « temps réel » signifie donc : relancer l'ETL et l'export, puis actualiser le rapport. Les
+dates « données au … » en pied de page disent de quand datent les chiffres.
+
 ## 9. Générateur de données de démonstration — `app/dw/demo.py`
 
 ```python
-def generate_demo(op_engine: Engine, *, seed: int = 42, clients: int = 5, weeks: int = 38,
+def generate_demo(op_engine: Engine, *, seed: int = 42, clients: int = 5, weeks: int = 26,
                   as_of: date = date(2026, 11, 20)) -> dict[str, int]: ...
 ```
 - Écrit en lot dans les tables **opérationnelles**, avec `dossiers.is_demo = TRUE` et des noms « [DÉMO] … », puis
   lance l'ETL : la démo teste aussi le chargement.
+- **Cinq projets** démarrés l'un après l'autre sur 26 semaines, chacun avec sa fiche (client « … (démo) », demande,
+  dates, logo à initiales), un à trois rapports d'audit (un client peut en envoyer un par module d'un ERP), des
+  constats, une feuille de route par axes et vagues, et des livrables TdR / CdC.
+- Les recommandations des rapports sont relevées par **les vraies règles de l'application**
+  (`services/projet.extract`). Deux défauts volontaires : un rapport annonce les n° 1 à 4 mais le n° 3 manque, un
+  autre n'a aucune recommandation numérotée. Le contrôle de cohérence doit les signaler (testé).
 - Rejoue le produit : 4 consultants, 2 responsables (rôle `reviewer`), transitions de la machine à états, motifs,
   acquittements, formats acceptés à l'import. L'histoire s'arrête à `as_of` : il reste des brouillons, une file et
   des renvois. Scénario : un responsable absent en fin de période.

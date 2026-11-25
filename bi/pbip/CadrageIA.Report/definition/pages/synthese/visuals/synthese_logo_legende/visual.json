@@ -3,10 +3,10 @@
   "name": "synthese_logo_legende",
   "position": {
     "x": 24,
-    "y": 70,
+    "y": 60,
     "z": 300,
     "width": 220,
-    "height": 24,
+    "height": 22,
     "tabOrder": -4
   },
   "visual": {
@@ -69,14 +69,14 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Pilotage de l''assistant IA'"
+                  "Value": "'Tableau de bord de décision'"
                 }
               }
             },
             "fontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "10.5D"
+                  "Value": "10D"
                 }
               }
             },

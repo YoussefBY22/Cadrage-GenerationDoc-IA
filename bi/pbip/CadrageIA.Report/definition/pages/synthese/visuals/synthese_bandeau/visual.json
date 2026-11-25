@@ -2,12 +2,12 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
   "name": "synthese_bandeau",
   "position": {
-    "x": 1208,
-    "y": 38,
-    "z": 1900,
-    "width": 360,
-    "height": 28,
-    "tabOrder": 1900
+    "x": 1148,
+    "y": 34,
+    "z": 2200,
+    "width": 420,
+    "height": 26,
+    "tabOrder": 2200
   },
   "visual": {
     "visualType": "shape",
@@ -85,14 +85,14 @@
                       "Entity": "Indicateurs"
                     }
                   },
-                  "Property": "Bandeau données"
+                  "Property": "Mention données"
                 }
               }
             },
             "fontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "10D"
+                  "Value": "10.5D"
                 }
               }
             },
@@ -101,7 +101,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#5F5F6B'"
+                      "Value": "'#2E2E38'"
                     }
                   }
                 }
@@ -202,7 +202,7 @@
                       "Entity": "Indicateurs"
                     }
                   },
-                  "Property": "Bandeau données"
+                  "Property": "Mention données"
                 }
               }
             }

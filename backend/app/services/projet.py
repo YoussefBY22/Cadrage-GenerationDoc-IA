@@ -29,7 +29,7 @@ ACTIFS = ("proposed", "validated")
 
 # Titre numéroté : « Recommandation n° 1 – Titre », « Recommandation 2 : Titre », « Recommendation 3 - Title »
 _TITRE = re.compile(
-    r"\bRecomm(?:a|e)ndation\s+(?:n\s*[°o]\s*|no\.?\s*|#\s*)?(\d{1,2})\s*[–—:\-]\s*((?:(?!\bRecomm[ae]ndation\s).){3,300})", re.S)
+    r"\bRecomm(?:a|e)ndation\s+(?:n\s*[°o]\s*|no\.?\s*|#\s*)?(\d{1,2})\s*[–—:\-]\s*((?:(?!\bRecomm[ae]ndation\s).){3,300})", re.DOTALL)
 # Numéros cités ailleurs : « recommandation n° 3 », « recommandations 1 à 4 ». Pas de trait d'union pour une
 # plage : « Conclusions et recommandations 85 - 91 » (sommaire) désigne des points, pas des recommandations.
 _CITE = re.compile(r"\b[Rr]ecomm(?:a|e)ndations?\s+(?:n\s*[°o]s?\s*|nos?\.?\s*)?(\d{1,2})\b"

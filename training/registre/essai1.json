@@ -11,11 +11,21 @@
   "stop_step": 25,
   "best_val_loss": 0.255,
   "adopted": false,
-  "outcome": "Réponses vides 9 fois sur 13 : champs de réponse dans un ordre différent de celui imposé par Ollama.",
+  "outcome": "Réponses vides 9 fois sur 13 : ordre des champs différent d'Ollama.",
   "note": "Erreur de validation 0,297 puis 0,255 ; les pas de mesure ne sont pas consignés, aucune courbe n'est tracée.",
   "validation": [],
   "tests": [
-    {"model": "base", "task": "Réponses non vides", "correct": 13, "total": 13},
-    {"model": "essai1", "task": "Réponses non vides", "correct": 4, "total": 13}
+    {
+      "model": "base",
+      "task": "Réponses non vides",
+      "correct": 13,
+      "total": 13
+    },
+    {
+      "model": "essai1",
+      "task": "Réponses non vides",
+      "correct": 4,
+      "total": 13
+    }
   ]
 }

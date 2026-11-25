@@ -10,22 +10,105 @@
   "steps_planned": 333,
   "stop_step": 160,
   "adopted": false,
-  "outcome": "Non adopté : équivalent à v4 ; les axes progressent à peine (57 % contre 55 % pour la base).",
+  "outcome": "Équivalent à v4 ; axes à peine mieux que la base (57 % contre 55 %).",
   "validation": [
-    {"step": 20, "val_loss": 0.283}, {"step": 40, "val_loss": 0.201}, {"step": 60, "val_loss": 0.176},
-    {"step": 80, "val_loss": 0.167}, {"step": 100, "val_loss": 0.156}, {"step": 111, "val_loss": 0.165},
-    {"step": 120, "val_loss": 0.155}, {"step": 140, "val_loss": 0.161}, {"step": 160, "val_loss": 0.159}
+    {
+      "step": 20,
+      "val_loss": 0.283
+    },
+    {
+      "step": 40,
+      "val_loss": 0.201
+    },
+    {
+      "step": 60,
+      "val_loss": 0.176
+    },
+    {
+      "step": 80,
+      "val_loss": 0.167
+    },
+    {
+      "step": 100,
+      "val_loss": 0.156
+    },
+    {
+      "step": 111,
+      "val_loss": 0.165
+    },
+    {
+      "step": 120,
+      "val_loss": 0.155
+    },
+    {
+      "step": 140,
+      "val_loss": 0.161
+    },
+    {
+      "step": 160,
+      "val_loss": 0.159
+    }
   ],
   "tests": [
-    {"model": "base", "task": "Refus justes", "correct": 4, "total": 31},
-    {"model": "v5", "task": "Refus justes", "correct": 29, "total": 31},
-    {"model": "base", "task": "Extraction", "correct": 3, "total": 31},
-    {"model": "v5", "task": "Extraction", "correct": 31, "total": 31},
-    {"model": "base", "task": "Position", "correct": 46, "total": 50},
-    {"model": "v5", "task": "Position", "correct": 49, "total": 50},
-    {"model": "base", "task": "Conflit", "correct": 11, "total": 24},
-    {"model": "v5", "task": "Conflit", "correct": 11, "total": 24},
-    {"model": "base", "task": "Axes (paires bien rangées)", "correct": 430, "total": 779},
-    {"model": "v5", "task": "Axes (paires bien rangées)", "correct": 447, "total": 779}
+    {
+      "model": "base",
+      "task": "Refus justes",
+      "correct": 4,
+      "total": 31
+    },
+    {
+      "model": "v5",
+      "task": "Refus justes",
+      "correct": 29,
+      "total": 31
+    },
+    {
+      "model": "base",
+      "task": "Extraction",
+      "correct": 3,
+      "total": 31
+    },
+    {
+      "model": "v5",
+      "task": "Extraction",
+      "correct": 31,
+      "total": 31
+    },
+    {
+      "model": "base",
+      "task": "Position",
+      "correct": 46,
+      "total": 50
+    },
+    {
+      "model": "v5",
+      "task": "Position",
+      "correct": 49,
+      "total": 50
+    },
+    {
+      "model": "base",
+      "task": "Conflit",
+      "correct": 11,
+      "total": 24
+    },
+    {
+      "model": "v5",
+      "task": "Conflit",
+      "correct": 11,
+      "total": 24
+    },
+    {
+      "model": "base",
+      "task": "Axes (paires bien rangées)",
+      "correct": 430,
+      "total": 779
+    },
+    {
+      "model": "v5",
+      "task": "Axes (paires bien rangées)",
+      "correct": 447,
+      "total": 779
+    }
   ]
 }

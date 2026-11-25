@@ -1,0 +1,94 @@
+table 'Entraînements'
+
+	column 'Code de l''essai'
+		dataType: string
+		isHidden
+		sourceColumn: run_id
+		summarizeBy: none
+
+	column Essai
+		dataType: string
+		sourceColumn: label
+		sortByColumn: 'Clé de date d''essai'
+		summarizeBy: none
+
+	column 'Clé de date d''essai'
+		dataType: int64
+		isHidden
+		sourceColumn: run_date_key
+		summarizeBy: none
+
+	column Plateforme
+		dataType: string
+		sourceColumn: platform
+		summarizeBy: none
+
+	column GPU
+		dataType: string
+		sourceColumn: gpu
+		summarizeBy: none
+
+	column 'Exemples d''entraînement'
+		dataType: int64
+		isHidden
+		sourceColumn: examples
+		summarizeBy: none
+
+	column 'Exemples de test'
+		dataType: int64
+		isHidden
+		sourceColumn: test_examples
+		summarizeBy: none
+
+	column 'Durée en minutes'
+		dataType: double
+		isHidden
+		sourceColumn: duration_min
+		summarizeBy: none
+
+	column 'Pas d''arrêt'
+		dataType: int64
+		isHidden
+		sourceColumn: stop_step
+		summarizeBy: none
+
+	column 'Meilleur pas'
+		dataType: int64
+		isHidden
+		sourceColumn: best_step
+		summarizeBy: none
+
+	column 'Meilleure erreur de validation'
+		dataType: double
+		isHidden
+		sourceColumn: best_val_loss
+		summarizeBy: none
+
+	column 'Adopté'
+		dataType: int64
+		isHidden
+		sourceColumn: adopted
+		summarizeBy: none
+
+	column 'Résultat de l''essai'
+		dataType: string
+		sourceColumn: outcome
+		summarizeBy: none
+
+	column 'Date de l''essai'
+		dataType: dateTime
+		formatString: dd/MM/yyyy
+		sourceColumn: date
+		summarizeBy: none
+
+	partition 'Entraînements' = m
+		mode: import
+		source =
+				let
+				    Brut = Vue("v_training_run"),
+				    Choix = Table.SelectColumns(Brut, {"run_id", "label", "run_date_key", "platform", "gpu", "examples", "test_examples", "duration_min", "stop_step", "best_step", "best_val_loss", "adopted", "outcome"}),
+				    Typage = Table.TransformColumnTypes(Choix, {{"run_id", type text}, {"label", type text}, {"run_date_key", Int64.Type}, {"platform", type text}, {"gpu", type text}, {"examples", Int64.Type}, {"test_examples", Int64.Type}, {"duration_min", type number}, {"stop_step", Int64.Type}, {"best_step", Int64.Type}, {"best_val_loss", type number}, {"adopted", Int64.Type}, {"outcome", type text}}, CultureCsv),
+				    VersDate = (k as number) as date => #date(Number.IntegerDivide(k, 10000), Number.Mod(Number.IntegerDivide(k, 100), 100), Number.Mod(k, 100)),
+				    AvecDate = Table.AddColumn(Typage, "date", each VersDate([run_date_key]), type date)
+				in
+				    AvecDate

@@ -22,9 +22,9 @@ table 'Choix du consultant'
 		mode: import
 		source =
 				let
-				    Valeurs = List.Buffer(List.Sort(List.Distinct(List.RemoveNulls(let Auteurs = List.Buffer(Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_deliverable"), {"author_key"}), {{"author_key", Int64.Type}}, CultureCsv), "author_key")) in Table.Column(Table.SelectRows(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_person"), {"user_key", "user_label"}), {{"user_key", Int64.Type}, {"user_label", type text}}, CultureCsv), each List.Contains(Auteurs, [user_key])), "user_label"))))),
+				    Valeurs = List.Buffer(List.Sort(List.Distinct(List.RemoveNulls(let Auteurs = List.Buffer(List.Combine({Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_deliverable"), {"author_key"}), {{"author_key", Int64.Type}}, CultureCsv), "author_key"), Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_generation"), {"author_key"}), {{"author_key", Int64.Type}}, CultureCsv), "author_key")})) in Table.Column(Table.SelectRows(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_person"), {"user_key", "user_label"}), {{"user_key", Int64.Type}, {"user_label", type text}}, CultureCsv), each List.Contains(Auteurs, [user_key])), "user_label"))))),
 				    Toutes = List.Transform(Valeurs, each {"Tous", _, 0}),
-				    Chacune = List.Transform(Valeurs, each {_, _, List.PositionOf(Valeurs, _) + 1}),
+				    Chacune = List.Transform(List.Positions(Valeurs), each {Valeurs{_}, Valeurs{_}, _ + 1}),
 				    Resultat = #table(type table [choix = text, cible = text, rang = Int64.Type], Toutes & Chacune)
 				in
 				    Resultat

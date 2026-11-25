@@ -24,8 +24,8 @@ from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from ..domain.verification import IssueCode
 from ..storage import schema as op
+from . import projet, snapshot
 from . import schema as dw
-from . import snapshot
 from .schema import bind_dw, create_dw
 
 log = logging.getLogger("app.dw")
@@ -34,6 +34,10 @@ SAFETY_WINDOW = timedelta(minutes=5)
 DEFAULT_BASELINE_MINUTES = 30.0  # hypothèse à faire valider (07 §5) : temps manuel par section
 DATE_START, DATE_END = date(2025, 1, 1), date(2028, 12, 31)
 
+# Appels au modèle suivis, et type de livrable quand l'appel n'est rattaché à aucun livrable.
+KINDS = {"section": "tor", "findings": "findings", "axes": "roadmap", "initiatives": "roadmap"}
+STEP_TITLES = {"_findings": "Extraction des constats", "_axes": "Regroupement en axes",
+               "_initiatives": "Initiatives par axe"}
 TYPES = {"findings": (1, "Constats", "Findings"), "roadmap": (2, "Feuille de route", "Roadmap"),
          "tor": (3, "Termes de référence", "Terms of reference"),
          "cdc": (4, "Cahier des charges", "Specification")}
@@ -282,7 +286,7 @@ class _Loader:
     # --- faits : générations
     def generations(self, c, o) -> None:
         since = self._since(c, "generation_runs")
-        stmt = select(op.generation_runs).where(op.generation_runs.c.kind.in_(["section", "findings"]))
+        stmt = select(op.generation_runs).where(op.generation_runs.c.kind.in_(list(KINDS)))
         if since:
             stmt = stmt.where(op.generation_runs.c.started_at >= _bind_dt(self.ope, since))
         runs = list(o.execute(stmt.order_by(op.generation_runs.c.started_at,
@@ -318,9 +322,10 @@ class _Loader:
             dos = self.dossiers[r.dossier_id]
             demo = bool(dos.is_demo)
             d = deliv.get(r.deliverable_id)
-            type_code = d.type if d else ("findings" if r.kind == "findings" else "tor")
+            type_code = d.type if d else KINDS[r.kind]
             template = d.template_id if d else f"{type_code}-adhoc"
-            section_key, _ = self.section(c, template, r.section_key or "_all", type_code)
+            code = r.section_key or f"_{r.kind}"
+            section_key, _ = self.section(c, template, code, type_code, STEP_TITLES.get(code))
             user = d.author_id if d else dos.owner_id
             ukey = self.user_keys.get(user) or self.ensure_user(c, user, "inconnu", "inconnu", demo)
             started = _utc(r.started_at)
@@ -503,6 +508,7 @@ class _Loader:
                 self.generations(c, o)
                 self.reviews(c, o)
                 self.counts.update(snapshot.refresh(self, c, o, self.as_of))
+                self.counts.update(projet.refresh(self, c, o))
                 for src, val in self.wm.items():
                     c.execute(dw.etl_watermark.delete().where(
                         dw.etl_watermark.c.source_table == src))

@@ -1,0 +1,53 @@
+table Initiatives
+
+	column 'Identifiant de l''initiative'
+		dataType: string
+		isHidden
+		sourceColumn: initiative_id
+		summarizeBy: none
+
+	column 'Clé de mission'
+		dataType: int64
+		isHidden
+		sourceColumn: mission_key
+		summarizeBy: none
+
+	column 'Axe de l''initiative'
+		dataType: string
+		sourceColumn: axis
+		summarizeBy: none
+
+	column 'Numéro de vague'
+		dataType: int64
+		isHidden
+		sourceColumn: wave
+		summarizeBy: none
+
+	column Rang
+		dataType: int64
+		isHidden
+		sourceColumn: rank
+		summarizeBy: none
+
+	column 'Constats traités'
+		dataType: int64
+		isHidden
+		sourceColumn: findings
+		summarizeBy: none
+
+	column Vague
+		dataType: string
+		sourceColumn: vague
+		sortByColumn: 'Numéro de vague'
+		summarizeBy: none
+
+	partition Initiatives = m
+		mode: import
+		source =
+				let
+				    Brut = Vue("v_initiative"),
+				    Choix = Table.SelectColumns(Brut, {"initiative_id", "mission_key", "axis", "wave", "rank", "findings"}),
+				    Typage = Table.TransformColumnTypes(Choix, {{"initiative_id", type text}, {"mission_key", Int64.Type}, {"axis", type text}, {"wave", Int64.Type}, {"rank", Int64.Type}, {"findings", Int64.Type}}, CultureCsv),
+				    AvecVague = Table.AddColumn(Typage, "vague", each "Vague " & Text.From([wave] ?? 0), type text)
+				in
+				    AvecVague

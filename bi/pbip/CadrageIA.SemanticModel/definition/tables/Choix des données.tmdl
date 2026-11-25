@@ -1,0 +1,32 @@
+table 'Choix des données'
+
+	column 'Données choisies'
+		dataType: string
+		sourceColumn: choix
+		sortByColumn: Rang
+		summarizeBy: none
+
+	column Cible
+		dataType: string
+		isHidden
+		sourceColumn: cible
+		summarizeBy: none
+
+	column Rang
+		dataType: int64
+		isHidden
+		sourceColumn: rang
+		summarizeBy: none
+
+	partition 'Choix des données' = m
+		mode: import
+		source =
+				let
+				    Paires = List.Distinct(List.Zip({{"Réelles", "Démonstration"}, {1, 2}})),
+				    Triees = List.Sort(List.Select(Paires, each _{0} <> null), (a, b) => Value.Compare(a{1}, b{1})),
+				    Valeurs = List.Buffer(List.Transform(Triees, each _{0})),
+				    Toutes = List.Transform(Valeurs, each {"Réelles + démonstration", _, 0}),
+				    Chacune = List.Transform(List.Positions(Valeurs), each {Valeurs{_}, Valeurs{_}, _ + 1}),
+				    Resultat = #table(type table [choix = text, cible = text, rang = Int64.Type], Toutes & Chacune)
+				in
+				    Resultat

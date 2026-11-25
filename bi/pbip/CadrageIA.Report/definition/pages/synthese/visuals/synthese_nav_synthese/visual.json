@@ -3,10 +3,10 @@
   "name": "synthese_nav_synthese",
   "position": {
     "x": 0,
-    "y": 108,
+    "y": 94,
     "z": 400,
     "width": 256,
-    "height": 40,
+    "height": 36,
     "tabOrder": 400
   },
   "visual": {

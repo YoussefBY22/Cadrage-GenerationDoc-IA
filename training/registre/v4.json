@@ -10,21 +10,93 @@
   "steps_planned": 255,
   "stop_step": 100,
   "adopted": true,
-  "outcome": "Adopté : refus et extraction appris ; le conflit reste à 11 sur 24.",
+  "outcome": "Refus et extraction appris ; le conflit reste à 11 sur 24.",
   "validation": [
-    {"step": 20, "val_loss": 0.245}, {"step": 40, "val_loss": 0.188}, {"step": 60, "val_loss": 0.166},
-    {"step": 80, "val_loss": 0.165}, {"step": 85, "val_loss": 0.172}, {"step": 100, "val_loss": 0.181}
+    {
+      "step": 20,
+      "val_loss": 0.245
+    },
+    {
+      "step": 40,
+      "val_loss": 0.188
+    },
+    {
+      "step": 60,
+      "val_loss": 0.166
+    },
+    {
+      "step": 80,
+      "val_loss": 0.165
+    },
+    {
+      "step": 85,
+      "val_loss": 0.172
+    },
+    {
+      "step": 100,
+      "val_loss": 0.181
+    }
   ],
   "tests": [
-    {"model": "base", "task": "Répondre ou refuser", "correct": 114, "total": 169},
-    {"model": "v4", "task": "Répondre ou refuser", "correct": 168, "total": 169},
-    {"model": "base", "task": "Refus justes", "correct": 4, "total": 31},
-    {"model": "v4", "task": "Refus justes", "correct": 31, "total": 31},
-    {"model": "base", "task": "Extraction", "correct": 3, "total": 31},
-    {"model": "v4", "task": "Extraction", "correct": 31, "total": 31},
-    {"model": "base", "task": "Position", "correct": 46, "total": 50},
-    {"model": "v4", "task": "Position", "correct": 50, "total": 50},
-    {"model": "base", "task": "Conflit", "correct": 11, "total": 24},
-    {"model": "v4", "task": "Conflit", "correct": 11, "total": 24}
+    {
+      "model": "base",
+      "task": "Répondre ou refuser",
+      "correct": 114,
+      "total": 169
+    },
+    {
+      "model": "v4",
+      "task": "Répondre ou refuser",
+      "correct": 168,
+      "total": 169
+    },
+    {
+      "model": "base",
+      "task": "Refus justes",
+      "correct": 4,
+      "total": 31
+    },
+    {
+      "model": "v4",
+      "task": "Refus justes",
+      "correct": 31,
+      "total": 31
+    },
+    {
+      "model": "base",
+      "task": "Extraction",
+      "correct": 3,
+      "total": 31
+    },
+    {
+      "model": "v4",
+      "task": "Extraction",
+      "correct": 31,
+      "total": 31
+    },
+    {
+      "model": "base",
+      "task": "Position",
+      "correct": 46,
+      "total": 50
+    },
+    {
+      "model": "v4",
+      "task": "Position",
+      "correct": 50,
+      "total": 50
+    },
+    {
+      "model": "base",
+      "task": "Conflit",
+      "correct": 11,
+      "total": 24
+    },
+    {
+      "model": "v4",
+      "task": "Conflit",
+      "correct": 11,
+      "total": 24
+    }
   ]
 }

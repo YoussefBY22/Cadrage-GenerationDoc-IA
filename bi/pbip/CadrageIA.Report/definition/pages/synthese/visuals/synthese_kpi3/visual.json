@@ -2,11 +2,11 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
   "name": "synthese_kpi3",
   "position": {
-    "x": 936.0,
-    "y": 186,
+    "x": 806.4,
+    "y": 108,
     "z": 2500,
-    "width": 308.0,
-    "height": 128,
+    "width": 243.2,
+    "height": 108,
     "tabOrder": 2500
   },
   "visual": {
@@ -24,11 +24,11 @@
                       "Entity": "Indicateurs"
                     }
                   },
-                  "Property": "Citations sans source après approbation"
+                  "Property": "Taux d'erreur de l'IA"
                 }
               },
-              "queryRef": "Indicateurs.Citations sans source après approbation",
-              "nativeQueryRef": "Citations sans source après approbation"
+              "queryRef": "Indicateurs.Taux d'erreur de l'IA",
+              "nativeQueryRef": "Taux d'erreur de l'IA"
             }
           ]
         }
@@ -82,7 +82,7 @@
             "fontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "28D"
+                  "Value": "26D"
                 }
               }
             },
@@ -107,7 +107,7 @@
             "showBlankAs": {
               "expr": {
                 "Literal": {
-                  "Value": "'Non mesuré'"
+                  "Value": "'—'"
                 }
               }
             },
@@ -217,14 +217,14 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Sans source après approbation'"
+                  "Value": "'Taux d''erreur de l''IA'"
                 }
               }
             },
             "fontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "13D"
+                  "Value": "11.5D"
                 }
               }
             },
@@ -232,6 +232,17 @@
               "expr": {
                 "Literal": {
                   "Value": "true"
+                }
+              }
+            },
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#5F5F6B'"
+                    }
+                  }
                 }
               }
             }
@@ -256,7 +267,7 @@
                       "Entity": "Indicateurs"
                     }
                   },
-                  "Property": "Note Citations sans source après approbation"
+                  "Property": "Note erreur"
                 }
               }
             },
@@ -341,7 +352,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Indicateur : Sans source après approbation'"
+                  "Value": "'Indicateur : Taux d''erreur de l''IA'"
                 }
               }
             }

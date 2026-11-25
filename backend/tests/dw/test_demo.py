@@ -30,10 +30,10 @@ def demo(tmp_path_factory):
 
 def test_counts_naming_and_roles(demo):
     engine, counts = demo
-    assert counts["deliverables"] >= 120 and counts["runs"] > 500 and counts["dw_rows"] > 0
+    assert counts["deliverables"] >= 80 and counts["runs"] > 500 and counts["dw_rows"] > 0
     names = q(engine, "SELECT name, is_demo FROM dossiers")
     assert len(names) == counts["dossiers"]
-    assert all(n["name"].startswith("[DÉMO] ") and n["is_demo"] for n in names)
+    assert all(n["name"].startswith("[DÉMO] ") and n["is_demo"] for n in names) and len(names) == 5
     assert {r["role"] for r in q(engine, "SELECT role FROM users")} == {"consultant", "reviewer"}
 
 
@@ -132,6 +132,22 @@ def test_forecast_scopes_support_row_level_security(demo):
     assert not any(s["author_key"] and s["reviewer_key"] for s in scopes)
     assert all(r["user_id"] for r in q(engine, "SELECT user_id FROM v_person"))
     assert q(engine, "SELECT COUNT(*) AS n FROM v_forecast_point")[0]["n"] > 0
+
+
+def test_demo_projects_feed_the_decision_dashboard(demo):
+    """Fiche, rapports par projet, recommandations relevées par les règles, défauts volontaires détectés."""
+    engine, _ = demo
+    projets = q(engine, "SELECT * FROM dim_project")
+    assert len(projets) == 5 and all(p["logo"].startswith("data:image/png") and p["request_summary"] for p in projets)
+    statuts = [r["status"] for r in q(engine, "SELECT status FROM fact_report_check")]
+    assert len(statuts) == 9 and statuts.count("ecart") == 1 and statuts.count("non_detectees") == 1
+    trou = q(engine, "SELECT expected, extracted, missing_list FROM fact_report_check WHERE status = 'ecart'")
+    assert trou == [{"expected": 4, "extracted": 3, "missing_list": "3"}]
+    assert q(engine, "SELECT COUNT(*) AS n FROM fact_audit_recommendation")[0]["n"] == 33
+    axes = {r["axis"] for r in q(engine, "SELECT DISTINCT axis FROM fact_initiative")}
+    assert "Processus achats" in axes and q(engine, "SELECT COUNT(*) AS n FROM fact_finding")[0]["n"] > 40
+    kinds = {r["section_code"] for r in q(engine, "SELECT DISTINCT section_code FROM v_generation")}
+    assert {"_findings", "_axes", "_initiatives"} <= kinds
 
 
 def test_second_call_is_noop(demo):

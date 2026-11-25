@@ -25,7 +25,7 @@ from ..storage import schema as sc
 
 DEMO_PREFIX = "[DÉMO] "
 AS_OF = date(2026, 11, 20)
-WEEKS = 38
+WEEKS = 26
 COUNT_KEYS = ("dossiers", "documents", "chunks", "deliverables", "versions", "transitions", "runs",
               "alerts")
 
@@ -41,7 +41,7 @@ TEMPLATES = {
 }
 # Uniquement des formats que `app/ingest` accepte.
 FORMATS = {"pdf": 0.40, "docx": 0.30, "pptx": 0.20, "txt": 0.10}
-DELIVERABLES_PER_WEEK = [3, 4, 4, 5, 5, 5, 6, 6]
+DELIVERABLES_PER_WEEK = [2, 3, 3, 4, 4, 5]
 ABSENCE_DAYS = 24   # scénario : un responsable est absent en fin de période, la file se forme
 STALLED_DAYS = 56   # les brouillons en suspens sont récents
 REVIEW_REASONS = ["À reprendre : sources à compléter", "À reprendre : chiffres à justifier",
@@ -55,6 +55,64 @@ PREDICATES = ["valide chaque étape après relecture des", "documente les exigen
 OBJECTS = ["échanges avec les équipes métier", "contraintes budgétaires du programme",
            "indicateurs de performance convenus", "livrables attendus par la direction",
            "dépendances entre les chantiers en cours", "décisions prises lors des ateliers"]
+
+
+# Cinq projets inventés, démarrés l'un après l'autre. Un client peut envoyer plusieurs rapports (un par module
+# d'un ERP, par exemple). Chaque rapport : (nom, pages, titres numérotés présents, nombre annoncé dans le texte).
+# Deux défauts volontaires pour le contrôle de cohérence : un trou (n° 3 annoncé, absent) et un rapport sans
+# aucune numérotation (« recommandations non détectées »).
+PROJECTS = [
+    {"name": "Refonte de l'ERP", "client": "Groupe Industriel Atlas", "initials": "GA", "color": (46, 94, 140),
+     "sector": "Industrie", "weeks": 20,
+     "request": "Remplacer l'ERP vieillissant et fiabiliser les achats, la finance et les stocks avant l'audit annuel.",
+     "reports": [("audit_module_achats.pdf", 38, [1, 2, 3, 4, 5], 5), ("audit_module_finance.pdf", 44, [1, 2, 4], 4),
+                 ("audit_module_stocks.pdf", 30, [1, 2, 3], 3)],
+     "axes": ["Gouvernance des données", "Processus achats", "Pilotage financier"]},
+    {"name": "Dématérialisation des démarches", "client": "Agence Nationale Horizon", "initials": "AH",
+     "color": (31, 122, 92), "sector": "Administration", "weeks": 18,
+     "request": "Dématérialiser les démarches des usagers et réduire les délais de traitement des dossiers.",
+     "reports": [("rapport_inspection_2025.pdf", 52, [1, 2, 3, 4, 5, 6], 6), ("note_controle_interne.pdf", 12, [], 0)],
+     "axes": ["Parcours usager", "Système d'information", "Organisation et compétences"]},
+    {"name": "Système de paie", "client": "Ministère de l'Équipement", "initials": "ME", "color": (140, 70, 46),
+     "sector": "Administration", "weeks": 16,
+     "request": "Fiabiliser la paie de 40 000 agents et sécuriser les contrôles avant versement.",
+     "reports": [("audit_paie_2025.pdf", 61, [1, 2, 3, 4], 4)],
+     "axes": ["Contrôles avant paiement", "Référentiel des agents"]},
+    {"name": "Cybersécurité", "client": "Banque Coopérative Nord", "initials": "BN", "color": (88, 60, 140),
+     "sector": "Banque", "weeks": 14,
+     "request": "Mettre en œuvre les recommandations de l'audit de sécurité et préparer la certification.",
+     "reports": [("audit_securite_si.pdf", 47, [1, 2, 3, 4, 5, 6, 7], 7), ("test_intrusion.pdf", 22, [1, 2], 2)],
+     "axes": ["Gestion des accès", "Continuité d'activité", "Sensibilisation"]},
+    {"name": "Achats publics", "client": "Région Littoral", "initials": "RL", "color": (160, 120, 20),
+     "sector": "Collectivité", "weeks": 12,
+     "request": "Professionnaliser la fonction achats et améliorer le suivi des marchés.",
+     "reports": [("audit_commande_publique.pdf", 35, [1, 2, 3], 3)],
+     "axes": ["Planification des achats", "Suivi des marchés"]},
+]
+RECO_TITLES = ["Formaliser le cadre de gouvernance", "Renforcer les contrôles internes",
+               "Fiabiliser les données de référence", "Mettre en place un suivi des indicateurs",
+               "Clarifier les rôles et responsabilités", "Documenter les procédures",
+               "Former les équipes aux nouveaux outils", "Améliorer la remontée d'information"]
+
+
+def _monogram(initiales: str, couleur: tuple[int, int, int]) -> str:
+    """Logo de démonstration : initiales blanches sur un disque de couleur, en data URI PNG."""
+    import base64
+    import io
+
+    from PIL import Image, ImageDraw, ImageFont
+
+    img = Image.new("RGBA", (160, 160), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.ellipse((4, 4, 156, 156), fill=couleur + (255,))
+    try:
+        police = ImageFont.truetype("arialbd.ttf", 64)
+    except OSError:
+        police = ImageFont.load_default()
+    d.text((80, 82), initiales, fill=(255, 255, 255, 255), font=police, anchor="mm")
+    tampon = io.BytesIO()
+    img.save(tampon, "PNG", optimize=True)
+    return "data:image/png;base64," + base64.b64encode(tampon.getvalue()).decode("ascii")
 
 
 def _lognormal(rng: random.Random, median: float, sigma: float) -> float:
@@ -96,47 +154,112 @@ class _Demo:
                     "display_name": f"{DEMO_PREFIX}{label} {i}", "password_hash": "!",
                     "role": role, "created_at": created, "active": True})
 
-    def dossier(self, index: int, at: datetime) -> dict:
+    def project(self, index: int, spec: dict, at: datetime) -> dict:
+        """Un projet complet : fiche, rapports d'audit numérotés (ou non), autres documents, constats."""
         rng = self.rng
         dos = self._id("dos")
         owner = self.consultants[index % len(self.consultants)]
-        reviewer = rng.choice(self.reviewers)
+        reviewer = self.reviewers[index % len(self.reviewers)]
         self.rows["dossiers"].append({
-            "id": dos, "name": f"{DEMO_PREFIX}Mission {index + 1:03d}",
-            "client_name": f"Société Démo {rng.randrange(self.clients) + 1}", "sector": None,
-            "language": "fr", "owner_id": owner, "created_at": at, "archived": False, "is_demo": True})
+            "id": dos, "name": f"{DEMO_PREFIX}{spec['name']}", "client_name": f"{spec['client']} (démo)",
+            "sector": spec["sector"], "language": "fr", "owner_id": owner, "created_at": at,
+            "archived": False, "is_demo": True})
         self.rows["dossier_members"] += [
             {"dossier_id": dos, "user_id": owner, "role": "consultant"},
             {"dossier_id": dos, "user_id": reviewer, "role": "reviewer"}]
+        fin = (at + timedelta(weeks=spec["weeks"])).date()
+        self.rows["dossier_profiles"].append({
+            "dossier_id": dos, "client_request": spec["request"], "request_summary": spec["request"][:200],
+            "start_date": at.date().isoformat(), "end_date": fin.isoformat(),
+            "logo": _monogram(spec["initials"], spec["color"]), "updated_by": owner, "updated_at": at})
         chunks: list[str] = []
-        for d in range(rng.randint(2, 4)):
+        reports: list[str] = []
+
+        def document(name: str, ext: str, pages: int, role: str, texts: list[tuple[int, str]]) -> str:
             doc = self._id("doc")
-            ext = rng.choices(list(FORMATS), weights=list(FORMATS.values()))[0]
             self.rows["documents"].append({
-                "id": doc, "dossier_id": dos, "filename": f"demo_{index + 1}_{d + 1}.{ext}",
-                "mime": MIME[ext], "sha256": f"{rng.getrandbits(256):064x}", "title": None,
-                "language": "fr", "pages": 4, "stored_path": f"/demo/{dos}/{d}", "created_at": at,
-                "created_by": owner})
-            for k in range(4):
+                "id": doc, "dossier_id": dos, "filename": name, "mime": MIME[ext],
+                "sha256": f"{rng.getrandbits(256):064x}", "title": None, "language": "fr", "pages": pages,
+                "stored_path": f"/demo/{dos}/{doc}", "created_at": at, "created_by": owner, "role": role})
+            for k, (page, text) in enumerate(texts):
                 chk = self._id("chk")
                 chunks.append(chk)
-                flagged = rng.random() < 0.018
+                flagged = rng.random() < 0.02
                 code = rng.choice(["EXFIL_URL", "ROLE_OVERRIDE"]) if flagged else None
                 self.rows["chunks"].append({
-                    "id": chk, "document_id": doc, "dossier_id": dos, "ordinal": k,
-                    "text": "Extrait fictif de démonstration.", "page_start": k + 1,
-                    "page_end": k + 1, "section_path": [], "token_estimate": 6,
+                    "id": chk, "document_id": doc, "dossier_id": dos, "ordinal": k, "text": text,
+                    "page_start": page, "page_end": page, "section_path": [], "token_estimate": len(text) // 4,
                     "injection_flags": [code] if flagged else []})
                 if flagged:
                     self.rows["injection_alerts"].append({
-                        "id": self._id("alr"), "chunk_id": chk, "dossier_id": dos,
-                        "codes": [code], "created_at": at})
-        self.rows["generation_runs"].append(self.run_row(
-            dos, None, None, "findings", "ok", at + timedelta(minutes=5), rng.randint(300, 900)))
+                        "id": self._id("alr"), "chunk_id": chk, "dossier_id": dos, "codes": [code],
+                        "created_at": at})
+            return doc
+
+        for name, pages, headings, announced in spec["reports"]:
+            texts = [(1, "Rapport d'audit fictif de démonstration. Synthèse des observations.")]
+            if announced:
+                texts.append((2, f"Nous formulons les recommandations 1 à {announced} ci-après."))
+            for n in headings:
+                titre = rng.choice(RECO_TITLES)
+                texts.append((pages - len(headings) + n, f"Recommandation n° {n} – {titre}. L'entité devrait agir."))
+            if not headings:
+                texts.append((pages, "Nous invitons l'entité à renforcer ses contrôles et à suivre les actions."))
+            reports.append(document(name, "pdf", pages, "diagnostic", texts))
+        for d in range(rng.randint(1, 2)):
+            ext = rng.choices(list(FORMATS), weights=list(FORMATS.values()))[0]
+            document(f"annexe_{index + 1}_{d + 1}.{ext}", ext, 4, "other",
+                     [(k + 1, "Extrait fictif de démonstration.") for k in range(4)])
+
+        findings = []
+        for r, doc in enumerate(reports):
+            run_at = at + timedelta(minutes=5 + 20 * r)
+            self.rows["generation_runs"].append(self.run_row(dos, None, None, "findings", "ok", run_at,
+                                                             rng.randint(300, 900)))
+            for _ in range(rng.randint(6, 14)):
+                fid = self._id("fnd")
+                findings.append(fid)
+                self.rows["findings"].append({
+                    "id": fid, "dossier_id": dos, "text": "Constat fictif de démonstration.",
+                    "theme": "constat d'audit", "severity": rng.choices(["high", "medium", "low"], [3, 4, 3])[0],
+                    "source_ids": [rng.choice(chunks)], "validated": rng.random() < 0.85,
+                    "validated_by": owner, "created_run_id": None})
         info = {"id": dos, "owner": owner, "reviewer": reviewer, "chunks": chunks,
-                "others": self.other_chunks[-200:]}
+                "others": self.other_chunks[-200:], "findings": findings, "axes": spec["axes"], "at": at}
         self.other_chunks += chunks
         return info
+
+    def roadmap(self, dos: dict, at: datetime) -> None:
+        """Feuille de route : appels « axes » et « initiatives » (dont quelques sorties invalides), puis le livrable."""
+        rng = self.rng
+        for k in range(rng.randint(1, 2)):
+            status = "invalid" if rng.random() < 0.15 else "ok"
+            self.rows["generation_runs"].append(self.run_row(dos["id"], None, None, "axes", status,
+                                                             at + timedelta(minutes=k), rng.randint(200, 500)))
+        items, rank = [], 0
+        restants = list(dos["findings"])
+        rng.shuffle(restants)
+        for a, axe in enumerate(dos["axes"]):
+            status = "invalid" if rng.random() < 0.12 else "ok"
+            self.rows["generation_runs"].append(self.run_row(dos["id"], None, None, "initiatives", status,
+                                                             at + timedelta(minutes=5 + a), rng.randint(600, 1400)))
+            for _ in range(rng.randint(2, 4)):
+                rank += 1
+                pris, restants = restants[:rng.randint(1, 4)], restants[4:]
+                items.append({"initiative": {"id": self._id("ini"), "title": f"Initiative {rank} (démo)",
+                                             "axis": axe, "finding_ids": pris},
+                              "score": round(rng.uniform(0.3, 0.9), 2), "rank": rank,
+                              "wave": rng.choices([1, 2, 3], [4, 3, 2])[0], "unscored": []})
+        dlv = self._id("dlv")
+        self.rows["deliverables"].append({
+            "id": dlv, "dossier_id": dos["id"], "type": "roadmap", "template_id": "roadmap-fr-standard",
+            "state": "draft", "current_version": 1, "author_id": dos["owner"], "created_at": at, "updated_at": at})
+        content = {"type": "roadmap", "language": "fr", "template_id": "roadmap-fr-standard",
+                   "template_version": "1.0", "sections": [], "roadmap": {"items": items}}
+        self.rows["deliverable_versions"].append({
+            "deliverable_id": dlv, "version": 1, "content": content, "origin": "generated",
+            "author_id": dos["owner"], "created_at": at + timedelta(minutes=30),
+            "content_sha256": hashlib.sha256(json.dumps(content, sort_keys=True).encode()).hexdigest()})
 
     def run_row(self, dos, dlv, key, kind, status, at, tokens_out) -> dict:
         rng = self.rng
@@ -311,14 +434,20 @@ class _Demo:
         rng = self.rng
         start = self.now - timedelta(days=7 * self.weeks)
         self.users(start)
-        index = 0
+        actifs: list[dict] = []
+        debuts: dict[int, list[int]] = defaultdict(list)
+        for i in range(len(PROJECTS)):
+            debuts[int(i * self.weeks * 0.18)].append(i)
         for week in range(self.weeks):
             opens = start + timedelta(days=7 * week)
+            for i in debuts.get(week, []):
+                dos = self.project(i, PROJECTS[i], opens + timedelta(hours=9 + i))
+                self.roadmap(dos, opens + timedelta(days=2, hours=i))
+                actifs.append(dos)
             remaining = rng.choice(DELIVERABLES_PER_WEEK)
-            while remaining:
-                at = opens + timedelta(hours=rng.uniform(1, 160))
-                dos = self.dossier(index, at)
-                index += 1
+            while remaining and actifs:
+                at = opens + timedelta(hours=rng.uniform(60, 160))
+                dos = rng.choice(actifs)
                 kinds = ["tor", "cdc"] if remaining > 1 and rng.random() < 0.4 else [
                     rng.choices(["tor", "cdc"], weights=[2, 1])[0]]
                 for k, kind in enumerate(kinds):
@@ -346,6 +475,10 @@ def generate_demo(op_engine: Engine, *, seed: int = 42, clients: int = 5, weeks:
             data = rows.get(table.name, [])
             for i in range(0, len(data), 400):
                 c.execute(insert(table), data[i:i + 400])
+    from ..services.projet import extract
+
+    for d in rows["dossiers"]:  # recommandations relevées par les vraies règles de l'application
+        extract(op_engine, d["id"], d["owner_id"])
     loaded = run_etl(op_engine, op_engine, full=True, now=demo.now)
     create_views(op_engine)
     names = {"versions": "deliverable_versions", "transitions": "state_transitions",

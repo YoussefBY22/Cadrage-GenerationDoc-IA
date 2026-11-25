@@ -2,11 +2,11 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
   "name": "synthese_logo_mot",
   "position": {
-    "x": 66,
-    "y": 18,
+    "x": 62,
+    "y": 14,
     "z": 200,
     "width": 180,
-    "height": 50,
+    "height": 46,
     "tabOrder": -3
   },
   "visual": {
@@ -76,7 +76,7 @@
             "fontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "22D"
+                  "Value": "21D"
                 }
               }
             },

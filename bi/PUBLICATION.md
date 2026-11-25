@@ -43,12 +43,12 @@ Les rôles sont dans le modèle (`CadrageIA.SemanticModel/definition/roles/`, g�
 
 | Rôle | Voit |
 |---|---|
-| `Consultant` | ses livrables, les missions, clients et documents de ces livrables, sa prévision |
-| `Responsable` | les livrables dont il est le responsable, leurs consultants, missions et documents, sa prévision |
+| `Consultant` | les projets où il a rédigé un livrable ou lancé une génération, et tout ce qui s'y rattache |
+| `Responsable` | les projets où il relit au moins un livrable |
 | `Administration` | tout |
 
-Restent communs à tous les rôles, car sans donnée de client : banc d'essai, règles, date des données, et le taux de
-renvoi global qui sert au risque.
+Restent communs à tous les rôles, car sans donnée de client : le registre des entraînements, les gabarits de
+sections et les types d'erreur.
 
 1. Copier [`acces.exemple.csv`](acces.exemple.csv) en `bi/export/acces.csv` (jamais versionné) : une ligne par
    personne, `utilisateur` = son UPN (`prenom.nom@cabinet.fr`), `user_id` = la colonne de `v_person`.
@@ -101,12 +101,12 @@ tuiles épinglées, sans segment. Il n'existe pas dans Desktop. Six tuiles à é
 
 | Tuile | Page | Alerte proposée |
 |---|---|---|
-| Livrables à valider | Synthèse | au-dessus de la capacité de relecture de l'équipe |
-| Sans source après approbation | Synthèse | supérieur à 0 |
-| Délai de validation | Synthèse | supérieur à 48 h |
-| Soumissions en relecture, par quinzaine | Synthèse | sans alerte (courbe) |
-| Bloquantes à vérifier | Validation | supérieur à 0 |
-| Alertes d'injection | Administration | au-dessus du dernier total examiné |
+| Taux d'erreur de l'IA | Synthèse | au-dessus de la dernière valeur examinée |
+| Livrables | Synthèse | sans alerte |
+| Appels au modèle par mois | Synthèse | sans alerte (graphique) |
+| Rapports en alerte | Projet | supérieur à 0 |
+| Sorties invalides | Qualité de l'IA | supérieur à 0 |
+| Modèle adopté | Entraînement | sans alerte (texte) |
 
 Les [alertes](https://learn.microsoft.com/en-us/power-bi/create-reports/service-set-data-alerts) n'existent que sur
 cartes, KPI et jauges **numériques**, et demandent Pro hors de « Mon espace de travail ». Les cartes du rapport
@@ -115,7 +115,7 @@ portent pour cela des mesures numériques.
 ## 8. Avant de publier, même la démonstration
 
 - [ ] accord écrit du propriétaire du projet ;
-- [ ] bandeau « Données de démonstration » visible sur chaque page ;
+- [ ] mention « [DÉMO] » visible sur chaque visuel qui inclut un projet de démonstration ;
 - [ ] aucun `acces.csv` réel ni cache `.pbi/cache.abf` dans ce qui part ;
 - [ ] chaque rôle testé avec « Tester en tant que rôle », puis avec un vrai compte Lecteur ;
 - [ ] « Publier sur le web » désactivé par l'administrateur du locataire.

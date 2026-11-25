@@ -1,0 +1,34 @@
+table 'Courbe de validation'
+
+	column 'Code de l''essai'
+		dataType: string
+		isHidden
+		sourceColumn: run_id
+		summarizeBy: none
+
+	column Pas
+		dataType: int64
+		sourceColumn: step
+		summarizeBy: none
+
+	column 'Erreur de validation'
+		dataType: double
+		isHidden
+		sourceColumn: val_loss
+		summarizeBy: none
+
+	column Meilleur
+		dataType: int64
+		isHidden
+		sourceColumn: is_best
+		summarizeBy: none
+
+	partition 'Courbe de validation' = m
+		mode: import
+		source =
+				let
+				    Brut = Vue("v_training_point"),
+				    Choix = Table.SelectColumns(Brut, {"run_id", "step", "val_loss", "is_best"}),
+				    Typage = Table.TransformColumnTypes(Choix, {{"run_id", type text}, {"step", Int64.Type}, {"val_loss", type number}, {"is_best", Int64.Type}}, CultureCsv)
+				in
+				    Typage
