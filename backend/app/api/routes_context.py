@@ -24,6 +24,7 @@ class ContextPatch(BaseModel):
     scope: str | None = Field(default=None, max_length=2000)
     constraints: str | None = Field(default=None, max_length=2000)
     stakeholders: str | None = Field(default=None, max_length=2000)
+    roadmap_axes: str | None = Field(default=None, max_length=1000)
     confirm: bool = False
 
 
