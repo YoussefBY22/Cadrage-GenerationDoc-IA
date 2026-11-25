@@ -20,8 +20,11 @@ from pathlib import Path
 from app.domain.documents import Chunk
 from app.domain.retrieval import Passage
 from app.generation import prompting
+from app.generation.llm_schemas import LLMSection
 from app.generation.template_loader import SectionSpec
 from eval.corpus.generate import generate
+
+from training.dataset import schema_order
 
 BASE_SEED = 1000
 LICENCE = "œuvre propre (corpus synthétique)"
@@ -77,7 +80,7 @@ def _section_json(ok: bool, text: str | None = None, label: str | None = None) -
     else:
         obj = {"status": "insufficient_evidence", "sentences": [],
                "missing_evidence": "Les passages fournis ne contiennent pas l'information demandée."}
-    return json.dumps(obj, ensure_ascii=False)
+    return schema_order.dumps(LLMSection, obj)
 
 
 def _example(source: str, inst: str, kind: str, seed: int, user: str, answer: str,

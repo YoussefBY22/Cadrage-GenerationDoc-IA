@@ -234,3 +234,12 @@ def test_decoupage_aucun_document_dans_deux_jeux(candidates):
 
 def test_graines_differentes_de_l_evaluation(candidates):
     assert all(c["meta"]["seed"] != 7 for c in candidates)
+
+
+def test_same_template_ignores_parameter_order():
+    from training.export_gguf import same_template
+    a = 'FROM x\nTEMPLATE """t"""\nPARAMETER temperature 0.6\nPARAMETER top_k 20\nPARAMETER stop <|im_end|>\n'
+    b = 'FROM y\nTEMPLATE """t"""\nPARAMETER stop <|im_end|>\nPARAMETER temperature 0.6\nPARAMETER top_k 20\n'
+    assert same_template(a, b)
+    assert not same_template(a, b.replace("top_k 20", "top_k 40"))
+    assert not same_template(a, b.replace('"""t"""', '"""u"""'))

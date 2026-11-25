@@ -1,0 +1,17 @@
+# Config C-4b : Qwen3-4B + LoRA (entraînée sur Colab sur ~55 exemples publics : format, citation, refus),
+# même chaîne d'export que B-4b-base. Importé par `python -m training.import_ollama`.
+# Comparer à B-4b-base : mêmes graines, même corpus, même porte de pertinence.
+name: C-4b-lora
+provider: ollama
+model: cadrage-4b-lora
+adapter: lora-4b-colab
+seeds: [1, 2, 3]
+corpus_seed: 7
+retrieval: {enabled: true, k: 10}
+settings:
+  ollama_generation_model: cadrage-4b-lora
+  ollama_embedding_model: bge-m3
+  ollama_think: false
+  relevance_threshold: 0.45   # porte de pertinence : refus AVANT l'appel au modèle si rien de proche (docs/lots/Q2.md)
+  llm_timeout_seconds: 300
+  ollama_num_gpu: 99

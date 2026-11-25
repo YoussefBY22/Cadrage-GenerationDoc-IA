@@ -83,6 +83,16 @@ _L = {
         "task_findings": ("TÂCHE : extraire les constats du diagnostic (faits observables, un par entrée), "
                           "avec thème, gravité (low/medium/high) et sources."),
         "reply_findings": "Réponds par un JSON LLMFindings.",
+        "task_position": ("TÂCHE : la recommandation et la position de l'institution figurent dans les passages. "
+                          "Indique la position dans « stance » : accept (accepte), partial (accepte partiellement) "
+                          "ou reject (rejette), puis justifie-la en citant les passages, dont celui de la "
+                          "recommandation et celui de la position."),
+        "task_conflict": ("TÂCHE : compare la recommandation à la stratégie, à la priorité ou à la contrainte fournie. "
+                          "Dans « stance » : conflict si elles s'opposent (signale le conflit en citant les DEUX "
+                          "passages), aligned si elles sont compatibles. N'invente aucun chiffre."),
+        "reply_stance": "Réponds par un JSON LLMStance.",
+        "example_stance": ('EXEMPLE de réponse : {"status": "ok", "stance": "partial", "sentences": [{"text": '
+                           '"<phrase tirée du passage>", "kind": "fact", "sources": ["P1"]}]}'),
         "task_ini": ("TÂCHE : proposer des initiatives qui traitent les constats (cite F1..Fn dans « findings »), "
                      "notées de 1 à 5 sur chaque critère : {crit}. Chaque note cite ses sources et une justification. "
                      "depends_on_titles : titres d'autres initiatives dont celle-ci dépend. "
@@ -129,6 +139,15 @@ _L = {
         "task_findings": ("TASK: extract the diagnostic findings (observable facts, one per entry), "
                           "with theme, severity (low/medium/high) and sources."),
         "reply_findings": "Reply with a JSON LLMFindings.",
+        "task_position": ("TASK: the recommendation and the institution's position are in the passages. "
+                          'Give the position in "stance": accept, partial (partially accepts) or reject, '
+                          "then justify it by citing the passages, including the recommendation and the position."),
+        "task_conflict": ("TASK: compare the recommendation with the strategy, priority or constraint provided. "
+                          'In "stance": conflict if they oppose each other (report the conflict citing BOTH '
+                          "passages), aligned if they are compatible. Do not invent any figure."),
+        "reply_stance": "Reply with a JSON LLMStance.",
+        "example_stance": ('EXAMPLE of an answer: {"status": "ok", "stance": "partial", "sentences": [{"text": '
+                           '"<sentence from the passage>", "kind": "fact", "sources": ["P1"]}]}'),
         "task_ini": ('TASK: propose initiatives that address the findings (cite F1..Fn in "findings"), '
                      "scored 1 to 5 on each criterion: {crit}. Each score cites its sources and a rationale. "
                      "depends_on_titles: titles of other initiatives this one depends on. "
@@ -290,6 +309,23 @@ def build_findings_prompt(
         [t["task_findings"], t["passages"], render_passages(passages, nonce, budget),
          t["reply_findings"]]
     )
+
+
+STANCE_MODES = ("position", "conflict")
+
+
+def build_stance_prompt(
+    mode: str, passages: Sequence[Passage], *, nonce: str, budget: int = DEFAULT_PASSAGE_BUDGET,
+    lang: Lang = "fr",
+) -> str:
+    """Message utilisateur « position d'une institution » ou « conflit avec la stratégie » (JSON ``LLMStance``)."""
+    if mode not in STANCE_MODES:
+        raise ValueError(f"mode inconnu : {mode}")
+    t = _t(lang)
+    labels = ", ".join(p.label for p in _select(passages, nonce, budget)[0])
+    return "\n".join([t["passages"], render_passages(passages, nonce, budget), t[f"task_{mode}"],
+                      t["rules"].format(labels=labels), t["example_stance"], t["example_refusal"],
+                      t["reply_stance"]])
 
 
 def _render_priorities(priorities: Sequence[Priority], nonce: str) -> str:

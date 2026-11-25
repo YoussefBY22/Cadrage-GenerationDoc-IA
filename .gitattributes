@@ -1,0 +1,4 @@
+
+# Gabarit Ollama : toujours en LF (en CRLF, les jetons envoyés au modèle changent)
+training/ollama/*.Modelfile text eol=lf
+training/colab/*.zip binary
