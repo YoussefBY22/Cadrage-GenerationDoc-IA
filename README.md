@@ -75,6 +75,18 @@ fidèles 97-99 % → **100 %** ; temps par section (p95) 37 s → **24 s**.
 16 constats, 19 initiatives, aucun constat oublié ; contexte des TdR rédigé et vérifié à 100 % ; 12 exigences
 fonctionnelles proposées, toutes vérifiées.
 
+## Tableau de bord du consultant (Power BI)
+
+Un entrepôt de données (schéma en étoile, sans aucun texte client) alimente un rapport Power BI par acteur. Ci-dessous,
+la page du **consultant**, chargée avec les **vraies données** de l'application après le travail sur le rapport de la
+Cour (25/11/2026) : 12 livrables à traiter, 18 phrases à corriger (source ou chiffre non vérifié), les sections à
+compléter et, pour chaque problème, l'action conseillée. Le taux d'acceptation sans retouche reste « non mesuré » tant
+qu'aucun livrable n'a été validé : le rapport n'invente pas de chiffre.
+
+![Tableau de bord du consultant](docs/img/powerbi-consultant.png)
+
+Indicateurs et formules : [`bi/KPI.md`](bi/KPI.md) ; autres pages (responsable, administration) : [`bi/README.md`](bi/README.md).
+
 ## Entraînement
 
 | Essai | Où | Données | Durée d'entraînement | Résultat |
