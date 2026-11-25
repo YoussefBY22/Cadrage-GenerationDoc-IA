@@ -167,3 +167,45 @@ def central(vectors: Sequence[Sequence[float]], members: list[int], limit: int) 
     def score(i: int) -> float:
         return sum(_cos(vectors[i], vectors[j]) for j in members)
     return sorted(members, key=lambda i: -score(i))[:limit]
+
+
+def _center(vectors: Sequence[Sequence[float]]) -> list[list[float]]:
+    """Retire la composante commune : des constats d'un même rapport se ressemblent tous ; on garde ce qui les distingue."""
+    n, dim = len(vectors), len(vectors[0])
+    mean = [sum(v[d] for v in vectors) / n for d in range(dim)]
+    out = []
+    for v in vectors:
+        c = [v[d] - mean[d] for d in range(dim)]
+        norm = sum(x * x for x in c) ** 0.5 or 1.0
+        out.append([x / norm for x in c])
+    return out
+
+
+def cluster_balanced(vectors: Sequence[Sequence[float]], k: int, iterations: int = 25) -> list[list[int]]:
+    """k-moyennes sphériques sur vecteurs centrés, départ déterministe (points les plus éloignés).
+
+    Le regroupement hiérarchique, sur 74 vrais constats, faisait un groupe de 58 : les constats d'un rapport partagent
+    tous le même vocabulaire. Centrer les vecteurs puis répartir autour de k centres donne des axes équilibrés.
+    """
+    n = len(vectors)
+    if n <= k:
+        return [[i] for i in range(n)]
+    x = _center(vectors)
+    first = max(range(n), key=lambda i: -sum(_cos(x[i], x[j]) for j in range(n)))  # le plus « typique » d'abord
+    seeds = [first]
+    while len(seeds) < k:
+        seeds.append(max((i for i in range(n) if i not in seeds),
+                         key=lambda i: -max(_cos(x[i], x[s_]) for s_ in seeds)))
+    cents = [x[s_] for s_ in seeds]
+    assign = [0] * n
+    for _ in range(iterations):
+        new = [max(range(k), key=lambda c, v=v: _cos(v, cents[c])) for v in x]
+        if new == assign and _ > 0:
+            break
+        assign = new
+        for c in range(k):
+            members = [x[i] for i in range(n) if assign[i] == c]
+            if members:
+                cents[c] = [sum(m[d] for m in members) / len(members) for d in range(len(x[0]))]
+    groups = [[i for i in range(n) if assign[i] == c] for c in range(k)]
+    return sorted((g for g in groups if g), key=lambda g: (-len(g), g[0]))

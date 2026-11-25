@@ -177,3 +177,18 @@ def test_tdr_d_une_initiative_ne_recoit_que_ses_constats(repo, tmp_path):
     assert prompts, "la section aurait dû appeler le modèle"
     assert all(f"service {w} " in prompts[0] for w in INFO)
     assert not any(f"service {w} " in prompts[0] for w in FIN)
+
+
+def test_regroupement_equilibre_quand_tout_se_ressemble():
+    # 12 vecteurs proches d'une même direction commune, en 3 familles : le centrage les sépare
+    base = [5.0, 5.0, 5.0, 0.0, 0.0, 0.0]
+    fams = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+    vecs = [base[:3] + [f * (1 + 0.05 * i) for f in fams[i % 3]] for i in range(12)]
+    groups = axes.cluster_balanced(vecs, 3)
+    assert sorted(len(g) for g in groups) == [4, 4, 4]
+    assert all(len({i % 3 for i in g}) == 1 for g in groups)
+
+
+def test_titre_qui_recopie_la_consigne_est_ecarte():
+    assert roadmap_service._echo("Proposer des initiatives qui traitent les constats (cite F1..Fn dans « findings »)")
+    assert not roadmap_service._echo("Mettre en place un suivi des fournisseurs")

@@ -41,6 +41,13 @@ def _lbl(x: str) -> str:
     return re.sub(r"\W", "", x).upper()
 
 
+def _echo(title: str) -> bool:
+    """Titre qui recopie la consigne (étiquettes, critères) ou qui est une phrase-fleuve : ce n'est pas un titre."""
+    low = title.lower()
+    return ("f1..fn" in low or "notées de 1 à 5" in low or "scored 1 to 5" in low or "cite f1" in low
+            or len(title.split()) > 25)
+
+
 def _title_key(t: str) -> str:
     return re.sub(r"\s+", " ", t.strip().lower())
 
@@ -104,7 +111,7 @@ def _group_by_meaning(repo, provider, dossier_id, reps, language) -> tuple[list,
     errors: list[str] = []
     calls = 0
     out = []
-    for members in axes_mod.cluster(vectors, axes_mod.k_for(len(reps))):
+    for members in axes_mod.cluster_balanced(vectors, axes_mod.k_for(len(reps))):
         group = [reps[i] for i in members]
         sample = [reps[i] for i in axes_mod.central(vectors, members, 10)]
         prompt = build_axis_name_prompt(sample, names, nonce=nonce, lang=language)
@@ -291,6 +298,9 @@ def _propose(repo, provider, dossier_id, findings, criteria, priorities, project
     drafts: list[tuple[Initiative, list[str]]] = []
     fmap = {f.id: f for f in findings}
     for li in llm.initiatives:
+        if _echo(li.title):  # le modèle a recopié la consigne au lieu d'un titre (vu en réel) : écarté, signalé
+            rejected.append(RejectedLink(initiative=li.title[:80], kind="bad_title", value=li.title[:80]))
+            continue
         fids = resolve(li.findings, flabel, "finding", li.title)
         if not fids:  # une initiative sans constat n'a pas de preuve : écartée et signalée
             rejected.append(RejectedLink(initiative=li.title, kind="no_finding", value=li.title))

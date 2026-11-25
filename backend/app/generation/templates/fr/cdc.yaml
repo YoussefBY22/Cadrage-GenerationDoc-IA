@@ -22,8 +22,10 @@ sections:
   title: Exigences fonctionnelles
   instructions: Énumère les exigences fonctionnelles sous forme d'énoncés courts « Le système doit… », numérotées
     REQ-1, REQ-2…, une exigence par phrase, sans ambiguïté, chacune vérifiable et rattachée à une source ou un constat.
+    Une information qu'une recommandation ou un constat demande de produire ou de suivre est une exigence.
   queries:
   - exigences fonctionnelles
+  - recommandations du rapport
   - fonctionnalités attendues
   - besoins métiers
   min_sources: 2
