@@ -284,3 +284,52 @@ export interface ModelsOverview {
   limits: Limits;
   context: ContextBudget;
 }
+
+// --- Fiche projet et recommandations des rapports d'audit --------------------------------------
+export interface ProjectProfile {
+  dossier_id: string;
+  name: string;
+  client_name: string;
+  client_request: string;
+  request_summary: string;
+  start_date: string | null;
+  end_date: string | null;
+  logo: string | null;
+  documents: number;
+  audit_reports: number;
+  updated_at: string | null;
+}
+
+export type ProfilePatch = Partial<
+  Pick<ProjectProfile, "client_name" | "client_request" | "request_summary" | "start_date" | "end_date">
+> & { clear_logo?: boolean };
+
+export type RecommendationStatus = "proposed" | "validated" | "deleted" | "merged";
+
+export interface AuditRecommendation {
+  id: string;
+  document_id: string;
+  number: number | null;
+  page: number | null;
+  title: string;
+  status: RecommendationStatus;
+  origin: "rules" | "consultant";
+  merged_into: string | null;
+}
+
+export type ReportCheckStatus = "ok" | "ecart" | "non_detectees" | "non_lu";
+
+export interface ReportRecommendations {
+  document_id: string;
+  filename: string;
+  pages: number | null;
+  recommendations: AuditRecommendation[];
+  check: { status: ReportCheckStatus; expected: number | null; extracted: number; missing: number[]; duplicates: number[] };
+}
+
+export interface RecommendationsOverview {
+  reports: ReportRecommendations[];
+  alerts: number;
+  validated: number;
+  active: number;
+}

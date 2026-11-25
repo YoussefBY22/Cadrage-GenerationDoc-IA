@@ -295,3 +295,80 @@ context_sheets = Table(
     Column("updated_by", ID),
     _dt("updated_at", nullable=False, default=utcnow),
 )
+
+# --- Fiche projet, recommandations des rapports, registre des entraînements -------------------
+# Tables ajoutées sans modifier les précédentes : `create_all` suffit sur une base existante.
+dossier_profiles = Table(
+    "dossier_profiles", metadata,
+    Column("dossier_id", ID, ForeignKey("dossiers.id"), primary_key=True),
+    Column("client_request", Text, nullable=False, default=""),  # demande du client, complète
+    Column("request_summary", String(200), nullable=False, default=""),  # seul texte copié dans l'entrepôt
+    Column("start_date", String(10)),  # ISO aaaa-mm-jj
+    Column("end_date", String(10)),
+    Column("logo", Text),  # data URI PNG, redimensionné à l'envoi (≈ 100 Ko au plus)
+    Column("updated_by", ID),
+    _dt("updated_at", nullable=False, default=utcnow),
+)
+
+# Ce que le rapport annonce : numéros « Recommandation n° … » relevés dans le texte, à chaque extraction.
+report_checks = Table(
+    "report_checks", metadata,
+    Column("document_id", ID, ForeignKey("documents.id"), primary_key=True),
+    Column("dossier_id", ID, ForeignKey("dossiers.id"), nullable=False),
+    Column("numbers_seen", JsonType(), nullable=False),  # numéros cités, triés
+    Column("no_recommendation", Boolean, nullable=False, default=False),  # confirmé par le consultant
+    _dt("checked_at", nullable=False, default=utcnow),
+)
+
+audit_recommendations = Table(
+    "audit_recommendations", metadata,
+    Column("id", ID, primary_key=True),
+    Column("dossier_id", ID, ForeignKey("dossiers.id"), nullable=False),
+    Column("document_id", ID, ForeignKey("documents.id"), nullable=False),
+    Column("number", Integer),  # numéro dans le rapport ; NULL si le rapport ne numérote pas
+    Column("page", Integer),
+    Column("title", Text, nullable=False),
+    Column("status", String(12), nullable=False, default="proposed"),  # proposed|validated|deleted|merged
+    Column("origin", String(12), nullable=False, default="rules"),  # rules|consultant
+    Column("merged_into", ID),
+    Column("chunk_id", ID),
+    Column("updated_by", ID),
+    _dt("created_at", nullable=False, default=utcnow),
+    _dt("updated_at", nullable=False, default=utcnow),
+    Index("ix_audit_recommendations_dossier", "dossier_id"),
+)
+
+training_runs = Table(
+    "training_runs", metadata,
+    Column("id", String(40), primary_key=True),  # nom court, ex. « v4 »
+    Column("label", String(80), nullable=False),
+    Column("run_date", String(10), nullable=False),
+    Column("platform", String(40), nullable=False),
+    Column("gpu", String(40)),
+    Column("examples", Integer, nullable=False),
+    Column("test_examples", Integer),
+    Column("duration_min", Float),
+    Column("steps_planned", Integer),
+    Column("stop_step", Integer),
+    Column("best_step", Integer),
+    Column("best_val_loss", Float),
+    Column("adopted", Boolean, nullable=False, default=False),
+    Column("outcome", String(200), nullable=False, default=""),
+    _dt("imported_at", nullable=False, default=utcnow),
+)
+
+training_eval_points = Table(
+    "training_eval_points", metadata,
+    Column("run_id", String(40), ForeignKey("training_runs.id"), primary_key=True),
+    Column("step", Integer, primary_key=True),
+    Column("val_loss", Float, nullable=False),
+)
+
+training_task_scores = Table(
+    "training_task_scores", metadata,
+    Column("run_id", String(40), ForeignKey("training_runs.id"), primary_key=True),
+    Column("model", String(20), primary_key=True),  # base | modèle entraîné
+    Column("task", String(40), primary_key=True),
+    Column("correct", Integer, nullable=False),
+    Column("total", Integer, nullable=False),
+)

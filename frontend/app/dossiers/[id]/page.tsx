@@ -1,9 +1,10 @@
 "use client";
 
-import { Check, ChevronRight, FileSpreadsheet, FileText, FileType2, FolderKanban, Gavel, MessageSquare, Presentation, Scale, Search, TriangleAlert, Upload } from "lucide-react";
+import { Check, ChevronRight, FileSpreadsheet, ListChecks, FileText, FileType2, FolderKanban, Gavel, MessageSquare, Presentation, Scale, Search, TriangleAlert, Upload } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type DragEvent } from "react";
+import ProfileCard from "@/components/ProfileCard";
 import Shell from "@/components/Shell";
 import { Alert, Empty } from "@/components/ui";
 import { ApiError, api } from "@/lib/api";
@@ -153,6 +154,7 @@ export default function DossierPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [importRole, setImportRole] = useState<DocumentRole>("other");
+  const [recoAlerts, setRecoAlerts] = useState(0);
 
   const reload = useCallback(() => {
     api
@@ -162,6 +164,10 @@ export default function DossierPage() {
     api
       .listFindings(id)
       .then(setFindings)
+      .catch(() => {});
+    api
+      .listRecommendations(id)
+      .then((r) => setRecoAlerts(r.alerts))
       .catch(() => {});
   }, [id, guard]);
 
@@ -255,6 +261,16 @@ export default function DossierPage() {
           <h1>{dossier ? dossier.name : t.common.loading}</h1>
         </div>
         <div className="actions">
+          <Link href={`/dossiers/${id}/recommendations`} className="btn" data-testid="link-recommendations">
+            <ListChecks size={16} />
+            {t.projet.recos}
+            {recoAlerts > 0 && (
+              <span className="badge rejected plain" title={t.projet.alertsBanner(recoAlerts)}>
+                <TriangleAlert size={12} />
+                {recoAlerts}
+              </span>
+            )}
+          </Link>
           <Link href={`/dossiers/${id}/priorities`} className="btn" data-testid="link-priorities">
             <Scale size={16} />
             {t.coeur.priorities}
@@ -278,6 +294,8 @@ export default function DossierPage() {
         </div>
       </div>
       {error && <Alert>{error}</Alert>}
+
+      <ProfileCard dossierId={id} />
 
       <div className="steps">
         {steps.map((s, i) => (
