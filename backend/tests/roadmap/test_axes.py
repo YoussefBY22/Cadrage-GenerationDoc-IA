@@ -192,3 +192,19 @@ def test_regroupement_equilibre_quand_tout_se_ressemble():
 def test_titre_qui_recopie_la_consigne_est_ecarte():
     assert roadmap_service._echo("Proposer des initiatives qui traitent les constats (cite F1..Fn dans « findings »)")
     assert not roadmap_service._echo("Mettre en place un suivi des fournisseurs")
+
+
+def test_partie_trop_grosse_coupee_en_deux_et_reprise(repo, tmp_path):
+    def handler(prompt, schema):
+        if schema.__name__ == "LLMInitiatives" and len(re.findall(r"^F\d+:", prompt, re.MULTILINE)) > 3:
+            return "{tronqué"  # réponse coupée, comme en réel quand la partie est trop grosse
+        return _handler(prompt, schema)
+
+    p = SensProvider(handler=handler)
+    did, _s, _st = _setup(repo, p, tmp_path)
+    fs = _findings()
+    repo.save_findings(did, fs)
+    r = roadmap_service.generate(repo, p, did, USER)
+    covered = {f for it in r["roadmap"]["items"] for f in it["initiative"]["finding_ids"]}
+    assert covered == {f.id for f in fs}  # tout est repris après découpage
+    assert not any("Partie non générée" in w for w in r["warnings"])

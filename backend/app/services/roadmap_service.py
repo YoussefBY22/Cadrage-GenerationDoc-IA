@@ -32,7 +32,7 @@ from . import context_sheet
 from .generation import GenerationError, call_model, get_deliverable, new_nonce, record_run
 
 MAX_PASSAGES = 30
-ROADMAP_REPLY_TOKENS = 1200
+ROADMAP_REPLY_TOKENS = 1800  # mesuré : 3 initiatives notées ≈ 1 500 jetons de réponse
 MAX_FINDINGS_PER_CALL = 8  # réponse courte : quelques initiatives par appel, jamais tronquée
 SMALL_ROADMAP = 8  # jusqu'à 8 constats distincts : un seul appel, sans étape « axes »
 
@@ -185,17 +185,25 @@ def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
             return _fits(ctx_tokens, part, criteria, priorities, projects, nonce, language, axis)
 
         for part in _split_to_fit(group, fits):
-            try:
-                d, rj, ns, rid = _propose(repo, provider, dossier_id, part, criteria, priorities,
-                                          projects, language, axis, ctx_tokens)
-            except GenerationError as exc:  # une partie ratée n'efface pas les autres : signalée
-                part_errors.append(f"{axis or '-'} : {exc.message}"[:300])
-                failed_findings += [f.id for f in part]
-                continue
-            drafts += d
-            rejected += rj
-            not_sent += ns
-            run_ids.append(rid)
+            # une partie ratée est coupée en deux et reprise une fois ; sinon signalée, sans effacer les autres
+            pending = [(part, 0)]
+            while pending:
+                chunk, depth = pending.pop(0)
+                try:
+                    d, rj, ns, rid = _propose(repo, provider, dossier_id, chunk, criteria, priorities,
+                                              projects, language, axis, ctx_tokens)
+                except GenerationError as exc:
+                    if depth == 0 and len(chunk) > 1:
+                        half = len(chunk) // 2
+                        pending += [(chunk[:half], 1), (chunk[half:], 1)]
+                        continue
+                    part_errors.append(f"{axis or '-'} : {exc.message}"[:300])
+                    failed_findings += [f.id for f in chunk]
+                    continue
+                drafts += d
+                rejected += rj
+                not_sent += ns
+                run_ids.append(rid)
 
     # Doublons : ils suivent leur représentant. Même titre (deux axes ou deux parties) : une seule initiative.
     merged: dict[str, tuple[Initiative, list[str]]] = {}
