@@ -1,5 +1,37 @@
 # STATUS — Phases A à G1 hors ligne (nuit 1), puis passage au réel (nuit 2, 22/11/2026)
 
+> **État au 24/11/2026 (soir).** Détail : [`19-entrainement-et-tests-reels.md`](19-entrainement-et-tests-reels.md).
+>
+> | Fait et vérifié (24/11) | Preuve |
+> |---|---|
+> | Premier entraînement réussi : Qwen3-4B + LoRA (341 exemples publics, 21 min sur Colab T4) | docs/19 §3 |
+> | Test sur 169 exemples jamais vus : choix répondre/refuser 114 → 168, extraction 3 → 31 sur 31, position 46 → 50 sur 50 | docs/19 §4 |
+> | Banc dans l'application : refus manqués 40 % → 10 %, citations et chiffres 100 % | docs/19 §5 |
+> | Import Ollama : gabarit comparé sans l'ordre des paramètres | #20 |
+> | Vrai rapport (Cour des comptes UE 17/2022) : position 4/4, conflit 7/8, constats extraits sans échec | docs/19 §6 |
+> | Feuille de route par axes : un vrai rapport (55 constats) passe dans 4 096 jetons ; TdR limitées aux constats de l'initiative | #21 |
+> | Tâche « axes » dans le jeu d'entraînement (paquet v5, 675 exemples) | #22 |
+>
+> | Constaté, à traiter | |
+> |---|---|
+> | Conflit recommandation / stratégie : 11 sur 24 au test (le modèle penche vers « aligné ») | plus d'exemples de vrais conflits |
+> | Gravité des constats mal calibrée (presque tout « faible ») ; phrases de méthode prises pour des constats | données d'extraction |
+> | Les réponses de la Commission produisent des « constats » | code : réserver ce rôle à la position |
+> | Feuille de route : 2 axes seulement, 6 constats sur 55 sans initiative, ~27 min | entraînement v5, puis remesure |
+> | TdR « objectifs » refusée alors que les recommandations les donnent | données + gabarit |
+> | GPU à 85-91 °C sous charge | repos de 5 min entre passages |
+>
+> | Reste à faire, dans l'ordre | |
+> |---|---|
+> | 1. Relire puis fusionner #20 → #21 → #22 (#22 s'appuie sur les deux), puis #19 (documentation) | humain |
+> | 2. Entraînement v5 sur Kaggle (carnet de la branche de #22), puis test par tâche dont « axes » | humain + GPU |
+> | 3. Remesurer la feuille de route par axes avec le modèle v5 sur le vrai rapport | GPU local |
+> | 4. Cache Ollama en 8 bits (fenêtre 8 192 à mémoire égale), mesure sur le banc | réglage |
+> | 5. Correctifs : réponses de l'institution hors constats ; rattacher chaque constat à une initiative | code |
+> | 6. Horizons en mois (0-6 / 6-12 / 12-24) à partir d'une date de départ et des durées saisies | code + UI |
+> | 7. Tester sur des rapports de Youssef ; recalibrer le filtre de pertinence (0,45) | mesure |
+> | 8. Studio d'entraînement dans l'application (R27), espace client (R20) : spécifiés, non construits | code |
+>
 > **État au 23/11/2026.** Les sections ci-dessous décrivent les nuits 1 et 2 ; ce bloc les met à jour.
 >
 > | Fait et vérifié | Preuve |

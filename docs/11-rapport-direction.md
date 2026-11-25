@@ -1,5 +1,14 @@
 # 11 — Rapport à la direction : une nuit de construction assistée
 
+> **Mise à jour du 24/11/2026, pour un manager.**
+> - **Fait** : le modèle local a été spécialisé (entraîné) sur 341 exemples publics en 21 minutes, gratuitement. Il
+>   refuse désormais quand les documents ne disent rien (refus manqués 40 % → 10 %) et cite juste à 100 %.
+> - **Testé sur un vrai rapport** de la Cour des comptes européenne (100 pages) : la position de l'institution est
+>   juste 4 fois sur 4 ; la feuille de route, qui bloquait, est produite en découpant le travail par axes, comme le
+>   font les cabinets.
+> - **Pas encore** : le modèle détecte mal les vrais conflits avec une stratégie et trouve trop peu d'axes ; un
+>   second entraînement est prêt (675 exemples) et doit être lancé sur Kaggle.
+>
 > **Mise à jour du 23/11/2026, pour un manager.**
 > - **Fait** : les trois éléments du sujet sont désormais reliés dans l'outil : constats d'audit, priorités de la
 >   société validées par un relecteur, projets existants. Sur un audit fictif, le modèle local relie chaque action
