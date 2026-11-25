@@ -375,6 +375,8 @@ export const en: Messages = {
       wave: "Wave",
       axis: "Axis",
       noAxis: "No axis",
+      horizon: (w: number) =>
+        ["", "0-6 months · quick wins", "6-12 months · foundations", "12-24 months · transformation"][w] ?? "",
       autoLinked: (n: number) => `${n} finding(s) linked by the code from their meaning: to check`,
       title: "Initiative",
       score: "Score",

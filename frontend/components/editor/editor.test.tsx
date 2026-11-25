@@ -180,7 +180,7 @@ describe("feuille de route", () => {
     render(<RoadmapView id="r1" />);
     const matrix = await screen.findByTestId("axis-matrix");
     const rows = within(matrix).getAllByRole("row");
-    expect(rows[0]).toHaveTextContent("AxeVague 1Vague 2");
+    expect(rows[0]).toHaveTextContent("AxeVague 10 à 6 mois · gains rapidesVague 26 à 12 mois · fondations");
     expect(rows[1]).toHaveTextContent("GouvernanceAutomatiser");
     expect(rows[2]).toHaveTextContent("DonnéesFormer");
   });

@@ -380,6 +380,8 @@ export const fr = {
       wave: "Vague",
       axis: "Axe",
       noAxis: "Sans axe",
+      horizon: (w: number) =>
+        ["", "0 à 6 mois · gains rapides", "6 à 12 mois · fondations", "12 à 24 mois · transformation"][w] ?? "",
       autoLinked: (n: number) => `${n} constat(s) rattaché(s) par le code d'après le sens : à vérifier`,
       title: "Initiative",
       score: "Score",

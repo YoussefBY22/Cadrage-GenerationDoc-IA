@@ -233,7 +233,14 @@ export default function RoadmapView({ id }: { id: string }) {
                 <tr>
                   <th>{c.axis}</th>
                   {waves.map((w) => (
-                    <th key={w}>{c.wave} {w}</th>
+                    <th key={w}>
+                      {c.wave} {w}
+                      {c.horizon(w) && (
+                        <div style={{ fontWeight: 400, fontSize: 12, textTransform: "none", opacity: 0.85 }}>
+                          {c.horizon(w)}
+                        </div>
+                      )}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -263,7 +270,7 @@ export default function RoadmapView({ id }: { id: string }) {
         )}
         {!byAxis && waves.map((w) => (
           <div key={w} className="wave-lane">
-            <span className="wave">{c.wave} {w}</span>
+            <span className="wave">{c.wave} {w}{c.horizon(w) ? ` · ${c.horizon(w)}` : ""}</span>
             {sorted
               .filter((x) => x.wave === w)
               .map((x) => (
