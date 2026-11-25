@@ -132,6 +132,31 @@ def _group_by_meaning(repo, provider, dossier_id, reps, language) -> tuple[list,
     return out, errors, calls, "par le sens"
 
 
+def _attach_orphans(provider, initiatives: list, groups: list, dups: dict, fmap: dict) -> list:
+    """Constat qu'aucune initiative ne traite : rattaché à l'initiative de SON axe la plus proche par le sens.
+
+    Mesuré sur un vrai rapport : 11 constats sur 74 restaient orphelins. Le lien est marqué (auto_finding_ids) :
+    c'est une proposition du code, que le consultant vérifie ; jamais un constat n'est inventé ni retiré.
+    """
+    covered = {f for ini in initiatives for f in ini.finding_ids}
+    axis_of = {f.id: axis for axis, group in groups for f in group}
+    orphans = [f for axis, group in groups for f in group if f.id not in covered]
+    if not orphans or not initiatives:
+        return initiatives
+    texts = {ini.id: " ".join(fmap[i].text for i in ini.finding_ids if i in fmap)[:2000] or ini.title
+             for ini in initiatives}
+    ids = list(texts)
+    ivec = dict(zip(ids, provider.embed([texts[i] for i in ids]), strict=True))
+    ovec = provider.embed([f.text for f in orphans])
+    extra: dict[str, list[str]] = {}
+    for f, v in zip(orphans, ovec, strict=True):
+        same = [ini for ini in initiatives if ini.axis == axis_of.get(f.id)] or initiatives
+        best = max(same, key=lambda ini: axes_mod._cos(v, ivec[ini.id]))
+        extra.setdefault(best.id, []).extend([f.id, *dups.get(f.id, [])])
+    return [ini.model_copy(update={"finding_ids": list(dict.fromkeys(ini.finding_ids + extra.get(ini.id, []))),
+                                   "auto_finding_ids": extra.get(ini.id, [])}) for ini in initiatives]
+
+
 def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
              criteria: list[Criterion] | None = None, waves: int = 3,
              language: str = "fr") -> dict:
@@ -237,6 +262,7 @@ def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
     if not initiatives and (part_errors or axis_errors):
         raise GenerationError(502, "MODEL_INVALID",
                               f"Réponse du modèle invalide : {(part_errors or axis_errors)[0]}")
+    initiatives = _attach_orphans(provider, initiatives, groups, dups, fmap)
     run_id = run_ids[0] if run_ids else None
     result, warnings = compute(initiatives, criteria, waves, findings, priorities)
     result = result.model_copy(update={"rejected_links": rejected, "passages_not_sent": not_sent})

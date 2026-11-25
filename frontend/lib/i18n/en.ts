@@ -375,6 +375,7 @@ export const en: Messages = {
       wave: "Wave",
       axis: "Axis",
       noAxis: "No axis",
+      autoLinked: (n: number) => `${n} finding(s) linked by the code from their meaning: to check`,
       title: "Initiative",
       score: "Score",
       explain: "Criteria",

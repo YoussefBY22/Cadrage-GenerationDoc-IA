@@ -380,6 +380,7 @@ export const fr = {
       wave: "Vague",
       axis: "Axe",
       noAxis: "Sans axe",
+      autoLinked: (n: number) => `${n} constat(s) rattaché(s) par le code d'après le sens : à vérifier`,
       title: "Initiative",
       score: "Score",
       explain: "Critères",

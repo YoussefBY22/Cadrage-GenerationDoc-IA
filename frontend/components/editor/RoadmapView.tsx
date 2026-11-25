@@ -311,6 +311,12 @@ export default function RoadmapView({ id }: { id: string }) {
                       {c.axis} : {ini.axis}
                     </div>
                   )}
+                  {(ini.auto_finding_ids?.length ?? 0) > 0 && (
+                    <div style={{ fontWeight: 400, fontSize: 12, color: "var(--warn, #b45309)" }}
+                         data-testid={`auto-${ini.id}`}>
+                      {c.autoLinked(ini.auto_finding_ids!.length)}
+                    </div>
+                  )}
                   <details className="picker" style={{ fontWeight: 400 }}>
                     <summary>{c.explain}</summary>
                     <div className="crit">
