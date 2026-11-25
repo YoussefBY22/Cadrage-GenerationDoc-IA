@@ -193,7 +193,7 @@ def _sorted_sections(template: Template, sections: Sequence[SectionDraft]) -> li
 
 # --- génération d'une section ------------------------------------------------------------------
 def generate_section(repo, provider: LLMProvider, search, deliverable_id: str, section_key: str,
-                     user: CurrentUser, *, settings: Settings | None = None) -> dict:
+                     user: CurrentUser, *, settings: Settings | None = None, proposal: bool = False) -> dict:
     """Flux 06 §7. Renvoie {version, section, report, status, attempts}."""
     settings = settings or get_settings()
     row = get_deliverable(repo, deliverable_id)
@@ -276,7 +276,7 @@ def generate_section(repo, provider: LLMProvider, search, deliverable_id: str, s
                 section_key=section_key, status="insufficient_evidence", sentences=[],
                 missing_evidence="Passages insuffisants pour les requêtes : " + " ; ".join(queries))
             status = "refused"
-        elif gated:  # porte de pertinence : rien d'assez proche, refus SANS appel au modèle
+        elif gated and not proposal:  # porte de pertinence (le consultant peut demander une proposition) : rien d'assez proche, refus SANS appel au modèle
             draft = SectionDraft(
                 section_key=section_key, status="insufficient_evidence", sentences=[],
                 missing_evidence=("Aucun passage assez proche (pertinence "
@@ -286,7 +286,7 @@ def generate_section(repo, provider: LLMProvider, search, deliverable_id: str, s
             status = "refused"
         else:
             kw = {"findings": findings, "context": ctx, "nonce": nonce, "lang": lang,
-                      "decisions": sent_decisions, "decision_section": False}
+                      "decisions": sent_decisions, "decision_section": False, "proposal": proposal}
             fixed = system_prompt(lang) + build_section_prompt(spec, [], **kw)
             budget = passage_budget(getattr(provider, "context_tokens", None), fixed,
                                     SECTION_REPLY_TOKENS)
@@ -326,6 +326,7 @@ def generate_section(repo, provider: LLMProvider, search, deliverable_id: str, s
     version = repo.add_version(deliverable_id, new_content, user.id, "generated")
     repo.audit(user.id, "section.generate", "deliverable", deliverable_id,
                {"section": section_key, "version": version, "run_id": run_id, "status": status,
+                "proposal": proposal,
                 "tpv": report.tpv, "relevance": relevance,
                 "decisions_sent": len(sent_decisions), "decisions_not_sent": dropped_decisions, "findings_not_sent": findings_not_sent,
                 "blocking": sum(i.severity == "blocking" for i in report.issues),

@@ -208,3 +208,59 @@ def test_partie_trop_grosse_coupee_en_deux_et_reprise(repo, tmp_path):
     covered = {f for it in r["roadmap"]["items"] for f in it["initiative"]["finding_ids"]}
     assert covered == {f.id for f in fs}  # tout est repris après découpage
     assert not any("Partie non générée" in w for w in r["warnings"])
+
+
+def test_constats_orphelins_rattaches_dans_leur_axe_et_marques(repo, tmp_path):
+    def handler(prompt, schema):
+        if schema.__name__ == "LLMInitiatives":  # le modèle ne cite qu'un constat par axe
+            axis = re.search(r"AXE DE LA FEUILLE DE ROUTE : (.+?) \(", prompt).group(1)
+            return {"initiatives": [{"title": f"Traiter {axis}", "description": "d", "findings": ["F1"],
+                                     "scores": []}]}
+        return _handler(prompt, schema)
+
+    p = SensProvider(handler=handler)
+    did, _s, _st = _setup(repo, p, tmp_path)
+    fs = _findings()
+    repo.save_findings(did, fs)
+    r = roadmap_service.generate(repo, p, did, USER)
+    items = {it["initiative"]["title"]: it["initiative"] for it in r["roadmap"]["items"]}
+    assert {f for i in items.values() for f in i["finding_ids"]} == {f.id for f in fs}
+    fin = items["Traiter Finances"]
+    fin_ids = {f.id for f in fs if any(w in f.text for w in FIN)}
+    assert set(fin["finding_ids"]) == fin_ids  # chacun dans SON axe
+    assert len(fin["auto_finding_ids"]) == len(fin_ids) - 1  # marqués : proposés par le code
+    assert all(c["code"] != "FINDING_NO_INITIATIVE" for c in r["coherence"]["issues"])
+
+
+def test_proposer_quand_meme_ajoute_la_demande_du_consultant(repo, tmp_path):
+    from app.services import generation
+
+    p = SensProvider(handler=_handler)
+    did, search, st = _setup(repo, p, tmp_path)
+    repo.save_findings(did, _findings())
+    r = roadmap_service.generate(repo, p, did, USER)
+    ini = r["roadmap"]["items"][0]["initiative"]["id"]
+    cdc = generation.create_deliverable(repo, did, "cdc", USER, initiative_id=ini)
+    p.handler = None
+    for proposal in (False, True):
+        n = len(p.calls)
+        out = generation.generate_section(repo, p, search, cdc, "fonctionnelles", USER, settings=st,
+                                          proposal=proposal)
+        prompts = [c["prompt"] for c in p.calls[n:] if c["kind"] == "structured"]
+        if proposal:
+            assert prompts and "DEMANDE DU CONSULTANT" in prompts[0]
+        assert all("DEMANDE DU CONSULTANT" not in x for x in prompts) or proposal
+        assert out["status"] in ("ok", "refused", "invalid")
+
+
+def test_modele_de_proposition_configure_ou_par_defaut():
+    from app.config import Settings
+    from app.llm import OllamaProvider, build_proposal_provider
+
+    base = FakeProvider()
+    assert build_proposal_provider(Settings(llm_provider="fake"), base) is base
+    s = Settings(llm_provider="ollama", ollama_generation_model="lora", ollama_proposal_model="base",
+                 ollama_embedding_model="bge-m3")
+    prov = build_proposal_provider(s, base)
+    assert isinstance(prov, OllamaProvider) and prov.served_model == "ollama:base"
+    assert build_proposal_provider(Settings(llm_provider="ollama", ollama_generation_model="lora"), base) is base

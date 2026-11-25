@@ -51,6 +51,7 @@ export interface Initiative {
   proposal_status?: "proposed" | "accepted";
   proposal_flags?: string[];
   axis?: string | null;
+  auto_finding_ids?: string[];
 }
 
 export interface RejectedLink {

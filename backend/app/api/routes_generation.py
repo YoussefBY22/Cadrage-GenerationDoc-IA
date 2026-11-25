@@ -104,10 +104,16 @@ def create_deliverable(dossier_id: str, body: DeliverableBody, repo: Repo, user:
 
 @router.post("/deliverables/{deliverable_id}/sections/{section_key}:generate")
 def generate_section(deliverable_id: str, section_key: str, repo: Repo, provider: Provider,
-                     user: User, search: Search):
+                     user: User, search: Search, proposal: bool = False):
+    """``?proposal=true`` : le consultant demande une proposition malgré l'absence de passage direct."""
     if _own(repo, deliverable_id, user) is None:
         return not_found("Livrable")
     try:
-        return generation.generate_section(repo, provider, search, deliverable_id, section_key, user)
+        if proposal:
+            from app.config import get_settings
+            from app.llm import build_proposal_provider
+            provider = build_proposal_provider(get_settings(), provider)
+        return generation.generate_section(repo, provider, search, deliverable_id, section_key, user,
+                                           proposal=proposal)
     except GenerationError as exc:
         return error_response(exc.status, exc.code, exc.message)

@@ -59,8 +59,9 @@ export const deliverables = {
     call<{ state: DeliverableState }>(`/deliverables/${id}/transitions`, body("POST", { to, reason })),
   acknowledge: (id: string, section_key: string, sentence_index: number, reason: string) =>
     call<unknown>(`/deliverables/${id}/acknowledgements`, body("POST", { section_key, sentence_index, reason })),
-  generateSection: (id: string, key: string) =>
-    call<{ version: number }>(`/deliverables/${id}/sections/${key}:generate`, { method: "POST" }),
+  generateSection: (id: string, key: string, proposal = false) =>
+    call<{ version: number }>(`/deliverables/${id}/sections/${key}:generate${proposal ? "?proposal=true" : ""}`,
+      { method: "POST" }),
   patchRoadmap: (
     id: string,
     initiatives: {

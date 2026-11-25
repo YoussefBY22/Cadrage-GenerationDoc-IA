@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     llm_provider: str = "fake"
     ollama_base_url: str = "http://localhost:11434"
     ollama_generation_model: str = ""   # ex. nom du modèle installé par l'utilisateur
+    # « proposer quand même » : modèle non entraîné au refus (le modèle entraîné refuse même sur demande,
+    # mesuré le 25/11) ; vide = le modèle de génération
+    ollama_proposal_model: str = ""
     ollama_embedding_model: str = ""
     llm_timeout_seconds: float = 120.0
     # Réglages du modèle réel (T2) ; None = valeur par défaut d'Ollama

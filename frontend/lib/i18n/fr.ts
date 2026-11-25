@@ -380,6 +380,9 @@ export const fr = {
       wave: "Vague",
       axis: "Axe",
       noAxis: "Sans axe",
+      horizon: (w: number) =>
+        ["", "0 à 6 mois · gains rapides", "6 à 12 mois · fondations", "12 à 24 mois · transformation"][w] ?? "",
+      autoLinked: (n: number) => `${n} constat(s) rattaché(s) par le code d'après le sens : à vérifier`,
       title: "Initiative",
       score: "Score",
       explain: "Critères",
@@ -393,6 +396,8 @@ export const fr = {
     decisionCited: "Décision humaine citée",
     needsDecision: (what: string) => `Décision requise : ${what}`,
     needsDecisionHint: "Cette section se rédige à partir d'une décision humaine confirmée",
+    propose: "Proposer quand même",
+    proposeHint: "Le modèle déduit la section des constats et recommandations ; chaque phrase est une proposition citée, à valider",
     legend: { verified: "Vérifiée", warning: "À vérifier", failed: "Non étayée" },
     origin: { generated: "Généré", edited: "Modifié", restored: "Restauré" } as Record<string, string>,
   },
