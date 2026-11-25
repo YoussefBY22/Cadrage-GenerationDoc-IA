@@ -1,6 +1,6 @@
 # Comptes rendus de lots
 
-Un fichier `docs/lots/<ID>.md` par lot (≤ 60 lignes), selon `docs/09-plan-execution.md` §1.6. L'orchestrateur fusionne dans `docs/STATUS.md` et le glossaire (`docs/03`, §6).
+Un fichier `docs/lots/<ID>.md` par lot (≤ 60 lignes), selon le plan d'exécution. L'orchestrateur fusionne dans `docs/STATUS.md` et le glossaire (`docs/03`, §6).
 
 ## Gabarit
 

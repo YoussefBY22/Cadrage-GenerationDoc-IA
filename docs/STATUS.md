@@ -122,7 +122,7 @@ Tout le produit existe et passe ses tests **avec un faux modèle** (aucun vrai m
 | **UI** | Refonte « Cadrage » (jaune `#FFE600`, anthracite, Inter, FR/EN), sans logo ni marque ; Playwright e2e vert ; captures dans `docs/img/`. |
 | **EN** | Gabarits, prompts, nombres anglais du vérificateur et exports en français et en anglais. |
 | **T4** | **103 documents CC BY** (Banque mondiale, Commission européenne), 82 EN / 21 FR ; 3 105 exemples d'entraînement (jeu **rejeté** le 22/11/2026 après lecture : réponses presque toutes recopiées des passages (2 061 sur 2 067), questions faites de mots-clés, 83 % en anglais, aucune feuille de route ni TdR ni cahier des charges) ; 34 questions de test rédigées par une IA, non relues par un humain ; Kaggle non utilisé (compte exigé). |
-| **T6** | Thème Power BI EY, projet PBIP (5 pages, **non ouvert dans Desktop**), CSV de démo, LibreOffice installé, test `-m soffice` vert, hypothèses H1 à H7 au §13 du cahier des charges. |
+| **T6** | Thème Power BI, projet PBIP (5 pages, **non ouvert dans Desktop**), CSV de démo, LibreOffice installé, test `-m soffice` vert, hypothèses H1 à H7 au §13 du cahier des charges. |
 | **Q** | Export PDF réparé (soffice détecté dans Program Files, profil et cwd temporaires contre l'accès contrôlé aux dossiers de Defender), `-m soffice` vert. Trois itérations de prompt : toutes **rejetées** (faux refus 0 % mais refus manqués 30 à 50 %). |
 | **Q2** | **Porte de pertinence** avant l'appel au modèle (`app/generation/relevance.py`, meilleur cosinus bge-m3 < 0,45 → refus sans appel) + prompts de l'itération 1 : refus 32 %, **faux refus 0 %, refus manqués 0 %** sur une passe réelle (31 sections), **à remesurer** (invites possiblement tronquées). Réserve : seuil calibré sur ce même échantillon synthétique, marge de 0,019 ; à recalibrer sur le jeu or réel (T4) via `RELEVANCE_THRESHOLD`. 436 tests verts. |
 
@@ -168,7 +168,7 @@ Progression des tests : phase A 22 → B0 46 → B4 55 → B1 63 → B3 69 → B
 - Dépendances de lecture : pypdf, python-docx, python-pptx, reportlab, argon2 : licences « à vérifier » (`docs/LICENCES-LOGICIELS.md`).
 
 ## 4. Décisions (nuit 2 : prises) et à prendre
-**Prises** : modèles **qwen3:4b** et **bge-m3** (T2) ; corpus public sous licence ouverte accepté, Kaggle laissé de côté (T4) ; français **et** anglais (EN) ; hypothèses H1 à H7 retenues, à valider avec l'entreprise (`docs/01` §13) ; interface inspirée d'EY sans logo ni nom ; fusions directes sur `main` après les tests.
+**Prises** : modèles **qwen3:4b** et **bge-m3** (T2) ; corpus public sous licence ouverte accepté, Kaggle laissé de côté (T4) ; français **et** anglais (EN) ; hypothèses H1 à H7 retenues, à valider avec l'entreprise (`docs/01` §13) ; interface sobre, sans logo de marque ; fusions directes sur `main` après les tests.
 
 **À prendre** :
 1. **Hypothèse « temps gagné »** : 30 min par section est-elle réaliste ? (E1, H7)

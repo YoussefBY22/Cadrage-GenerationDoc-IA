@@ -13,3 +13,6 @@ training/data/
 
 # Base SQLite et documents importés au lancement (jamais dans le dépôt)
 backend/data/
+
+# Documents personnels (apprentissage, journaux internes), gardés en local seulement
+docs-personnel/

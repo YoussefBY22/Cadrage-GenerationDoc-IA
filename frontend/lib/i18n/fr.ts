@@ -1,7 +1,7 @@
 // Libellés de l'interface (français). Même forme dans en.ts : le type Messages l'impose.
 export const fr = {
   appName: "Cadrage",
-  footer: "Projet étudiant — non affilié à EY",
+  footer: "Projet de fin d'études — 2026",
   nav: {
     dashboard: "Tableau de bord",
     dossiers: "Dossiers",

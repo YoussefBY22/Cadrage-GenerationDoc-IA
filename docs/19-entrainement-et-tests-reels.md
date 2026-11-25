@@ -1,7 +1,7 @@
 # 19 — Entraînement du modèle, tests sur un vrai rapport, feuille de route par axes (23/11 soir → 24/11/2026)
 
 > Lecteur : toi, ton encadrant, ou un technicien qui reprend le projet. Suite de
-> [`18-rapport-technique-detaille.md`](18-rapport-technique-detaille.md) (21 au 23/11). Les mots techniques sont
+> l'état d'avancement ([`STATUS.md`](STATUS.md)) (21 au 23/11). Les mots techniques sont
 > expliqués au §1. Chaque chiffre vient d'une mesure faite sur Colab ou sur le PC (GTX 1650, 4 Go), jamais d'une
 > estimation. Fichiers de résultats : dossier de travail de l'orchestrateur (non versionné, car ils citent des
 > documents entiers), recopiés ici en tableaux.
@@ -248,7 +248,7 @@ l'extraction, la position et le refus, en gardant la base (`cadrage-4b-base`) im
 ## 9. Feuille de route par axes (24/11, PR #21)
 
 **Ce que font les cabinets** (sources publiques : McKinsey, guide PEFA de la Banque mondiale, cabinets français ;
-rien de public sur la méthode propre à EY) : une feuille de route se lit sur deux dimensions, des **axes** (chantiers :
+rien de public sur la méthode propre à un cabinet donné) : une feuille de route se lit sur deux dimensions, des **axes** (chantiers :
 gouvernance, processus, systèmes d'information, données…) et des **horizons** (gains rapides, fondations,
 transformation), ordonnés selon la valeur, la faisabilité, les dépendances, en commençant par les bases.
 
