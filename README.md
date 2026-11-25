@@ -8,7 +8,7 @@
 
 **Un consultant dépose les rapports d'un client ; Cadrage en tire les constats, les range en axes, propose une feuille
 de route datée par vagues et rédige termes de référence et cahier des charges. Chaque phrase cite sa source et passe
-par un vérificateur. Tout tourne sur le serveur du client.**
+par un vérificateur. Tout tourne sur un serveur local.**
 
 Projet de fin d'études, 2026. Testé sur un vrai rapport public : rapport spécial 17/2022 de la Cour des comptes
 européenne (53 pages, CC BY 4.0).
