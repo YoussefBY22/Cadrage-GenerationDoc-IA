@@ -43,6 +43,8 @@ Tests : `backend\.venv\Scripts\python -m pytest training/tests -q`.
 C'est **un seul** entraînement QLoRA 4 bits, en 2 parties qui reprennent depuis ton Google Drive. Colab est un cloud :
 `training/parts.py` refuse tout exemple qui n'est pas public sous licence ouverte (CC BY, Licence Ouverte, décision 2011/833/UE).
 
+**Paquet v5 (24/11)** : paquet v4 (535 exemples) + tâche **« axes »** (140 exemples : 100 / 4 / 36), avec le MÊME découpage par rapport. Vérité : le sommaire de chaque rapport de la Cour (grandes parties des observations et leurs plages de points) ; un constat recopié du point N appartient à la partie dont la plage contient N ; titres recopiés. Les constats sont mélangés : l'ordre de la liste ne dit rien de l'axe. Format : axes nouveaux déclarés une fois (`new_axes`, A1 : titre), puis une ligne par constat (`assignments`, F → A). Reconstruire : `python -m training.dataset.add_axes --v4 <paquet v4> --eca-dir DOSSIER --out-dir SORTIE`. Test : paires de constats bien rangées (ensemble ou séparés) comme dans le sommaire.
+
 **Données** : `training/colab/cadrage-donnees-publiques.zip` (SHA-256 écrit dans le carnet et vérifié avant tout calcul) =
 pilote v2 relu (28 exemples) + pilote v3 (25), soit 53 : 33 en entraînement, 7 en validation, 13 en test, séparés
 PAR DOCUMENT SOURCE. Les invites v2 sont refaites avec les fonctions actuelles de l'application ; deux exemples v2 (sections

@@ -30,9 +30,9 @@ from training.dataset.v3_sources import SOURCES, source_text
 TEST_V2 = {"ue-52022SC0349", "ue-52020SC0544"}
 FORCED_TEST = {"eca-sr-2024-26", "eca-sr-2026-13"}
 FORCED_VAL = {"ue-52021SC0379", "eca-sr-2024-27"}
-MIN_TEST = {"total": 70, "conflit": 18, "etq:conflict": 16, "refus": 12}
+MIN_TEST = {"total": 70, "conflit": 18, "etq:conflict": 16, "refus": 12, "axes": 8}
 VAL_SIZE = 24
-CAPS = {"feuille_de_route": 1, "extraction": 1, "position": 2, "conflit": 1, "refus": 1}
+CAPS = {"feuille_de_route": 1, "extraction": 1, "position": 2, "conflit": 1, "refus": 1, "axes": 2}
 ZIP_NAME = "cadrage-donnees-publiques.zip"
 OPEN = ("CC BY", "Décision 2011/833/UE", "Licence Ouverte")
 TASK_OF_KIND = {"feuille de route": "feuille_de_route", "extraction de constats": "extraction",
@@ -133,6 +133,9 @@ def build(v2_path: Path, sources_dir: Path, eca_dir: Path | None = None, skipped
 
 
 def _model(answer: dict):
+    if "assignments" in answer:
+        from training.dataset import eca_axes
+        return eca_axes.schema_for(len(answer["assignments"]))
     return LLMFindings if "findings" in answer else LLMStance if "stance" in answer else LLMSection
 
 
@@ -145,9 +148,13 @@ def check(rows: list[dict]) -> list[str]:
         m = r["meta"]
         if not str(m.get("licence", "")).startswith(OPEN) or not str(m.get("licence_preuve", "")).startswith("https://"):
             bad.append(f"{m['id']} : licence ou preuve manquante")
-        tpv, blocking = v3_build.verify_example(r)
-        if blocking or tpv < 1:
-            bad.append(f"{m['id']} : le vérificateur refuse ({blocking}, tpv {tpv})")
+        if m.get("task_type") == "axes":
+            from training.dataset import eca_axes
+            bad += [f"{m['id']} : {x}" for x in eca_axes.check(r)]
+        else:
+            tpv, blocking = v3_build.verify_example(r)
+            if blocking or tpv < 1:
+                bad.append(f"{m['id']} : le vérificateur refuse ({blocking}, tpv {tpv})")
         answer = json.loads(r["messages"][2]["content"])
         if not schema_order.is_ordered(_model(answer), answer):
             bad.append(f"{m['id']} : les propriétés de la réponse ne suivent pas l'ordre du schéma")
