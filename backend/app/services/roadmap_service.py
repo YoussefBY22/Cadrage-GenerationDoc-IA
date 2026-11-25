@@ -13,13 +13,12 @@ from app.domain.roadmap import (
     RoadmapResult,
 )
 from app.domain.workflow import CurrentUser
-from app.generation.llm_schemas import build_axes_schema, build_initiatives_schema
+from app.generation.llm_schemas import LLMAxisName, build_initiatives_schema
 from app.generation.prompting import (
-    build_axes_prompt,
+    build_axis_name_prompt,
     build_initiatives_prompt,
     fit_passages,
     passage_budget,
-    render_axis_findings,
     safe_tokens,
     system_prompt,
 )
@@ -29,12 +28,11 @@ from app.roadmap import axes as axes_mod
 from app.roadmap import coherence as coh
 from app.roadmap import graph, proposals, scoring
 
+from . import context_sheet
 from .generation import GenerationError, call_model, get_deliverable, new_nonce, record_run
 
 MAX_PASSAGES = 30
 ROADMAP_REPLY_TOKENS = 1200
-AXES_REPLY_TOKENS = 500
-AXES_BATCH = 25  # constats par appel « axes » (réponse courte)
 MAX_FINDINGS_PER_CALL = 8  # réponse courte : quelques initiatives par appel, jamais tronquée
 SMALL_ROADMAP = 8  # jusqu'à 8 constats distincts : un seul appel, sans étape « axes »
 
@@ -86,42 +84,45 @@ def _split_to_fit(group, fits) -> list[list]:
     return parts
 
 
-def _find_axes(repo, provider, dossier_id, reps, language, ctx_tokens) -> tuple[list, list[str], int]:
-    """Étape 1 : le modèle range les constats en axes, par lots qui tiennent ; les axes créés sont rappelés."""
-    book = axes_mod.AxisBook()
+def _group_by_meaning(repo, provider, dossier_id, reps, language) -> tuple[list, list[str], int, str]:
+    """Étape 1 : les constats sont rangés en axes PAR LE CODE, d'après leur sens (vecteurs bge-m3).
+
+    Axes imposés par le consultant (fiche de contexte confirmée) : chaque constat va à l'axe le plus proche.
+    Sinon : regroupement hiérarchique en 2 à 6 groupes, puis le modèle donne un nom court à chaque groupe.
+    Le test v5 a montré qu'un modèle de 4 milliards de paramètres range mal ses constats (57 % des paires) :
+    le code range, le modèle nomme.
+    """
+    sheet = context_sheet.get(repo, dossier_id)
+    imposed = axes_mod.parse_axes(sheet.data.roadmap_axes) if sheet.confirmed else []
+    vectors = provider.embed([f.text for f in reps])
+    if imposed:
+        idx = axes_mod.nearest(vectors, provider.embed(imposed))
+        groups = [(imposed[a], [f for f, x in zip(reps, idx, strict=True) if x == a]) for a in range(len(imposed))]
+        return [(n, g) for n, g in groups if g], [], 0, "imposés"
     nonce = new_nonce()
-    fixed = system_prompt(language) + build_axes_prompt([], ["x" * 40] * 7, nonce=nonce, lang=language)
-    room = (ctx_tokens or 4096) - safe_tokens(fixed) - AXES_REPLY_TOKENS - 64
-
-    def cost(f):
-        return safe_tokens(render_axis_findings([f], nonce)) + 1
-
-    lots = [b[i:i + AXES_BATCH] for b in axes_mod.batches(reps, cost, max(room, 200))
-            for i in range(0, len(b), AXES_BATCH)]
+    names: list[str] = []
+    errors: list[str] = []
     calls = 0
-    failed: list[str] = []
-    for lot in lots:
-        prompt = build_axes_prompt(lot, book.names, nonce=nonce, lang=language)
-        labels = [f"F{i}" for i in range(1, len(lot) + 1)]
-        known = list(book.names)
-        llm, attempts, latency, error = call_model(provider, prompt,
-                                                   build_axes_schema(labels, len(known)), lang=language)
+    out = []
+    for members in axes_mod.cluster(vectors, axes_mod.k_for(len(reps))):
+        group = [reps[i] for i in members]
+        sample = [reps[i] for i in axes_mod.central(vectors, members, 10)]
+        prompt = build_axis_name_prompt(sample, names, nonce=nonce, lang=language)
+        llm, attempts, latency, error = call_model(provider, prompt, LLMAxisName, lang=language)
         calls += 1
         record_run(repo, provider, dossier_id=dossier_id, kind="axes", prompt=prompt,
                    status="ok" if llm else "invalid", attempts=attempts, latency_ms=latency,
                    output=llm.model_dump_json() if llm else "")
-        if llm is None:
-            failed.append(error or "")
-            continue
-        names = {f"A{i}": n for i, n in enumerate(known, 1)}
-        names |= {_lbl(a.id): a.name for a in llm.new_axes if _lbl(a.id) not in names}
-        for row in llm.assignments:
-            num = _lbl(row.finding)[1:]
-            k = int(num) if num.isdigit() else 0
-            name = names.get(_lbl(row.axis))
-            if 1 <= k <= len(lot) and name:  # axe non déclaré : constat laissé « Autres constats »
-                book.assign(lot[k - 1].id, name)
-    return book.groups(reps), failed, calls
+        name = (llm.name.strip() if llm else "")[:120]
+        if not name or axes_mod.axis_key(name) in {axes_mod.axis_key(x) for x in names}:
+            if llm is None:
+                errors.append(error or "")
+            name = axes_mod.majority_theme(group) or f"Axe {len(names) + 1}"
+            if axes_mod.axis_key(name) in {axes_mod.axis_key(x) for x in names}:
+                name = f"{name} ({len(names) + 1})"
+        names.append(name)
+        out.append((name, group))
+    return out, errors, calls, "par le sens"
 
 
 def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
@@ -152,15 +153,18 @@ def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
             f"Priorités et projets (~{safe_tokens(fixed1)} jetons) ne tiennent pas dans la "
             f"fenêtre du modèle ({ctx_tokens}), même avec un seul constat : réduisez-les ou choisissez un "
             "modèle à plus grande fenêtre. Rien n'a été coupé.")
-    direct = len(reps) <= SMALL_ROADMAP and _fits(ctx_tokens, reps, criteria, priorities, projects,
+    sheet = context_sheet.get(repo, dossier_id)
+    imposed = sheet.confirmed and bool(axes_mod.parse_axes(sheet.data.roadmap_axes))
+    direct = not imposed and len(reps) <= SMALL_ROADMAP and _fits(ctx_tokens, reps, criteria, priorities, projects,
                                                   nonce, language, None)
     axis_errors: list[str] = []
     axis_calls = 0
+    axis_mode = "direct"
     if direct:
         groups: list[tuple[str | None, list]] = [(None, reps)]
     else:
-        groups, axis_errors, axis_calls = _find_axes(repo, provider, dossier_id, reps, language,
-                                                    ctx_tokens)
+        groups, axis_errors, axis_calls, axis_mode = _group_by_meaning(repo, provider, dossier_id, reps,
+                                                                      language)
 
     rejected: list[RejectedLink] = []
     not_sent = 0
@@ -234,8 +238,8 @@ def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
                 "axes": sorted({i.axis for i in initiatives if i.axis}),
                 "model_calls": axis_calls + len(run_ids),
                 "duplicates_merged": sum(len(v) for v in dups.values()),
-                "axis_errors": len(axis_errors), "part_errors": part_errors})
-    return {"deliverable_id": did, "version": version, "warnings": warnings + [f"Partie non générée, constats à reprendre : {e}" for e in part_errors] + [f"Rangement en axes incomplet : {e}" for e in axis_errors],
+                "axis_errors": len(axis_errors), "part_errors": part_errors, "axis_mode": axis_mode})
+    return {"deliverable_id": did, "version": version, "warnings": warnings + [f"Partie non générée, constats à reprendre : {e}" for e in part_errors] + [f"Nom d'axe donné par défaut (modèle en échec) : {e}" for e in axis_errors],
             "roadmap": result.model_dump(mode="json"),
             "coherence": coherence_of(repo, dossier_id, result).model_dump(mode="json")}
 

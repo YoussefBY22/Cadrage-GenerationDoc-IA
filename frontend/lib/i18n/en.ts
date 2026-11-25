@@ -187,6 +187,7 @@ export const en: Messages = {
       scope: "Scope",
       constraints: "Constraints",
       stakeholders: "Stakeholders",
+      roadmap_axes: "Roadmap axes (one per line, optional: otherwise grouped by meaning)",
     } as Record<string, string>,
     types: {
       software: "Software and IS",

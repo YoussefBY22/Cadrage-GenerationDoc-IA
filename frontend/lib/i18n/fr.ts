@@ -186,6 +186,7 @@ export const fr = {
       scope: "Périmètre",
       constraints: "Contraintes",
       stakeholders: "Parties prenantes",
+      roadmap_axes: "Axes de la feuille de route (un par ligne, facultatif : sinon regroupés par le sens)",
     } as Record<string, string>,
     types: {
       software: "Logiciel et SI",

@@ -141,3 +141,9 @@ def build_axes_schema(finding_labels: list[str], n_known: int = 0):
         "LLMAxes", __config__=cfg,
         new_axes=(list[axis], Field(json_schema_extra={"maxItems": MAX_NEW_AXES})),
         assignments=(list[row], Field(json_schema_extra={"minItems": n, "maxItems": n})))
+
+
+class LLMAxisName(BaseModel):
+    """Nom court d'un axe, donné à un groupe de constats déjà formé par le code (regroupement par le sens)."""
+
+    name: str
