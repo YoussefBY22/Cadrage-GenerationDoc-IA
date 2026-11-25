@@ -1,74 +1,131 @@
-# Cadrage — assistant IA local pour feuilles de route, termes de référence et cahiers des charges
+# Cadrage — IA locale qui transforme des rapports d'audit en feuille de route, TdR et cahier des charges
 
-> **In short (EN).** Cadrage drafts roadmaps, terms of reference and specifications from a client's diagnostic documents. Every sentence cites its source, and a checker blocks unknown citations and flags figures absent from the cited evidence (it does not prove that a source supports the sentence). Everything runs on the client's own server with an open-weight model: no cloud, no API. A consultant reviews and edits, a manager approves (two different people), then the deliverable is exported to Word, PowerPoint or PDF. Works in French and English; runs on a real local model (Qwen3 4B); first quality measurements are being redone after a context-truncation bug.
+> **In short (EN).** Cadrage reads a client's audit and diagnostic reports and drafts a roadmap organised by axes and
+> waves, terms of reference and a specification. Every sentence cites its source passage and is checked by a
+> verifier; without evidence the tool refuses instead of inventing. It runs 100 % on-premise with an open-weight
+> model (Qwen3-4B, fine-tuned with QLoRA on public audit reports): no cloud, no API, no client data leaves the server.
+> A consultant reviews and edits, a manager approves, then it exports to Word, PowerPoint or PDF.
 
-**À partir d'un diagnostic confidentiel, Cadrage prépare un premier jet cité et vérifié, que le consultant relit, corrige et fait valider.**
+**Un consultant dépose les rapports d'un client ; Cadrage en tire les constats, les range en axes, propose une feuille
+de route datée par vagues et rédige termes de référence et cahier des charges. Chaque phrase cite sa source et passe
+par un vérificateur. Tout tourne sur le serveur du client.**
 
-Projet étudiant — non affilié à EY. Sujet : *Stages & PFE Book 2026-2027*, p. 92, Réf. #TST 11.
+Projet de fin d'études, 2026. Testé sur un vrai rapport public : rapport spécial 17/2022 de la Cour des comptes
+européenne (53 pages, CC BY 4.0).
 
-| | |
+| Feuille de route par axes et par vagues | Cahier des charges : exigences citées et vérifiées |
 |---|---|
-| ![Tableau de bord](docs/img/tableau-de-bord.png) | ![Éditeur ancré](docs/img/editeur.png) |
-| ![Constats](docs/img/constats.png) | ![Feuille de route](docs/img/feuille-de-route.png) |
+| ![Feuille de route](docs/img/app-feuille-de-route.png) | ![Cahier des charges](docs/img/app-cahier-des-charges.png) |
+| **Dossier : rapports d'audit lus en premier** | **Fiche de contexte et chat (axes imposés possibles)** |
+| ![Dossier](docs/img/app-dossier.png) | ![Fiche et chat](docs/img/app-fiche-et-chat.png) |
 
 ## Ce que fait l'outil
 
-- **Lit** les documents d'un dossier client (PDF, DOCX, PPTX, texte), en français et en anglais, et repère les consignes cachées connues dans les documents (une détection par motifs, pas une garantie).
-- **Rédige** constats, feuille de route priorisée, termes de référence et cahier des charges, **section par section**, uniquement à partir des passages retrouvés : sans preuve, il refuse de répondre.
-- **Vérifie** chaque phrase : la source citée existe-t-elle, le chiffre figure-t-il dans le passage ? Dans l'éditeur, chaque phrase est colorée selon sa preuve, avec la source à côté.
-- **Fait valider** à deux personnes (le consultant rédige, le manager approuve), garde l'historique des versions et exporte en Word, PowerPoint ou PDF. Un entrepôt de données alimente un tableau de bord Power BI (usage, qualité, temps gagné).
-
-## Architecture
+1. **Lit** les documents du dossier (PDF, DOCX, PPTX, texte ; français et anglais) et repère les consignes cachées.
+2. **Extrait les constats**, avec gravité et source (74 constats en 15 min sur le rapport de 53 pages).
+3. **Range les constats en axes** (gouvernance, données, contrats…), comme un cabinet de conseil : le code regroupe
+   par le sens, le modèle nomme chaque axe ; le consultant peut aussi imposer ses axes.
+4. **Propose les initiatives axe par axe**, les classe (impact, urgence, faisabilité, coût, risque) et les répartit en
+   vagues : 0-6 mois (gains rapides), 6-12 mois (fondations), 12-24 mois (transformation).
+5. **Rédige TdR et cahier des charges section par section**, uniquement à partir des passages retrouvés ; les sections
+   qui exigent une décision humaine (budget, profil, calendrier) attendent cette décision. Sur demande, il **propose
+   quand même** une section en citant constats et recommandations.
+6. **Vérifie chaque phrase** (la source existe ? le chiffre y figure ?) et la colore dans l'éditeur ; **validation à
+   deux** (consultant, puis responsable), versions, audit, exports Word / PowerPoint / PDF, tableau de bord Power BI.
 
 ```mermaid
 flowchart LR
-  D[Documents du client] --> I[Lecture et découpage]
-  I --> R[Recherche mixte<br/>mots-clés + sens]
-  R --> G[Génération<br/>preuve d'abord]
-  G --> V[Vérificateur<br/>citations et chiffres]
-  V --> E[Éditeur et validation<br/>à deux personnes]
-  E --> X[Export Word / PPTX / PDF]
-  E --> W[(Entrepôt)] --> B[Power BI]
-  M[Modèle ouvert local<br/>Ollama] -.-> G
-  P[(PostgreSQL + pgvector)] -.-> R
+  D[Rapports du client] --> I[Lecture, découpage] --> R[Recherche mixte<br/>mots-clés + sens]
+  R --> C[Constats] --> A[Axes<br/>regroupés par le sens] --> F[Feuille de route<br/>axes × vagues]
+  F --> T[TdR / CdC<br/>section par section]
+  T --> V[Vérificateur<br/>citations, chiffres] --> E[Éditeur, validation à deux] --> X[Export]
+  M[Qwen3-4B + LoRA<br/>local, Ollama] -.-> C & A & F & T
 ```
 
-## Chiffres
+## Ce que montre ce projet
 
-Mesurés sur un PC portable (GTX 1650, 4 Go de VRAM), modèle de génération **Qwen3 4B** (Apache 2.0) et embeddings **bge-m3** (MIT), tous deux exécutés localement.
+- **RAG « preuve d'abord »** : recherche hybride BM25 + vecteurs bge-m3, filtre de pertinence, refus explicite sans
+  preuve, vérificateur de citations et de chiffres. Aucune coupe silencieuse du contexte : si ça ne tient pas, l'outil
+  le dit.
+- **Fine-tuning mesuré, pas supposé** : QLoRA de Qwen3-4B sur des rapports publics, test sur des rapports jamais vus,
+  puis test dans l'application, puis sur un vrai rapport. Arrêt anticipé, meilleure version exportée, comparaison
+  honnête avec le modèle de base passé par la même chaîne.
+- **Ingénierie sous contrainte** : un GPU de 4 Go et une fenêtre de 4 096 jetons ; un vrai rapport (74 constats) passe
+  en découpant le travail par axes, avec des réponses bornées et des parties ratées reprises automatiquement.
+- **Le code et le modèle à leur place** : le code range, contrôle et calcule (fiable) ; le modèle lit et rédige.
+- **Produit complet** : FastAPI, Next.js, PostgreSQL + pgvector, validation à deux, audit, exports, entrepôt de données
+  et Power BI, déploiement Docker hors ligne ; 738 tests backend, 130 tests d'entraînement, 42 tests d'interface.
 
-| Mesure | Résultat | Nature |
+## Résultats mesurés
+
+**Modèle entraîné contre modèle de base** (169 exemples de rapports jamais vus à l'entraînement) :
+
+| Tâche | Base | Entraîné |
 |---|---|---|
-| Corpus public | **103 documents** sous licence CC BY (Banque mondiale, Commission européenne), 82 EN / 21 FR, licences et SHA-256 tracés | réel |
-| Jeu d'entraînement | 3 105 exemples générés par script : jeu **rejeté** le 22/11/2026 après lecture : réponses presque toutes recopiées des passages (2 061 sur 2 067), questions faites de mots-clés, 83 % en anglais, aucune feuille de route ni TdR ni cahier des charges | **non utilisable**, nouveau jeu à valider |
-| Jeu or | **34 questions** rédigées par une IA, repères contrôlés par script, **non relues par un humain** (29 faits, 5 « sans preuve ») sur des documents jamais utilisés pour l'entraînement | réel |
-| Latence par section | **21,7 s** (p50), 45,3 s (p95) ; modèle seul 20,8 jetons/s (GPU chaud) | réel, 31 sections, 23/11 ([R2](docs/lots/R2.md)) |
-| Mémoire vidéo | **3,1 Go** de pic sur 4 Go | réel |
-| Rappel@10 de la recherche (bge-m3 + BM25) | **1,000** | réel, 1 institution, 31 sections, 23/11 : petit échantillon |
-| Faux refus / refus manqués | **0 % / 0 %** avec la porte de pertinence (seuil 0,45) ; 0 % / **70 %** sans elle | réel, 10 sections par catégorie, 23/11 ; seuil calibré sur ce même corpus synthétique : à recalibrer sur corpus réel |
-| PostgreSQL + pgvector, export PDF LibreOffice, parcours navigateur Playwright | exécutés et verts | réel |
-| Tests | 654 backend, 34 entraînement, 34 interface (23/11) | automatisés |
-| Rappel@10, 23/23 erreurs détectées, TPV 0,85 du banc d'évaluation | | **simulé** (corpus fictif, faux modèle) : valide la mécanique, pas la qualité |
-| Entraînement LoRA (modèle « C ») | | **à faire** (T5) |
-| Valeurs du tableau de bord Power BI | | **inventées** (démonstration) |
+| Choisir entre répondre et refuser | 114/169 | **168/169** |
+| Refuser quand rien ne le permet | 4/31 | **31/31** |
+| Extraire les constats | 3/31 | **31/31** |
+| Lire la position de l'institution (accepte / partiellement / rejette) | 46/50 | **50/50** |
+| Détecter un conflit avec une stratégie | 11/24 | 11/24 (point faible) |
 
-> **Remesuré le 23/11/2026** après le correctif de contexte ([R2](docs/lots/R2.md)) : 1 attaque par consigne cachée sur 5 a été suivie par le modèle (signalée et non approuvable), et le GPU monte à 91 °C.
+**Dans l'application** (31 sections) : sections sans preuve rédigées quand même 40 % → **10 %** ; citations et chiffres
+fidèles 97-99 % → **100 %** ; temps par section (p95) 37 s → **24 s**.
 
-Le TPV (taux de phrases vérifiées) mesure l'ancrage dans les sources, pas la vérité : il ne remplace pas la relecture humaine. Détails et limites : [`docs/lots/T2.md`](docs/lots/T2.md), [`docs/lots/T4.md`](docs/lots/T4.md).
+**Sur le vrai rapport** (portable, GTX 1650 4 Go) : 74 constats en 15 min ; feuille de route en 22 min, 6 axes de 9 à
+16 constats, 19 initiatives, aucun constat oublié ; contexte des TdR rédigé et vérifié à 100 % ; 12 exigences
+fonctionnelles proposées, toutes vérifiées.
 
-## Tableau de bord Power BI
+## Entraînement
 
-Un rapport pour les deux acteurs de l'application, le **consultant** qui rédige et le **responsable** qui valide : constat, recommandations par règles, prédiction testée contre une référence naïve, rapport PDF. Les valeurs affichées sont **inventées** (jeu de démonstration).
+| Essai | Où | Données | Durée d'entraînement | Résultat |
+|---|---|---|---|---|
+| 1 (23/11) | Colab, GPU T4 | 33 exemples | quelques minutes (25 pas) | réponses vides : format des réponses différent de celui imposé par Ollama ; non adopté |
+| **v4** (24/11) | Colab, GPU T4 | 341 exemples | **21 min** | meilleure version au pas 80 ; **adopté** |
+| v5 (25/11) | Kaggle, GPU T4 | 441 exemples (dont 100 « axes ») | **43 min** | équivalent à v4 ; v4 gardé |
 
-| Synthèse | Validation |
-|---|---|
-| ![Synthèse du rapport Power BI](docs/img/powerbi-synthese.png) | ![Page Validation, pour le responsable](docs/img/powerbi-validation.png) |
+Au total : **~1 h 05 d'entraînement**, environ **6 h de GPU gratuit** en comptant préparation, exports et tests
+(estimation). Données : 675 exemples tirés de rapports publics de la Cour des comptes européenne 2023-2026 (licence
+CC BY 4.0), découpés **par rapport** entre entraînement, validation et test. Tout est expliqué simplement, pas à pas :
+[`docs/20-comprendre-l-apprentissage.md`](docs/20-comprendre-l-apprentissage.md).
 
-Qui voit quoi : [`docs/14`](docs/14-acteurs-dashboard.md). Indicateurs (formule, décision, cible, limite) : [`bi/KPI.md`](bi/KPI.md). Ouverture du projet et autres pages : [`bi/README.md`](bi/README.md).
+## Limites (mesurées)
 
-## Démo en 3 commandes (Windows, PowerShell)
+- **Matériel** : sur un GPU de 4 Go, un tiers du modèle tourne sur le processeur ; une feuille de route de 74 constats
+  prend ~22 min et le GPU chauffe (85-91 °C).
+- **Conflits** recommandation / stratégie mal détectés (11 sur 24) : trop peu d'exemples à l'entraînement.
+- **Axes** : bien rangés par le code, mais noms parfois longs ou génériques ; certains titres d'initiative maladroits.
+- **Cahier des charges** : un rapport d'audit ne contient pas d'exigences ; sans exigences du consultant, l'outil
+  refuse ou propose un premier jet inégal (exigences fonctionnelles utilisables, le reste à reformuler).
+- **Horizons** indicatifs (vagues), pas encore de dates réelles ni de sprints.
+- Le taux de phrases vérifiées mesure l'**ancrage** dans les sources, pas la vérité : la relecture humaine reste
+  obligatoire.
 
-Prérequis : Python 3.12 et Node 22. Aucun modèle ni Docker : un modèle de démonstration cite de vraies phrases des documents.
+## Matériel conseillé
+
+| Usage | Matériel | Effet |
+|---|---|---|
+| Développement (mesuré) | portable, GTX 1650 4 Go, 16 Go de RAM | fonctionne ; ~22 min par feuille de route |
+| Poste d'un consultant | GPU 16 Go (ex. RTX 4070 Ti Super / 4080), 32 Go de RAM | modèle entier sur GPU, fenêtre 8 000-16 000 jetons : quelques minutes (estimation) |
+| Serveur d'équipe | GPU 24-48 Go (ex. L4, L40S, RTX 6000 Ada), vLLM | plusieurs consultants, modèle 8-14B, fenêtre 32 000 jetons (estimation) |
+| Entraînement | 1 GPU 16-24 Go pour QLoRA d'un modèle 4B (mesuré sur T4 16 Go) ; 48-80 Go pour 8-14B | entraînement sur site, sans Colab ni Kaggle |
+
+## Prochaines étapes
+
+Détail, ordre et méthode : [`docs/21-vision-et-prochaines-etapes.md`](docs/21-vision-et-prochaines-etapes.md).
+
+1. **Capter chaque correction** du consultant (texte modifié, référence fausse, section refusée puis forcée, consigne
+   de chat), datée et horodatée, en double lecture : journal lisible par un humain et JSONL prêt pour l'entraînement.
+2. **Comptes et espace d'administration** : un historique par consultant ; un responsable voit tout, nettoie les
+   données avec l'aide de l'IA (doublons, corrections douteuses signalées).
+3. **Entraîner depuis ces données**, sur un serveur interne ou sur Kaggle, d'un clic : export, entraînement, test
+   comparatif, adoption seulement si le nouveau modèle fait mieux.
+4. **Feuille de route datée** (mois, sprints) depuis une date de départ et des durées ; **CdC sur sommaire importé**,
+   consignes par section (« améliore la section X avec le document Y »).
+5. **Contrôle du diagnostic** avant usage (documents manquants, incohérences), au choix du consultant.
+
+## Démarrer (Windows, PowerShell)
+
+Prérequis : Python 3.12, Node 22. Sans modèle, un modèle de démonstration cite de vraies phrases des documents.
 
 ```powershell
 cd backend ; py -3.12 -m venv .venv ; .venv\Scripts\python -m pip install -e . reportlab
@@ -79,36 +136,28 @@ $env:AUTH_MODE="dev" ; $env:LLM_PROVIDER="demo" ; .venv\Scripts\python -m uvicor
 ```powershell
 cd ..\frontend ; npm install ; npm run dev
 ```
-Ouvrir http://localhost:3000. Avec un vrai modèle : installer Ollama, `ollama pull qwen3:4b` et `ollama pull bge-m3`, puis `LLM_PROVIDER=ollama` (voir `.env.example`). Tests : `cd backend ; .venv\Scripts\pytest -q`.
+
+Ouvrir http://localhost:3000. Avec le vrai modèle : installer Ollama, importer le modèle entraîné
+(`python -m training.import_ollama`, voir [`training/README.md`](training/README.md)) ou `ollama pull qwen3:4b`, puis
+`ollama pull bge-m3` et `LLM_PROVIDER=ollama` (voir `.env.example`, dont `OLLAMA_PROPOSAL_MODEL`).
 
 ## Pile technique
 
-Python 3.12 · FastAPI · SQLAlchemy · Alembic · PostgreSQL + pgvector (SQLite en test) · Ollama (Qwen3 4B, bge-m3) · Next.js 15 · TipTap · Playwright · python-docx / python-pptx / LibreOffice · entrepôt en étoile + Power BI · Docker Compose (réseau interne, hors ligne) · QLoRA (scripts prêts).
+Python 3.12 · FastAPI · SQLAlchemy · PostgreSQL + pgvector · Ollama · Qwen3-4B + QLoRA (PEFT, bitsandbytes) · bge-m3 ·
+llama.cpp (GGUF Q4_K_M) · Next.js 15 · TipTap · Playwright · python-docx / python-pptx / LibreOffice · entrepôt en
+étoile + Power BI · Docker Compose hors ligne.
 
-## Principes
-
-- **100 % local** : aucun document ni aucune requête ne quitte le serveur du client ; pas d'API hébergée, l'API est coupée d'Internet dans le déploiement Docker.
-- **Preuve d'abord** : pas de passage retrouvé, pas de phrase. Toute citation ou tout chiffre introuvable est rejeté.
-- **Validation à deux** : le consultant rédige, le manager approuve, deux personnes distinctes ; chaque transition est tracée.
-- **Aucune donnée client** dans le dépôt ni dans l'entrepôt : corpus public ou synthétique seulement.
-
-## Aller plus loin
+## Documentation
 
 | Document | Contenu |
 |---|---|
-| [`docs/01-cahier-des-charges.md`](docs/01-cahier-des-charges.md) | besoin, exigences, hypothèses à valider |
-| [`docs/06-architecture.md`](docs/06-architecture.md) | architecture, contrats, API |
-| [`docs/07-entrepot-bi.md`](docs/07-entrepot-bi.md) · [`bi/README.md`](bi/README.md) | entrepôt, indicateurs, Power BI |
-| [`docs/08-modele-rag-evaluation.md`](docs/08-modele-rag-evaluation.md) | modèles, recherche, vérification, évaluation, entraînement |
-| [`docs/10-exploitation.md`](docs/10-exploitation.md) | installation hors ligne, sauvegarde, sécurité |
-| [`docs/STATUS.md`](docs/STATUS.md) | état d'avancement et prochaines étapes |
-| [`docs/11-rapport-direction.md`](docs/11-rapport-direction.md) · [`docs/12-journal-orchestration.md`](docs/12-journal-orchestration.md) | rapport et journal de construction |
-| [`docs/lots/`](docs/lots/) | comptes rendus de chaque lot |
-| [`docs/03-apprentissage-et-glossaire.md`](docs/03-apprentissage-et-glossaire.md) | glossaire en français simple |
+| [`docs/STATUS.md`](docs/STATUS.md) | état d'avancement, ce qui reste |
+| [`docs/20-comprendre-l-apprentissage.md`](docs/20-comprendre-l-apprentissage.md) | l'entraînement expliqué simplement |
+| [`docs/19-entrainement-et-tests-reels.md`](docs/19-entrainement-et-tests-reels.md) | mesures détaillées, vrai rapport, fenêtre de contexte |
+| [`docs/21-vision-et-prochaines-etapes.md`](docs/21-vision-et-prochaines-etapes.md) | vision cible, apprentissage par les corrections, plan |
+| [`docs/01-cahier-des-charges.md`](docs/01-cahier-des-charges.md) · [`docs/06-architecture.md`](docs/06-architecture.md) | besoin, exigences, architecture |
+| [`docs/lots/AXES.md`](docs/lots/AXES.md) · [`docs/lots/`](docs/lots/) | comptes rendus techniques |
+| [`bi/README.md`](bi/README.md) | entrepôt, indicateurs, Power BI (valeurs de démonstration) |
 
-```
-backend/   API, génération, vérification, export, entrepôt, évaluation
-frontend/  interface Next.js        training/  jeu d'entraînement, scripts LoRA
-bi/        Power BI (PBIP, thème)   deploy/    Docker, hors ligne, sauvegarde
-data/      corpus public et licences   docs/    documentation
-```
+**Principes** : 100 % local · preuve d'abord · validation à deux personnes · aucune donnée client dans le dépôt
+(corpus public sous licence ouverte uniquement).

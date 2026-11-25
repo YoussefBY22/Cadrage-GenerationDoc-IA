@@ -1,5 +1,14 @@
 # 11 — Rapport à la direction : une nuit de construction assistée
 
+> **Clôture de phase du 25/11/2026, pour un manager.**
+> - **Fait** : sur un vrai rapport d'audit public de 53 pages, l'outil extrait 74 constats, les range en 6 axes et
+>   propose une feuille de route par vagues (0-6, 6-12, 12-24 mois) en 22 minutes sur un simple portable ; chaque
+>   phrase cite sa source et est vérifiée. Le modèle local a été spécialisé en ~1 h d'entraînement sur GPU gratuit.
+> - **Limites** : conflits avec une stratégie mal détectés ; cahier des charges à compléter par le consultant ;
+>   lent sur un GPU de 4 Go (un GPU de 16 Go ramènerait le temps à quelques minutes, estimation).
+> - **Ensuite** : enregistrer chaque correction des consultants pour réentraîner le modèle à partir de l'usage
+>   réel, comptes et espace d'administration, feuille de route datée, cahier des charges sur sommaire importé.
+>
 > **Mise à jour du 24/11/2026, pour un manager.**
 > - **Fait** : le modèle local a été spécialisé (entraîné) sur 341 exemples publics en 21 minutes, gratuitement. Il
 >   refuse désormais quand les documents ne disent rien (refus manqués 40 % → 10 %) et cite juste à 100 %.

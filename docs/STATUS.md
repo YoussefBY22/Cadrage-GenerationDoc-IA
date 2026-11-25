@@ -1,5 +1,27 @@
 # STATUS — Phases A à G1 hors ligne (nuit 1), puis passage au réel (nuit 2, 22/11/2026)
 
+> **Clôture de phase — 25/11/2026 (soir).** Tout est fusionné dans `main` (PR #19 à #24). Vision et plan :
+> [`21-vision-et-prochaines-etapes.md`](21-vision-et-prochaines-etapes.md).
+>
+> | Bilan de la phase (21 → 25/11) | |
+> |---|---|
+> | Produit | dépôt → constats → axes → feuille de route (axes × vagues) → TdR / CdC vérifiés → validation à deux → exports |
+> | Modèle | Qwen3-4B + LoRA v4 (21 min, Colab T4) ; v5 testé (43 min, Kaggle), équivalent, non adopté |
+> | Vrai rapport (53 pages) | 74 constats en 15 min ; feuille de route en 22 min, 6 axes, 19 initiatives, aucun constat oublié |
+> | Tests | 738 backend, 130 entraînement, 42 interface |
+> | Captures | Google Drive « Cadrage IA — captures du 25-11-2026 » (+ sous-dossier v2) ; `docs/img/app-*.png` |
+>
+> | Prochaines étapes, dans l'ordre (détail : docs/21 §6) | |
+> |---|---|
+> | 1. Journal d'événements (corrections, consignes, refus forcés), frise lisible + export JSONL | données d'apprentissage |
+> | 2. Consignes par section et chat qui pilote la génération | usage consultant |
+> | 3. Feuille de route datée (date de départ, durées, sprints) | présentation client |
+> | 4. CdC sur sommaire importé | adaptation au client |
+> | 5. Espace administrateur, nettoyage des données assisté par l'IA | qualité des données |
+> | 6. Paquet v6 (conflits, axes, exigences, objectifs TdR) et entraînement | qualité du modèle |
+> | 7. Entraînement lancé depuis l'interface sur un serveur GPU, banc automatique | autonomie |
+> | 8. Contrôle du diagnostic (cohérence, documents manquants) | fiabilité |
+>
 > **État au 25/11/2026 (matin).** Détail : `docs/19` §11-12 ; explications : [`20-comprendre-l-apprentissage.md`](20-comprendre-l-apprentissage.md).
 >
 > | Fait et vérifié (nuit du 24 au 25/11) | Preuve |
