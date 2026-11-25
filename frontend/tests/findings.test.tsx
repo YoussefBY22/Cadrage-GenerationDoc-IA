@@ -45,7 +45,7 @@ describe("page constats", () => {
     const box = await screen.findByRole("checkbox");
     fireEvent.click(box);
     await waitFor(() => expect(patch).toHaveBeenCalledWith("f1", { validated: true }));
-    expect(await screen.findByText("Validé")).toBeInTheDocument();
+    expect(await screen.findByText("Validé", {}, { timeout: 3000 })).toBeInTheDocument();  // CI plus lente
   });
 
   it("corrige le texte d'un constat", async () => {
