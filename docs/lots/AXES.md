@@ -17,7 +17,7 @@ découpent une feuille de route sur deux dimensions :
 - des **horizons** : gains rapides, fondations, transformation de long terme, ordonnés selon la valeur, la
   faisabilité, les dépendances et la capacité, en commençant par les bases (*basics first*).
 
-Aucune méthode propre à EY n'est publique.
+Aucune méthode propre à un cabinet donné n'est publique.
 
 ## Changements
 

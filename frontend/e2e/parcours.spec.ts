@@ -61,7 +61,7 @@ test("parcours complet : connexion → dossier → import → constats → ToR �
   await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
   await page.getByRole("button", { name: "FR" }).first().click();
   await expect(page.getByRole("heading", { name: "Tableau de bord" })).toBeVisible();
-  await expect(page.getByText("Projet étudiant — non affilié à EY")).toBeVisible();
+  await expect(page.getByText("Projet de fin d'études — 2026")).toBeVisible();
 
   // --- dossier
   await page.getByRole("button", { name: "Nouveau" }).first().click();

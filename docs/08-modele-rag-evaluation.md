@@ -21,7 +21,7 @@ Règle de calcul (ordre de grandeur, à mesurer) : poids Q4 ≈ 0,6 Go par milli
 | Phi-4-mini | 3,8 B | 2,4 Go | MIT (**à vérifier**) | français moyen (**à vérifier**) |
 | SmolLM3-3B | 3 B | 2 Go | Apache-2.0 (**à vérifier**) | entièrement ouvert (données publiées) |
 | Llama 3.2 3B / Gemma 3 4B | 3–4 B | 2–2,5 Go | licences maison avec restrictions (**à vérifier**) | écartés par défaut (C2) |
-| *Serveur* : Qwen3-14B, Mistral Small (24 B), Qwen3-30B-A3B | 14–30 B | 9–18 Go | **à vérifier** | choix après réponse d'EY sur le matériel |
+| *Serveur* : Qwen3-14B, Mistral Small (24 B), Qwen3-30B-A3B | 14–30 B | 9–18 Go | **à vérifier** | choix selon le matériel du client |
 
 **Recommandation** : B = **Qwen3-4B Q4_K_M** (référence d'inférence) ; LoRA sur **Qwen3-1.7B** (C, comparé à B-1.7B) ; D = l'autre taille. Ainsi C se compare à **la même base** (B-1.7B), condition d'une ablation honnête.
 

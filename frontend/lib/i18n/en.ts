@@ -2,7 +2,7 @@ import type { Messages } from "./fr";
 
 export const en: Messages = {
   appName: "Cadrage",
-  footer: "Student project — not affiliated with EY",
+  footer: "Final-year project — 2026",
   nav: {
     dashboard: "Dashboard",
     dossiers: "Cases",

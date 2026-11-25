@@ -1,7 +1,7 @@
 # Lot UI — refonte visuelle du front
 
 **Résultat** : interface « Cadrage » (barre latérale anthracite, accent jaune `#FFE600`, police Inter embarquée par `@fontsource/inter`, icônes `lucide-react`), bascule FR/EN, test e2e Playwright du parcours complet, 5 captures dans `docs/img/`.
-Aucune marque tierce : le logo est un carré jaune et le mot « Cadrage » ; pied de page « Projet étudiant — non affilié à EY ».
+Aucune marque tierce : le logo est un carré jaune et le mot « Cadrage » ; pied de page « Projet de fin d'études — 2026 ».
 
 ## Où
 - Charte : `frontend/app/globals.css` (variables `--yellow`, `--ink`, `--grey`…).

@@ -28,8 +28,8 @@ d'un livrable, il ne remplace **jamais** une source du client (invariant : voir 
 | Référentiel | Pourquoi ici | Ce que le projet fait déjà | Écart | Action |
 |---|---|---|---|---|
 | **Règlement (UE) 2024/1689 « AI Act »** | Le produit est un système d'IA générative déployé en UE | Voir classification §3 et matrice §4 | Documentation d'usage, mention de transparence | Rédiger une notice d'usage et une mention « généré par IA, relu par un humain » sur les exports |
-| **ISO/IEC 42001:2023** (système de management de l'IA) | Norme certifiable de gouvernance de l'IA, structure ISO (clauses 4-10, PDCA) ; ce que EY ou un client demandera | Journal d'audit, versions, états de validation, évaluation chiffrée | Pas de politique IA, de registre de risques, de revue de direction | Rédiger une politique IA d'une page et un registre de risques (§4) ; viser l'alignement, pas la certification |
-| **ISO/IEC 23894:2023** (risques de l'IA) | Guide pour appliquer le management du risque à l'IA | Risques connus dans `05-revue-perimetre.md` et le rapport | Pas de registre structuré par processus ISO 31000 | Registre de risques IA (hallucination, injection, fuite, biais, dérive) lié aux tests |
+| **ISO/IEC 42001:2023** (système de management de l'IA) | Norme certifiable de gouvernance de l'IA, structure ISO (clauses 4-10, PDCA) ; ce qu'un client demandera | Journal d'audit, versions, états de validation, évaluation chiffrée | Pas de politique IA, de registre de risques, de revue de direction | Rédiger une politique IA d'une page et un registre de risques (§4) ; viser l'alignement, pas la certification |
+| **ISO/IEC 23894:2023** (risques de l'IA) | Guide pour appliquer le management du risque à l'IA | Risques connus dans le cahier des charges et le rapport | Pas de registre structuré par processus ISO 31000 | Registre de risques IA (hallucination, injection, fuite, biais, dérive) lié aux tests |
 | **NIST AI RMF 1.0** (NIST AI 100-1) + profil IA générative (AI 600-1) | Cadre volontaire GOVERN / MAP / MEASURE / MANAGE, référence mondiale | Banc d'évaluation (MEASURE), refus sans preuve (MANAGE) | GOVERN et MAP peu écrits | Voir matrice §4 |
 | **ISO/IEC 27001:2022** | Sécurité de l'information : contrôles d'accès, journalisation, sauvegarde | Auth par jetons, mots de passe hachés, réseau interne, sauvegardes (`10-exploitation.md` §6) | Pas de SMSI ni d'analyse de risques formelle | Utiliser la liste de contrôle comme base de déclaration d'applicabilité |
 | **RGPD** (règlement (UE) 2016/679) | Les diagnostics peuvent contenir des données personnelles | 100 % local, journal sans contenu, pas d'envoi externe | Pas de registre des traitements ni de durée de conservation | Registre art. 30, durée de conservation, AIPD si usage réel (art. 35) |
@@ -64,13 +64,13 @@ fichiers existants du dépôt.
 | **AI Act** — transparence sur les sorties (art. 50) | Partiel | Citations vérifiées dans chaque phrase (`app/verification/`) ; **marquage « généré par IA » des exports : Non** |
 | **AI Act** — tenue de registres / traçabilité | Oui | Journal d'audit et `record_run` (prompt haché, modèle, latence) : `app/services/generation.py` |
 | **AI Act** — exactitude et robustesse | Partiel | Vérificateur de nombres et de citations ; refus sans preuve (porte de pertinence, lot Q2) ; `backend/eval` |
-| **AI Act** — littératie IA des utilisateurs (art. 4) | Partiel | Glossaire et notes d'usage (`03-apprentissage-et-glossaire.md`) ; formation utilisateur : Non |
+| **AI Act** — littératie IA des utilisateurs (art. 4) | Partiel | Notes d'usage (la documentation) ; formation utilisateur : Non |
 | **ISO 42001** — politique et rôles (cl. 5) | Non | À rédiger (politique IA d'une page) |
-| **ISO 42001** — évaluation des risques IA (cl. 6, 8) | Partiel | Risques dans `05-revue-perimetre.md` ; registre structuré : Non |
+| **ISO 42001** — évaluation des risques IA (cl. 6, 8) | Partiel | Risques dans le cahier des charges ; registre structuré : Non |
 | **ISO 42001** — évaluation des performances (cl. 9) | Oui | Banc `backend/eval`, résultats Q / Q2 dans `docs/STATUS.md` |
 | **ISO 42001** — amélioration continue (cl. 10) | Partiel | Lots itératifs avec mesures avant/après (`docs/lots/`) |
 | **NIST AI RMF** — GOVERN | Partiel | Rôles et états de validation ; politique : Non |
-| **NIST AI RMF** — MAP (contexte, usages prévus) | Partiel | `01-cahier-des-charges.md`, `05-revue-perimetre.md`, §3 ci-dessus |
+| **NIST AI RMF** — MAP (contexte, usages prévus) | Partiel | `01-cahier-des-charges.md`, le cahier des charges, §3 ci-dessus |
 | **NIST AI RMF** — MEASURE | Oui | `backend/eval` (refus, taux de phrases appuyées), tests de sécurité |
 | **NIST AI RMF** — MANAGE | Partiel | Refus sans preuve, relecture humaine ; plan de réponse aux incidents : Non |
 | **OWASP LLM01** — injection de prompt | Oui | Passages balisés par nonce, neutralisés : `app/security/sanitize.py`, `injection.py` ; `tests/security/` |
@@ -82,19 +82,6 @@ fichiers existants du dépôt.
 | **RGPD** — minimisation, localité (art. 5, 25) | Oui | Réseau Docker interne, aucun appel sortant (`tests/test_no_outbound.py`) |
 | **RGPD** — sécurité (art. 32) | Partiel | Mots de passe hachés, jetons, sauvegardes (`10-exploitation.md`) ; chiffrement au repos : Non |
 | **RGPD** — registre, conservation, AIPD (art. 30, 35) | Non | À rédiger si usage avec données réelles |
-
-## 5. Ce que EY publie lui-même (public)
-
-D'après les pages publiques d'EY consacrées à l'IA responsable : un cadre à **neuf principes** (responsabilité,
-protection des données, fiabilité, transparence, explicabilité, équité, conformité, durabilité, sécurité), ancré
-dans une gouvernance et une assurance indépendante ; une version antérieure, le cadre « Trusted AI », parlait de
-cinq caractéristiques (transparente, explicable, non biaisée, résiliente, performante). Les pages régionales
-diffèrent ; **à citer comme positionnement d'EY, non comme norme**.
-
-Correspondance avec le projet : responsabilité → validation humaine et audit ; protection des données → local ;
-fiabilité → vérificateur et banc d'évaluation ; transparence et explicabilité → citation de chaque phrase ;
-sécurité → défense contre l'injection. Équité et durabilité : non traitées (le produit ne décide rien sur des
-personnes ; la sobriété d'un modèle de 4 milliards de paramètres local reste à documenter).
 
 ## 6. Sources officielles
 
@@ -108,7 +95,6 @@ personnes ; la sobriété d'un modèle de 4 milliards de paramètres local reste
 - PM² : <https://pm2.europa.eu/pm2-methodologies/pm2-project-management_en>
 - COBIT 2019 (ISACA) : <https://www.isaca.org/resources/news-and-trends/industry-news/2019/employing-cobit-2019-for-enterprise-governance-strategy> ; ITIL 4 : <https://www.axelos.com/resource-hub/practice/readers-manual-itil-4-practice-guide>
 - OWASP LLM Top 10 : <https://genai.owasp.org> (vérifier l'édition en vigueur)
-- EY, IA responsable : <https://www.ey.com/en_us/insights/ai/principles-for-ethical-and-responsible-ai>
 
 **Limites de la recherche** : OCDE-CAD, TOGAF, ISO 21502, GCP/INTPA, PMBOK et PRINCE2 n'ont pas été confirmés par une
 page officielle dans cette passe ; leurs références dans les gabarits sont des **noms**, sans clause. Les numéros de

@@ -1,10 +1,10 @@
 # Cahier des charges — Assistant IA local de cadrage
 
 **Projet de fin d'études** · Version 0.2 (proposition) · 22/11/2026 · Auteur : Youssef Ben Youssef
-**Référence du sujet** : *Stages & PFE Book 2026-2027*, page 92, **Réf. #TST 11** — « Conception d'un outil IA de génération de feuilles de route, de termes de référence et de cahiers des charges » (diplôme : ingénieur ; 1 poste ; durée : 6 mois).
+**Contexte** : projet de fin d'études (2026), assistant IA local pour le cadrage de missions de conseil.
 
 > **v0.2** : la chaîne constat → priorité institutionnelle → initiative → dépendance devient le cœur du produit.
-> État réel, architecture cible et lots : [15 — Architecture cible](15-architecture-cible.md).
+> État réel et lots : [`STATUS.md`](STATUS.md) ; vision : [`21`](21-vision-et-prochaines-etapes.md).
 
 ---
 
@@ -160,7 +160,7 @@ Ces points **ne figurent pas dans le sujet**. Ce sont des choix de travail (D1 �
 | **J5** | Banc d'essai, résultats comparés, déploiement sur conteneurs |
 | **J6** | Version sur le serveur de l'entreprise : modèle plus grand, adaptation sur données autorisées par écrit, rapport final |
 
-Le plan mois par mois des exigences FR-19 à FR-31 est dans [15 §11](15-architecture-cible.md).
+Le plan mois par mois des exigences FR-19 à FR-31 est dans [`21`](21-vision-et-prochaines-etapes.md).
 
 ## 13. Hypothèses retenues (à valider avec l'entreprise)
 
