@@ -13,10 +13,10 @@
 >
 > | Reste à faire, dans l'ordre | |
 > |---|---|
-> | 1. Rattacher les constats orphelins (11 sur 74) à une initiative de leur axe | code |
-> | 2. CdC : utiliser décisions et exigences saisies (ou un document de besoins) ; « vas-y quand même » | code + UI |
+> | ~~1. Rattacher les constats orphelins~~ fait le 25/11 (11 → 0, liens marqués à vérifier) | docs/19 §13 |
+> | 2. CdC : « proposer quand même » fait (exigences fonctionnelles utilisables) ; reste : exigences saisies par le consultant, document de besoins | code + UI |
 > | 3. Chat : consignes qui pilotent la génération (par mois, document prioritaire) | code + UI |
-> | 4. Horizons en mois (0-6 / 6-12 / 12-24) depuis une date de départ et des durées | code + UI |
+> | 4. Horizons en mois : indicatifs affichés (0-6 / 6-12 / 12-24) ; reste : date de départ et durées réelles | code + UI |
 > | 5. Prochain paquet : TdR « objectifs / livrables » appuyés sur les recommandations ; plus de conflits | données |
 > | 6. Cache Ollama 8 bits ; tests sur les rapports de Youssef ; recalibrer le filtre de pertinence | mesure |
 >

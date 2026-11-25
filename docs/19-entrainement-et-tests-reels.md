@@ -340,3 +340,26 @@ exigences du consultant (fiche, décisions confirmées), ou un document de besoi
 
 **Limites honnêtes à ce jour** : 24 min pour une feuille de route sur un PC à GPU de 4 Go ; 11 constats sur 74 sans
 initiative ; titres parfois maladroits ; CdC vide sans exigences fournies par un humain.
+
+## 13. 25/11 après-midi : constats rattachés, « proposer quand même », horizons en mois
+
+| Ajout | Ce qu'il fait | Mesure sur le vrai rapport (passage 4, v4) |
+|---|---|---|
+| Constats orphelins rattachés | un constat qu'aucune initiative ne traite va à l'initiative **de son axe** la plus proche par le sens ; le lien est marqué « à vérifier » (proposé par le code, pas par le modèle) | constats sans initiative 11 → **0** ; 19 initiatives en 22 min |
+| « Proposer quand même » | bouton sur une section refusée sans décision requise : le modèle déduit la section des constats et recommandations, chaque phrase citée et vérifiée | voir ci-dessous |
+| Modèle de proposition (`OLLAMA_PROPOSAL_MODEL`) | le modèle entraîné **refuse même sur demande** (il a appris à refuser sans preuve) : la proposition passe par le modèle de base | base : 12 exigences « Le système doit… », TPV 1,0 |
+| Horizons en mois | vagues lues comme horizons indicatifs : 0-6 mois (gains rapides), 6-12 (fondations), 12-24 (transformation) | affiché dans le tableau axes × vagues |
+
+**« Proposer quand même », honnêtement** :
+
+| Section du CdC | Résultat (modèle de base) |
+|---|---|
+| Exigences fonctionnelles | 12 exigences « Le système doit… », toutes vérifiées (TPV 1,0) : **utilisable** |
+| Exigences non fonctionnelles | 10 phrases, TPV 0,9, mais ce sont surtout des **faits recopiés**, pas des exigences |
+| Contraintes | 8 phrases, TPV 0,875 : faits sur les règles suivies, à reformuler |
+| Parties prenantes | 8 phrases, **TPV 0** : à ne pas garder |
+| Intégration, sécurité, accompagnement | refusées même en proposition |
+| TdR « livrables » | 10 phrases, TPV 1,0 : description des outils existants, à reformuler en livrables |
+
+Conclusion : un CdC complet a besoin des **exigences du consultant** ; l'outil sait maintenant proposer un premier
+jet vérifié des exigences fonctionnelles, que le consultant corrige. Captures : sous-dossier « v2 » du dossier Drive.
