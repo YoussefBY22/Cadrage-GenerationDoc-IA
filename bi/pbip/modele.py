@@ -121,7 +121,8 @@ CONTROLES = {"ok": "Cohérent", "ecart": "Écart", "non_detectees": "Non détect
              "non_lu": "Pas encore lu"}
 STATUTS_RECO = {"proposed": "À valider", "validated": "Validée", "deleted": "Supprimée", "merged": "Fusionnée"}
 ORIGINES = {"rules": "Relevée dans le rapport", "consultant": "Ajoutée par le consultant"}
-RESULTATS = {"ok": "Réussi", "refused": "Refus (preuves insuffisantes)", "invalid": "Sortie invalide"}
+RESULTATS = {"ok": "Réussi", "refused": "Refus voulu (preuve insuffisante)", "invalid": "Sortie invalide"}
+AVEC_ERREUR = "Réussi, avec phrase ou citation fautive"
 MODELES = {"base": "Modèle de base", "essai1": "Essai 1", "v4": "v4 (adopté)", "v5": "v5"}
 MOIS = ["Janv.", "Févr.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."]
 VERS_DATE = ("(k as number) as date => #date(Number.IntegerDivide(k, 10000), "
@@ -175,10 +176,14 @@ def tables_de_faits() -> dict[str, str]:
     ]
     t["Générations"] = table_tmdl("Générations", cols, depuis_vue("v_generation", cols) + [
         ("AvecSection", 'Table.AddColumn(Typage, "cle_section", each [type_code] & "|" & [section_code], type text)'),
-        ("AvecResultat", f'Table.AddColumn(AvecSection, "resultat", {m_libelle("status", RESULTATS, "Autre")})'),
+        # Un refus faute de preuve est le comportement voulu : ce n'est pas une erreur.
+        ("AvecErreur", 'Table.AddColumn(AvecSection, "en_erreur", each if [status] = "invalid" or '
+                       '([status] = "ok" and ([sentences_failed] > 0 or [citations_valid] < [citations_total])) '
+                       'then 1 else 0, Int64.Type)'),
+        ("AvecResultat", f'Table.AddColumn(AvecErreur, "resultat", each if [status] = "ok" and [en_erreur] = 1 then '
+                         f'{m_texte(AVEC_ERREUR)} else Record.FieldOrDefault({m_libelles(RESULTATS)}, [status], "Autre"), '
+                         'type text)'),
         ("AvecModele", f'Table.AddColumn(AvecResultat, "modele", {libelle_modele()})'),
-        ("AvecErreur", 'Table.AddColumn(AvecModele, "en_erreur", each if [status] <> "ok" or [sentences_failed] > 0 '
-                       'or [citations_valid] < [citations_total] then 1 else 0, Int64.Type)'),
     ])
 
     cols = [
@@ -378,6 +383,8 @@ def dimensions() -> dict[str, str]:
         Col("jour", "Date", DATE, masquee=False), Col("date_key", "Clé de date", ENTIER),
         Col("mois_key", "Clé de mois", ENTIER), Col("mois", "Mois", masquee=False, tri="Clé de mois"),
         Col("jour_court", "Jour", masquee=False, tri="Clé de date"),
+        Col("semaine_key", "Clé de semaine", ENTIER),
+        Col("semaine", "Semaine", masquee=False, tri="Clé de semaine"),
     ], bornes + [
         ("Base", "Table.FromColumns({Jours}, type table [jour = date])"),
         ("AvecCle", 'Table.AddColumn(Base, "date_key", each Date.Year([jour]) * 10000 + Date.Month([jour]) * 100 '
@@ -387,6 +394,12 @@ def dimensions() -> dict[str, str]:
         ("AvecMois", 'Table.AddColumn(AvecMoisCle, "mois", each NomMois([jour]), type text)'),
         ("AvecJour", 'Table.AddColumn(AvecMois, "jour_court", each Text.PadStart(Text.From(Date.Day([jour])), 2, "0") '
                      '& "/" & Text.PadStart(Text.From(Date.Month([jour])), 2, "0"), type text)'),
+        ("Lundi", "(d as date) as date => Date.StartOfWeek(d, Day.Monday)"),
+        ("AvecSemaineCle", 'Table.AddColumn(AvecJour, "semaine_key", each Date.Year(Lundi([jour])) * 10000 + '
+                           'Date.Month(Lundi([jour])) * 100 + Date.Day(Lundi([jour])), Int64.Type)'),
+        ("AvecSemaine", 'Table.AddColumn(AvecSemaineCle, "semaine", each '
+                        'Text.PadStart(Text.From(Date.Day(Lundi([jour]))), 2, "0") & "/" & '
+                        'Text.PadStart(Text.From(Date.Month(Lundi([jour]))), 2, "0"), type text)'),
     ])
     t["Choix du mois"] = choix("Choix du mois", "Mois choisi", TOUS_MOIS, "List.Transform(Jours, each NomMois(_))",
                                "List.Transform(Jours, each Date.Year(_) * 100 + Date.Month(_))", avant=bornes)

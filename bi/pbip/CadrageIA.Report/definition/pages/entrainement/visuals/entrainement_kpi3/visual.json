@@ -24,11 +24,11 @@
                       "Entity": "Indicateurs"
                     }
                   },
-                  "Property": "Meilleure erreur du modèle adopté"
+                  "Property": "Meilleure erreur affichée"
                 }
               },
-              "queryRef": "Indicateurs.Meilleure erreur du modèle adopté",
-              "nativeQueryRef": "Meilleure erreur du modèle adopté"
+              "queryRef": "Indicateurs.Meilleure erreur affichée",
+              "nativeQueryRef": "Meilleure erreur affichée"
             }
           ]
         }

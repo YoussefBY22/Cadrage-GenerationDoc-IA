@@ -30,6 +30,18 @@ table Calendrier
 		sortByColumn: 'Clé de date'
 		summarizeBy: none
 
+	column 'Clé de semaine'
+		dataType: int64
+		isHidden
+		sourceColumn: semaine_key
+		summarizeBy: none
+
+	column Semaine
+		dataType: string
+		sourceColumn: semaine
+		sortByColumn: 'Clé de semaine'
+		summarizeBy: none
+
 	partition Calendrier = m
 		mode: import
 		source =
@@ -44,6 +56,9 @@ table Calendrier
 				    AvecCle = Table.AddColumn(Base, "date_key", each Date.Year([jour]) * 10000 + Date.Month([jour]) * 100 + Date.Day([jour]), Int64.Type),
 				    AvecMoisCle = Table.AddColumn(AvecCle, "mois_key", each Date.Year([jour]) * 100 + Date.Month([jour]), Int64.Type),
 				    AvecMois = Table.AddColumn(AvecMoisCle, "mois", each NomMois([jour]), type text),
-				    AvecJour = Table.AddColumn(AvecMois, "jour_court", each Text.PadStart(Text.From(Date.Day([jour])), 2, "0") & "/" & Text.PadStart(Text.From(Date.Month([jour])), 2, "0"), type text)
+				    AvecJour = Table.AddColumn(AvecMois, "jour_court", each Text.PadStart(Text.From(Date.Day([jour])), 2, "0") & "/" & Text.PadStart(Text.From(Date.Month([jour])), 2, "0"), type text),
+				    Lundi = (d as date) as date => Date.StartOfWeek(d, Day.Monday),
+				    AvecSemaineCle = Table.AddColumn(AvecJour, "semaine_key", each Date.Year(Lundi([jour])) * 10000 + Date.Month(Lundi([jour])) * 100 + Date.Day(Lundi([jour])), Int64.Type),
+				    AvecSemaine = Table.AddColumn(AvecSemaineCle, "semaine", each Text.PadStart(Text.From(Date.Day(Lundi([jour]))), 2, "0") & "/" & Text.PadStart(Text.From(Date.Month(Lundi([jour]))), 2, "0"), type text)
 				in
-				    AvecJour
+				    AvecSemaine

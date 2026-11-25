@@ -27,8 +27,7 @@ ERREURS = [
     ("failed", "Phrase non vérifiée", 1, "Le vérificateur ne retrouve pas la phrase dans la source citée."),
     ("warning", "Phrase à revoir", 2, "Appui faible : la source ne soutient la phrase qu'en partie."),
     ("citation", "Citation sans source", 3, "La source citée n'existe pas dans le dossier."),
-    ("refused", "Section refusée", 4, "Le modèle répond « preuves insuffisantes » : un refus peut être juste."),
-    ("invalid", "Sortie invalide", 5, "La réponse du modèle ne respecte pas le format attendu."),
+    ("invalid", "Sortie invalide", 4, "La réponse du modèle ne respecte pas le format attendu."),
 ]
 
 
@@ -83,8 +82,8 @@ def _base() -> list[Mesure]:
 
         Mesure("Appels en erreur", q, f"SUM({G}[En erreur]) + 0", ENTIER),
         Mesure("Taux d'erreur de l'IA", q, "DIVIDE([Appels en erreur], [Appels au modèle])", PCT,
-               "Part des appels avec au moins une erreur : refus, sortie invalide, phrase non vérifiée "
-               "ou citation sans source. Un refus peut être la bonne réponse : il est compté pour être regardé."),
+               "Part des appels avec au moins une erreur : sortie invalide, phrase non vérifiée ou citation sans "
+               "source. Un refus faute de preuve est le comportement voulu : il n'est pas compté, voir Taux de refus."),
         Mesure("Phrases générées", q, f"SUM({G}[Phrases produites]) + 0", ENTIER),
         Mesure("Phrases vérifiées", q, f"SUM({G}[Phrases validées]) + 0", ENTIER),
         Mesure("Taux de phrases vérifiées", q, "DIVIDE([Phrases vérifiées], [Phrases générées])", PCT,
@@ -103,8 +102,7 @@ def _base() -> list[Mesure]:
         Mesure("Appels feuille de route", q, compte(G, feuille), ENTIER),
         Mesure("Erreurs", q, "SWITCH(SELECTEDVALUE('Types d''erreur'[Code d'erreur]), "
                              '"failed", [Phrases non vérifiées], "warning", [Phrases à revoir], '
-                             '"citation", [Citations sans source], "refused", [Sections refusées], '
-                             '"invalid", [Sorties invalides])', ENTIER, "Erreurs du type choisi (table Types d'erreur)."),
+                             '"citation", [Citations sans source], "invalid", [Sorties invalides])', ENTIER, "Erreurs du type choisi (table Types d'erreur)."),
 
         Mesure("Rapports d'audit", r, "COUNTROWS(Rapports) + 0", ENTIER),
         Mesure("Recommandations annoncées", r, "SUM(Rapports[Annoncées]) + 0", ENTIER,
@@ -146,8 +144,9 @@ def _pire_section(taux: str, effectif: str, seuil: int) -> str:
 
 ACTIONS = [
     Action(1, "Contrôler les recommandations", "[Rapports en alerte] > 0", "Consultant",
-           '"Contrôler " & [Rapports en alerte] & " rapport(s) d\'audit : " & [Recommandations manquantes] + 0 & '
-           '" recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier."',
+           '"Contrôler " & [Rapports en alerte] & " rapport(s) d\'audit " & [Portée] & " : " & '
+           '[Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). '
+           'Page Recommandations du dossier."',
            "au moins un rapport en alerte (trou ou doublon de numérotation, ou aucune recommandation détectée)"),
     Action(2, "Relancer la feuille de route", f"DIVIDE([Sorties invalides], [Appels feuille de route]) >= {SEUIL_INVALIDES}",
            "Consultant",
@@ -223,15 +222,21 @@ def _texte(m: dict[str, str]) -> None:
                                           '[Recommandations annoncées] & " annoncées"')
     m["Note projets"] = 'IF([Projets de démonstration] > 0, "dont " & [Projets de démonstration] & " [DÉMO]", "réels")'
     m["Note livrables"] = '[En relecture] & " en relecture · " & [Renvoyés] & " renvoyé(s)"'
-    m["Note erreur"] = '[Appels en erreur] & " appels sur " & [Appels au modèle] + 0'
+    m["Note erreur"] = ('[Appels en erreur] & " sur " & [Appels au modèle] + 0 & " · refus : " & '
+                        'FORMAT([Taux de refus], "0 %")')
+    m["Portée"] = ('IF(HASONEVALUE(Projets[Projet]), "dans ce projet", '
+                   '"sur " & [Projets] & " projet(s)")')
+    m["Temps moyen affiché"] = 'FORMAT([Temps moyen par appel], "0.0") & " s"'
+    m["Citations sans source affiché"] = 'FORMAT([Taux de citations sans source], "0.0 %")'
+    m["Meilleure erreur affichée"] = 'FORMAT([Meilleure erreur du modèle adopté], "0.000")'
     m["Note temps"] = '"par appel au modèle, PC local"'
     m["Note entraînements"] = '"dont " & [Entraînements adoptés] & " adopté : " & [Modèle adopté]'
     m["Note vérifiées"] = '[Phrases vérifiées] & " sur " & [Phrases générées]'
     m["Note citations"] = '[Citations sans source] & " sur " & [Citations générées]'
-    m["Note refus"] = '[Sections refusées] & " sur " & [Sections générées] & " sections"'
+    m["Note refus"] = '"voulu, pas une erreur : " & [Sections refusées] & " sur " & [Sections générées]'
     m["Note invalides"] = '"sur " & [Appels feuille de route] & " appels de feuille de route"'
     m["Note recommandations"] = '[Recommandations validées] + 0 & " validées · " & [Recommandations à valider] + 0 & " à valider"'
-    m["Note rapports"] = '[Rapports en alerte] & " en alerte"'
+    m["Note rapports"] = '[Portée] & " · " & [Rapports d\'audit] & " rapport(s) lu(s)"'
     m["Note constats"] = '[Constats à valider] & " à valider"'
     m["Note documents"] = '[Rapports d\'audit] & " rapport(s) d\'audit"'
     m["Note modèle adopté"] = '"meilleure erreur " & FORMAT([Meilleure erreur du modèle adopté], "0.000")'

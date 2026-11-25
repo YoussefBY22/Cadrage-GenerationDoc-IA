@@ -217,7 +217,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Taux d''erreur de l''IA'"
+                  "Value": "'Taux d''erreur (hors refus)'"
                 }
               }
             },
@@ -352,7 +352,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Indicateur : Taux d''erreur de l''IA'"
+                  "Value": "'Indicateur : Taux d''erreur (hors refus)'"
                 }
               }
             }

@@ -68,7 +68,7 @@ table Indicateurs
 		formatString: #,0
 		displayFolder: 2. Qualité de l'IA
 
-	/// Part des appels avec au moins une erreur : refus, sortie invalide, phrase non vérifiée ou citation sans source. Un refus peut être la bonne réponse : il est compté pour être regardé.
+	/// Part des appels avec au moins une erreur : sortie invalide, phrase non vérifiée ou citation sans source. Un refus faute de preuve est le comportement voulu : il n'est pas compté, voir Taux de refus.
 	measure 'Taux d''erreur de l''IA' = DIVIDE([Appels en erreur], [Appels au modèle])
 		formatString: 0 %
 		displayFolder: 2. Qualité de l'IA
@@ -132,7 +132,7 @@ table Indicateurs
 		displayFolder: 2. Qualité de l'IA
 
 	/// Erreurs du type choisi (table Types d'erreur).
-	measure Erreurs = SWITCH(SELECTEDVALUE('Types d''erreur'[Code d'erreur]), "failed", [Phrases non vérifiées], "warning", [Phrases à revoir], "citation", [Citations sans source], "refused", [Sections refusées], "invalid", [Sorties invalides])
+	measure Erreurs = SWITCH(SELECTEDVALUE('Types d''erreur'[Code d'erreur]), "failed", [Phrases non vérifiées], "warning", [Phrases à revoir], "citation", [Citations sans source], "invalid", [Sorties invalides])
 		formatString: #,0
 		displayFolder: 2. Qualité de l'IA
 
@@ -236,7 +236,7 @@ table Indicateurs
 
 	measure 'Actions déclenchées' =
 			VAR t = FILTER({
-			    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
+			    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit " & [Portée] & " : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
 			    (2, IF(DIVIDE([Sorties invalides], [Appels feuille de route]) >= 0.1, "Relancer la feuille de route : " & [Sorties invalides] & " réponse(s) du modèle au mauvais format sur " & [Appels feuille de route] & " appels." & "  [" & "Consultant" & "]", BLANK())),
 			    (3, IF([Taux de phrases non vérifiées] >= 0.1, "Revoir les sources de « " & [Section la moins vérifiée] & " » : " & FORMAT([Taux de phrases non vérifiées], "0 %") & " des phrases non vérifiées sur le périmètre." & "  [" & "Consultant" & "]", BLANK())),
 			    (4, IF([Taux de refus] >= 0.2, "Compléter les documents : le modèle refuse " & FORMAT([Taux de refus], "0 %") & " des sections faute de preuves, surtout « " & [Section la plus refusée] & " »." & "  [" & "Consultant" & "]", BLANK())),
@@ -250,7 +250,7 @@ table Indicateurs
 
 	measure 'Liste des actions' =
 			VAR t = FILTER({
-			    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
+			    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit " & [Portée] & " : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
 			    (2, IF(DIVIDE([Sorties invalides], [Appels feuille de route]) >= 0.1, "Relancer la feuille de route : " & [Sorties invalides] & " réponse(s) du modèle au mauvais format sur " & [Appels feuille de route] & " appels." & "  [" & "Consultant" & "]", BLANK())),
 			    (3, IF([Taux de phrases non vérifiées] >= 0.1, "Revoir les sources de « " & [Section la moins vérifiée] & " » : " & FORMAT([Taux de phrases non vérifiées], "0 %") & " des phrases non vérifiées sur le périmètre." & "  [" & "Consultant" & "]", BLANK())),
 			    (4, IF([Taux de refus] >= 0.2, "Compléter les documents : le modèle refuse " & FORMAT([Taux de refus], "0 %") & " des sections faute de preuves, surtout « " & [Section la plus refusée] & " »." & "  [" & "Consultant" & "]", BLANK())),
@@ -264,7 +264,7 @@ table Indicateurs
 
 	measure 'Action 1' =
 			VAR t = FILTER({
-			    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
+			    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit " & [Portée] & " : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
 			    (2, IF(DIVIDE([Sorties invalides], [Appels feuille de route]) >= 0.1, "Relancer la feuille de route : " & [Sorties invalides] & " réponse(s) du modèle au mauvais format sur " & [Appels feuille de route] & " appels." & "  [" & "Consultant" & "]", BLANK())),
 			    (3, IF([Taux de phrases non vérifiées] >= 0.1, "Revoir les sources de « " & [Section la moins vérifiée] & " » : " & FORMAT([Taux de phrases non vérifiées], "0 %") & " des phrases non vérifiées sur le périmètre." & "  [" & "Consultant" & "]", BLANK())),
 			    (4, IF([Taux de refus] >= 0.2, "Compléter les documents : le modèle refuse " & FORMAT([Taux de refus], "0 %") & " des sections faute de preuves, surtout « " & [Section la plus refusée] & " »." & "  [" & "Consultant" & "]", BLANK())),
@@ -283,7 +283,7 @@ table Indicateurs
 
 	measure 'Action 2' =
 			VAR t = FILTER({
-			    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
+			    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit " & [Portée] & " : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
 			    (2, IF(DIVIDE([Sorties invalides], [Appels feuille de route]) >= 0.1, "Relancer la feuille de route : " & [Sorties invalides] & " réponse(s) du modèle au mauvais format sur " & [Appels feuille de route] & " appels." & "  [" & "Consultant" & "]", BLANK())),
 			    (3, IF([Taux de phrases non vérifiées] >= 0.1, "Revoir les sources de « " & [Section la moins vérifiée] & " » : " & FORMAT([Taux de phrases non vérifiées], "0 %") & " des phrases non vérifiées sur le périmètre." & "  [" & "Consultant" & "]", BLANK())),
 			    (4, IF([Taux de refus] >= 0.2, "Compléter les documents : le modèle refuse " & FORMAT([Taux de refus], "0 %") & " des sections faute de preuves, surtout « " & [Section la plus refusée] & " »." & "  [" & "Consultant" & "]", BLANK())),
@@ -302,7 +302,7 @@ table Indicateurs
 
 	measure 'Action 3' =
 			VAR t = FILTER({
-			    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
+			    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit " & [Portée] & " : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
 			    (2, IF(DIVIDE([Sorties invalides], [Appels feuille de route]) >= 0.1, "Relancer la feuille de route : " & [Sorties invalides] & " réponse(s) du modèle au mauvais format sur " & [Appels feuille de route] & " appels." & "  [" & "Consultant" & "]", BLANK())),
 			    (3, IF([Taux de phrases non vérifiées] >= 0.1, "Revoir les sources de « " & [Section la moins vérifiée] & " » : " & FORMAT([Taux de phrases non vérifiées], "0 %") & " des phrases non vérifiées sur le périmètre." & "  [" & "Consultant" & "]", BLANK())),
 			    (4, IF([Taux de refus] >= 0.2, "Compléter les documents : le modèle refuse " & FORMAT([Taux de refus], "0 %") & " des sections faute de preuves, surtout « " & [Section la plus refusée] & " »." & "  [" & "Consultant" & "]", BLANK())),
@@ -372,7 +372,23 @@ table Indicateurs
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Note erreur' = [Appels en erreur] & " appels sur " & [Appels au modèle] + 0
+	measure 'Note erreur' = [Appels en erreur] & " sur " & [Appels au modèle] + 0 & " · refus : " & FORMAT([Taux de refus], "0 %")
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Portée' = IF(HASONEVALUE(Projets[Projet]), "dans ce projet", "sur " & [Projets] & " projet(s)")
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Temps moyen affiché' = FORMAT([Temps moyen par appel], "0.0") & " s"
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Citations sans source affiché' = FORMAT([Taux de citations sans source], "0.0 %")
+		displayFolder: 9. Présentation
+		isHidden
+
+	measure 'Meilleure erreur affichée' = FORMAT([Meilleure erreur du modèle adopté], "0.000")
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -392,7 +408,7 @@ table Indicateurs
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Note refus' = [Sections refusées] & " sur " & [Sections générées] & " sections"
+	measure 'Note refus' = "voulu, pas une erreur : " & [Sections refusées] & " sur " & [Sections générées]
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -404,7 +420,7 @@ table Indicateurs
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'Note rapports' = [Rapports en alerte] & " en alerte"
+	measure 'Note rapports' = [Portée] & " · " & [Rapports d'audit] & " rapport(s) lu(s)"
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -505,7 +521,7 @@ table Indicateurs
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'ST synthese par_mois' = "Selon le résultat · " & [Mention données]
+	measure 'ST synthese par_mois' = "Rouge : erreurs ; gris clair : refus voulus · " & [Mention données]
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -537,7 +553,7 @@ table Indicateurs
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'ST qualite tendance' = "Part des appels, des phrases et des sections · " & [Mention données]
+	measure 'ST qualite tendance' = "Au jour : filtre Période ; le refus n'est pas une erreur · " & [Mention données]
 		displayFolder: 9. Présentation
 		isHidden
 
@@ -553,7 +569,7 @@ table Indicateurs
 		displayFolder: 9. Présentation
 		isHidden
 
-	measure 'ST impression par_mois' = "Selon le résultat · " & [Mention données]
+	measure 'ST impression par_mois' = "Rouge : erreurs ; gris clair : refus voulus · " & [Mention données]
 		displayFolder: 9. Présentation
 		isHidden
 

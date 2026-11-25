@@ -27,6 +27,6 @@ table 'Types d''erreur'
 		mode: import
 		source =
 				let
-				    Resultat = #table(type table [#"code" = text, #"libelle" = text, #"ordre" = Int64.Type, #"explication" = text], {{"failed", "Phrase non vérifiée", 1, "Le vérificateur ne retrouve pas la phrase dans la source citée."}, {"warning", "Phrase à revoir", 2, "Appui faible : la source ne soutient la phrase qu'en partie."}, {"citation", "Citation sans source", 3, "La source citée n'existe pas dans le dossier."}, {"refused", "Section refusée", 4, "Le modèle répond « preuves insuffisantes » : un refus peut être juste."}, {"invalid", "Sortie invalide", 5, "La réponse du modèle ne respecte pas le format attendu."}})
+				    Resultat = #table(type table [#"code" = text, #"libelle" = text, #"ordre" = Int64.Type, #"explication" = text], {{"failed", "Phrase non vérifiée", 1, "Le vérificateur ne retrouve pas la phrase dans la source citée."}, {"warning", "Phrase à revoir", 2, "Appui faible : la source ne soutient la phrase qu'en partie."}, {"citation", "Citation sans source", 3, "La source citée n'existe pas dans le dossier."}, {"invalid", "Sortie invalide", 4, "La réponse du modèle ne respecte pas le format attendu."}})
 				in
 				    Resultat

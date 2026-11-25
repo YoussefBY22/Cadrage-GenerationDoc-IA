@@ -53,7 +53,7 @@ DIVIDE(AVERAGE('Générations'[Durée en ms]), 1000)
 Appels en erreur =
 SUM('Générations'[En erreur]) + 0
 
-// Part des appels avec au moins une erreur : refus, sortie invalide, phrase non vérifiée ou citation sans source. Un refus peut être la bonne réponse : il est compté pour être regardé.
+// Part des appels avec au moins une erreur : sortie invalide, phrase non vérifiée ou citation sans source. Un refus faute de preuve est le comportement voulu : il n'est pas compté, voir Taux de refus.
 Taux d'erreur de l'IA =
 DIVIDE([Appels en erreur], [Appels au modèle])
 
@@ -103,7 +103,7 @@ CALCULATE(COUNTROWS('Générations'), 'Générations'[Code de section] IN {"_axe
 
 // Erreurs du type choisi (table Types d'erreur).
 Erreurs =
-SWITCH(SELECTEDVALUE('Types d''erreur'[Code d'erreur]), "failed", [Phrases non vérifiées], "warning", [Phrases à revoir], "citation", [Citations sans source], "refused", [Sections refusées], "invalid", [Sorties invalides])
+SWITCH(SELECTEDVALUE('Types d''erreur'[Code d'erreur]), "failed", [Phrases non vérifiées], "warning", [Phrases à revoir], "citation", [Citations sans source], "invalid", [Sorties invalides])
 
 Rapports d'audit =
 COUNTROWS(Rapports) + 0
@@ -169,7 +169,7 @@ RETURN IF(d = 0, "Données réelles", IF(r = 0, "[DÉMO] projets de démonstrati
 
 Liste des actions =
 VAR t = FILTER({
-    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
+    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit " & [Portée] & " : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
     (2, IF(DIVIDE([Sorties invalides], [Appels feuille de route]) >= 0.1, "Relancer la feuille de route : " & [Sorties invalides] & " réponse(s) du modèle au mauvais format sur " & [Appels feuille de route] & " appels." & "  [" & "Consultant" & "]", BLANK())),
     (3, IF([Taux de phrases non vérifiées] >= 0.1, "Revoir les sources de « " & [Section la moins vérifiée] & " » : " & FORMAT([Taux de phrases non vérifiées], "0 %") & " des phrases non vérifiées sur le périmètre." & "  [" & "Consultant" & "]", BLANK())),
     (4, IF([Taux de refus] >= 0.2, "Compléter les documents : le modèle refuse " & FORMAT([Taux de refus], "0 %") & " des sections faute de preuves, surtout « " & [Section la plus refusée] & " »." & "  [" & "Consultant" & "]", BLANK())),
@@ -181,7 +181,7 @@ RETURN IF(COUNTROWS(t) = 0, "Rien d'urgent : aucune règle ne se déclenche sur 
 
 Action 1 =
 VAR t = FILTER({
-    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
+    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit " & [Portée] & " : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
     (2, IF(DIVIDE([Sorties invalides], [Appels feuille de route]) >= 0.1, "Relancer la feuille de route : " & [Sorties invalides] & " réponse(s) du modèle au mauvais format sur " & [Appels feuille de route] & " appels." & "  [" & "Consultant" & "]", BLANK())),
     (3, IF([Taux de phrases non vérifiées] >= 0.1, "Revoir les sources de « " & [Section la moins vérifiée] & " » : " & FORMAT([Taux de phrases non vérifiées], "0 %") & " des phrases non vérifiées sur le périmètre." & "  [" & "Consultant" & "]", BLANK())),
     (4, IF([Taux de refus] >= 0.2, "Compléter les documents : le modèle refuse " & FORMAT([Taux de refus], "0 %") & " des sections faute de preuves, surtout « " & [Section la plus refusée] & " »." & "  [" & "Consultant" & "]", BLANK())),
@@ -194,7 +194,7 @@ RETURN IF(ISBLANK(r), "Rien d'urgent : aucune règle ne se déclenche sur ce pé
 
 Action 2 =
 VAR t = FILTER({
-    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
+    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit " & [Portée] & " : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
     (2, IF(DIVIDE([Sorties invalides], [Appels feuille de route]) >= 0.1, "Relancer la feuille de route : " & [Sorties invalides] & " réponse(s) du modèle au mauvais format sur " & [Appels feuille de route] & " appels." & "  [" & "Consultant" & "]", BLANK())),
     (3, IF([Taux de phrases non vérifiées] >= 0.1, "Revoir les sources de « " & [Section la moins vérifiée] & " » : " & FORMAT([Taux de phrases non vérifiées], "0 %") & " des phrases non vérifiées sur le périmètre." & "  [" & "Consultant" & "]", BLANK())),
     (4, IF([Taux de refus] >= 0.2, "Compléter les documents : le modèle refuse " & FORMAT([Taux de refus], "0 %") & " des sections faute de preuves, surtout « " & [Section la plus refusée] & " »." & "  [" & "Consultant" & "]", BLANK())),
@@ -207,7 +207,7 @@ RETURN IF(ISBLANK(r), "", MAXX(FILTER(t, [Value1] = r), [Value2]))
 
 Action 3 =
 VAR t = FILTER({
-    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
+    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit " & [Portée] & " : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
     (2, IF(DIVIDE([Sorties invalides], [Appels feuille de route]) >= 0.1, "Relancer la feuille de route : " & [Sorties invalides] & " réponse(s) du modèle au mauvais format sur " & [Appels feuille de route] & " appels." & "  [" & "Consultant" & "]", BLANK())),
     (3, IF([Taux de phrases non vérifiées] >= 0.1, "Revoir les sources de « " & [Section la moins vérifiée] & " » : " & FORMAT([Taux de phrases non vérifiées], "0 %") & " des phrases non vérifiées sur le périmètre." & "  [" & "Consultant" & "]", BLANK())),
     (4, IF([Taux de refus] >= 0.2, "Compléter les documents : le modèle refuse " & FORMAT([Taux de refus], "0 %") & " des sections faute de preuves, surtout « " & [Section la plus refusée] & " »." & "  [" & "Consultant" & "]", BLANK())),

@@ -24,11 +24,11 @@
                       "Entity": "Indicateurs"
                     }
                   },
-                  "Property": "Taux de citations sans source"
+                  "Property": "Citations sans source affiché"
                 }
               },
-              "queryRef": "Indicateurs.Taux de citations sans source",
-              "nativeQueryRef": "Taux de citations sans source"
+              "queryRef": "Indicateurs.Citations sans source affiché",
+              "nativeQueryRef": "Citations sans source affiché"
             }
           ]
         }

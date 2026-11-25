@@ -24,11 +24,11 @@
                       "Entity": "Indicateurs"
                     }
                   },
-                  "Property": "Temps moyen par appel"
+                  "Property": "Temps moyen affiché"
                 }
               },
-              "queryRef": "Indicateurs.Temps moyen par appel",
-              "nativeQueryRef": "Temps moyen par appel"
+              "queryRef": "Indicateurs.Temps moyen affiché",
+              "nativeQueryRef": "Temps moyen affiché"
             }
           ]
         }

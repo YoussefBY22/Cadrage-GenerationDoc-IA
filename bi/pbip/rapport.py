@@ -62,7 +62,8 @@ RESPONSIVES = ("barChart", "clusteredBarChart", "clusteredColumnChart", "columnC
 # Couleurs par valeur : la même partout (charte : rouge réservé à ce qui demande une action)
 COULEURS_ETAT = {"Brouillon": GRIS_CLAIR, "En relecture": JAUNE, "Approuvé": ANTHRACITE, "Renvoyé": ROUGE}
 COULEURS_GRAVITE = {"Élevée": ANTHRACITE, "Moyenne": GRIS, "Faible": GRIS_CLAIR}
-COULEURS_RESULTAT = {"Réussi": ANTHRACITE, "Refus (preuves insuffisantes)": GRIS, "Sortie invalide": ROUGE}
+COULEURS_RESULTAT = {"Réussi": ANTHRACITE, "Refus voulu (preuve insuffisante)": GRIS_CLAIR,
+                     "Réussi, avec phrase ou citation fautive": "#E08A93", "Sortie invalide": ROUGE}
 COULEURS_MODELE = {"Modèle de base": GRIS_CLAIR, "Essai 1": GRIS, "v4 (adopté)": JAUNE, "v5": ANTHRACITE}
 COULEURS_VAGUE = {"Vague 1": JAUNE, "Vague 2": GRIS, "Vague 3": GRIS_CLAIR}
 COULEURS_ESSAI = {"Essai 1": GRIS, "v4": JAUNE, "v5": ANTHRACITE}
@@ -349,7 +350,7 @@ class Page:
 
 # ---------------------------------------------------------------- champs
 PROJET, CLIENT = col("Projets", "Projet"), col("Projets", "Client")
-MOIS, DATE = col("Calendrier", "Mois"), col("Calendrier", "Date")
+MOIS, DATE, SEMAINE = col("Calendrier", "Mois"), col("Calendrier", "Date"), col("Calendrier", "Semaine")
 ETAT, TYPE = col("Livrables", "État"), col("Types de livrable", "Type de livrable")
 TYPE_COURT = col("Types de livrable", "Type")
 RESULTAT, MODELE = col("Générations", "Résultat"), col("Générations", "Modèle")
@@ -384,7 +385,7 @@ def appels_par_mois(p: Page, boite: tuple, titre: str = "Appels au modèle par m
                 {"Category": [MOIS], "Series": [RESULTAT], "Y": [(appels, "Appels")],
                  "Tooltips": [(mes("Taux d'erreur de l'IA"), "Taux d'erreur de l'IA"),
                               (mes("Temps moyen par appel"), "Temps moyen par appel")]},
-                titre, "Selon le résultat", {
+                titre, "Rouge : erreurs ; gris clair : refus voulus", {
                     "categoryAxis": axe(gridlineShow=False, fontSize=10.0),
                     "valueAxis": axe(start=0.0, fontSize=9.5, gridlineShow=True, gridlineColor=FOND),
                     "legend": legende(),
@@ -426,8 +427,8 @@ def synthese() -> Page:
     p = Page("synthese")
     p.entete()
     p.cartes([("Projets", "Projets", "Note projets"), ("Livrables", "Livrables", "Note livrables"),
-              ("Taux d'erreur de l'IA", "Taux d'erreur de l'IA", "Note erreur"),
-              ("Temps moyen par appel", "Temps moyen par appel", "Note temps"),
+              ("Taux d'erreur de l'IA", "Taux d'erreur (hors refus)", "Note erreur"),
+              ("Temps moyen affiché", "Temps moyen par appel", "Note temps"),
               ("Entraînements", "Entraînements réalisés", "Note entraînements")])
     y1, h1 = 232, 318
     appels_par_mois(p, (X0, y1, 820, h1))
@@ -510,24 +511,25 @@ def qualite() -> Page:
     p = Page("qualite")
     p.entete()
     p.cartes([("Taux de phrases vérifiées", "Phrases vérifiées", "Note vérifiées"),
-              ("Taux de citations sans source", "Citations sans source", "Note citations"),
-              ("Taux de refus", "Sections refusées", "Note refus"),
+              ("Citations sans source affiché", "Citations sans source", "Note citations"),
+              ("Taux de refus", "Refus faute de preuve", "Note refus"),
               ("Sorties invalides", "Sorties invalides", "Note invalides")])
     y1, h1 = 232, 310
     nv, rf, er = mes("Taux de phrases non vérifiées"), mes("Taux de refus"), mes("Taux d'erreur de l'IA")
     p.graphique("tendance", "lineChart", (X0, y1, 820, h1),
-                {"Category": [DATE], "Y": [(er, "Appels en erreur"), (nv, "Phrases non vérifiées"), (rf, "Refus")],
+                {"Category": [SEMAINE], "Y": [(er, "Taux d'erreur"), (nv, "Phrases non vérifiées"),
+                                              (rf, "Refus voulus (neutre)")],
                  "Tooltips": [(mes("Appels au modèle"), "Appels au modèle")]},
-                "Erreurs de l'IA par jour", "Part des appels, des phrases et des sections", {
-                    "categoryAxis": axe(axisType="Scalar", fontSize=9.0, gridlineShow=False),
+                "Erreurs de l'IA par semaine", "Au jour : filtre Période ; le refus n'est pas une erreur", {
+                    "categoryAxis": axe("Semaine du", axisType="Categorical", fontSize=9.0, gridlineShow=False),
                     "valueAxis": axe(start=0.0, fontSize=9.5, gridlineShow=True, gridlineColor=FOND),
                     "legend": legende(),
                     "labels": [props(show=False)],
                     "lineStyles": [props(strokeWidth=2.0, showMarker=True, markerSize=3.0),
                                    props(serie(nv), lineStyle="dashed"), props(serie(rf), lineStyle="dotted")],
-                    "dataPoint": [props(serie(er), fill=ANTHRACITE), props(serie(nv), fill=ROUGE),
-                                  props(serie(rf), fill=GRIS)]},
-                tri=(DATE, "Ascending"))
+                    "dataPoint": [props(serie(er), fill=ROUGE), props(serie(nv), fill=ANTHRACITE),
+                                  props(serie(rf), fill=GRIS_CLAIR)]},
+                tri=(SEMAINE, "Ascending"))
     erreurs = mes("Erreurs")
     p.graphique("types", "clusteredBarChart", (X0 + 820 + G, y1, LC - 820 - G, h1),
                 {"Category": [TYPE_ERREUR], "Y": [(erreurs, "Erreurs")], "Tooltips": [EXPLICATION]},
@@ -536,7 +538,7 @@ def qualite() -> Page:
                     "valueAxis": sans_axe(start=0.0),
                     "labels": etiquettes(labelPosition="InsideEnd", color=BLANC),
                     "dataPoint": [props(serie(erreurs), fill=ANTHRACITE)]},
-                tri=(col("Types d'erreur", "Type d'erreur"), "Ascending"))
+                tri=(erreurs, "Descending"))
     y2 = y1 + h1 + G
     p.matrice("alertes", (X0, y2, 820, BAS - y2), [RAPPORT],
               [("Alerte projet", "Projet"), ("Alerte annoncées", "Annoncées"), ("Alerte retenues", "Retenues"),
@@ -562,7 +564,7 @@ def entrainement() -> Page:
     p = Page("entrainement")
     p.entete(mention="Valeurs réelles des entraînements")
     p.cartes([("Entraînements", "Entraînements", "Note essais"), ("Modèle adopté", "Modèle adopté", "Note modèle adopté"),
-              ("Meilleure erreur du modèle adopté", "Erreur de validation retenue", "Note erreur adoptée"),
+              ("Meilleure erreur affichée", "Erreur de validation retenue", "Note erreur adoptée"),
               ("Exemples d'entraînement", "Exemples d'entraînement", "Note exemples")])
     y1, h1 = 232, 236
     p.matrice("essais", (X0, y1, LC, h1), [ESSAI],

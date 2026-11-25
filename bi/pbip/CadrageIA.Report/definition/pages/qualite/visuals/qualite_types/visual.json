@@ -76,16 +76,16 @@
         "sort": [
           {
             "field": {
-              "Column": {
+              "Measure": {
                 "Expression": {
                   "SourceRef": {
-                    "Entity": "Types d'erreur"
+                    "Entity": "Indicateurs"
                   }
                 },
-                "Property": "Type d'erreur"
+                "Property": "Erreurs"
               }
             },
-            "direction": "Ascending"
+            "direction": "Descending"
           }
         ],
         "isDefaultSort": false

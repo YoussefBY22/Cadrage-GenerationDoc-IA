@@ -24,11 +24,11 @@
                       "Entity": "Calendrier"
                     }
                   },
-                  "Property": "Date"
+                  "Property": "Semaine"
                 }
               },
-              "queryRef": "Calendrier.Date",
-              "nativeQueryRef": "Date",
+              "queryRef": "Calendrier.Semaine",
+              "nativeQueryRef": "Semaine",
               "active": true
             }
           ]
@@ -48,7 +48,7 @@
               },
               "queryRef": "Indicateurs.Taux d'erreur de l'IA",
               "nativeQueryRef": "Taux d'erreur de l'IA",
-              "displayName": "Appels en erreur"
+              "displayName": "Taux d'erreur"
             },
             {
               "field": {
@@ -78,7 +78,7 @@
               },
               "queryRef": "Indicateurs.Taux de refus",
               "nativeQueryRef": "Taux de refus",
-              "displayName": "Refus"
+              "displayName": "Refus voulus (neutre)"
             }
           ]
         },
@@ -112,7 +112,7 @@
                     "Entity": "Calendrier"
                   }
                 },
-                "Property": "Date"
+                "Property": "Semaine"
               }
             },
             "direction": "Ascending"
@@ -135,7 +135,7 @@
             "showAxisTitle": {
               "expr": {
                 "Literal": {
-                  "Value": "false"
+                  "Value": "true"
                 }
               }
             },
@@ -160,7 +160,7 @@
             "axisType": {
               "expr": {
                 "Literal": {
-                  "Value": "'Scalar'"
+                  "Value": "'Categorical'"
                 }
               }
             },
@@ -168,6 +168,31 @@
               "expr": {
                 "Literal": {
                   "Value": "false"
+                }
+              }
+            },
+            "titleText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Semaine du'"
+                }
+              }
+            },
+            "titleFontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "10D"
+                }
+              }
+            },
+            "titleColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#5F5F6B'"
+                    }
+                  }
                 }
               }
             }
@@ -358,7 +383,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#2E2E38'"
+                      "Value": "'#B4232F'"
                     }
                   }
                 }
@@ -376,7 +401,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#B4232F'"
+                      "Value": "'#2E2E38'"
                     }
                   }
                 }
@@ -394,7 +419,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#747480'"
+                      "Value": "'#C4C4CD'"
                     }
                   }
                 }
@@ -434,7 +459,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Erreurs de l''IA par jour'"
+                  "Value": "'Erreurs de l''IA par semaine'"
                 }
               }
             },
@@ -590,7 +615,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Erreurs de l''IA par jour. Part des appels, des phrases et des sections'"
+                  "Value": "'Erreurs de l''IA par semaine. Au jour : filtre Période ; le refus n''est pas une erreur'"
                 }
               }
             }

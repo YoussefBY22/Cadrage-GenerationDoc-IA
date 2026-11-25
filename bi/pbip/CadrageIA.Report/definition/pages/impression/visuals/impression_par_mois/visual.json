@@ -341,7 +341,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#747480'"
+                      "Value": "'#C4C4CD'"
                     }
                   }
                 }
@@ -366,7 +366,48 @@
                     },
                     "Right": {
                       "Literal": {
-                        "Value": "'Refus (preuves insuffisantes)'"
+                        "Value": "'Refus voulu (preuve insuffisante)'"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "fill": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#E08A93'"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "selector": {
+            "data": [
+              {
+                "scopeId": {
+                  "Comparison": {
+                    "ComparisonKind": 0,
+                    "Left": {
+                      "Column": {
+                        "Expression": {
+                          "SourceRef": {
+                            "Entity": "Générations"
+                          }
+                        },
+                        "Property": "Résultat"
+                      }
+                    },
+                    "Right": {
+                      "Literal": {
+                        "Value": "'Réussi, avec phrase ou citation fautive'"
                       }
                     }
                   }
@@ -601,7 +642,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Activité de l''IA par mois. Selon le résultat'"
+                  "Value": "'Activité de l''IA par mois. Rouge : erreurs ; gris clair : refus voulus'"
                 }
               }
             }

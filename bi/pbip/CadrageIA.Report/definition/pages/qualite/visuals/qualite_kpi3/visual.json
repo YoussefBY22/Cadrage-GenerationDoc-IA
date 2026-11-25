@@ -217,7 +217,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Sections refusées'"
+                  "Value": "'Refus faute de preuve'"
                 }
               }
             },
@@ -352,7 +352,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Indicateur : Sections refusées'"
+                  "Value": "'Indicateur : Refus faute de preuve'"
                 }
               }
             }

@@ -25,7 +25,7 @@ Chaque visuel qui mélange projets réels et de démonstration le dit dans son s
 | Activité | **Appels au modèle** | Chaque appel : une section, une extraction de constats, un regroupement en axes, des initiatives. | `#,0` |
 | Activité | **Temps moyen par appel** | Durée moyenne d'un appel au modèle, en secondes, sur le PC local. | `0.0 "s"` |
 | Qualité de l'IA | **Appels en erreur** | — | `#,0` |
-| Qualité de l'IA | **Taux d'erreur de l'IA** | Part des appels avec au moins une erreur : refus, sortie invalide, phrase non vérifiée ou citation sans source. Un refus peut être la bonne réponse : il est compté pour être regardé. | `0 %` |
+| Qualité de l'IA | **Taux d'erreur de l'IA** | Part des appels avec au moins une erreur : sortie invalide, phrase non vérifiée ou citation sans source. Un refus faute de preuve est le comportement voulu : il n'est pas compté, voir Taux de refus. | `0 %` |
 | Qualité de l'IA | **Phrases générées** | — | `#,0` |
 | Qualité de l'IA | **Phrases vérifiées** | — | `#,0` |
 | Qualité de l'IA | **Taux de phrases vérifiées** | Phrases retrouvées dans leur source par le vérificateur ÷ phrases générées. | `0 %` |
@@ -296,7 +296,7 @@ CALCULATE(COUNTROWS('Générations'), 'Générations'[Code de section] IN {"_axe
 
 ```dax
 Erreurs =
-SWITCH(SELECTEDVALUE('Types d''erreur'[Code d'erreur]), "failed", [Phrases non vérifiées], "warning", [Phrases à revoir], "citation", [Citations sans source], "refused", [Sections refusées], "invalid", [Sorties invalides])
+SWITCH(SELECTEDVALUE('Types d''erreur'[Code d'erreur]), "failed", [Phrases non vérifiées], "warning", [Phrases à revoir], "citation", [Citations sans source], "invalid", [Sorties invalides])
 ```
 
 ### Rapports d'audit
@@ -423,7 +423,7 @@ DIVIDE(SUM(Scores[Réussis]), SUM(Scores[Total]))
 ```dax
 Liste des actions =
 VAR t = FILTER({
-    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
+    (1, IF([Rapports en alerte] > 0, "Contrôler " & [Rapports en alerte] & " rapport(s) d'audit " & [Portée] & " : " & [Recommandations manquantes] + 0 & " recommandation(s) manquante(s) ou non détectée(s). Page Recommandations du dossier." & "  [" & "Consultant" & "]", BLANK())),
     (2, IF(DIVIDE([Sorties invalides], [Appels feuille de route]) >= 0.1, "Relancer la feuille de route : " & [Sorties invalides] & " réponse(s) du modèle au mauvais format sur " & [Appels feuille de route] & " appels." & "  [" & "Consultant" & "]", BLANK())),
     (3, IF([Taux de phrases non vérifiées] >= 0.1, "Revoir les sources de « " & [Section la moins vérifiée] & " » : " & FORMAT([Taux de phrases non vérifiées], "0 %") & " des phrases non vérifiées sur le périmètre." & "  [" & "Consultant" & "]", BLANK())),
     (4, IF([Taux de refus] >= 0.2, "Compléter les documents : le modèle refuse " & FORMAT([Taux de refus], "0 %") & " des sections faute de preuves, surtout « " & [Section la plus refusée] & " »." & "  [" & "Consultant" & "]", BLANK())),
