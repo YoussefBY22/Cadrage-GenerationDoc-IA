@@ -251,3 +251,16 @@ def test_proposer_quand_meme_ajoute_la_demande_du_consultant(repo, tmp_path):
             assert prompts and "DEMANDE DU CONSULTANT" in prompts[0]
         assert all("DEMANDE DU CONSULTANT" not in x for x in prompts) or proposal
         assert out["status"] in ("ok", "refused", "invalid")
+
+
+def test_modele_de_proposition_configure_ou_par_defaut():
+    from app.config import Settings
+    from app.llm import OllamaProvider, build_proposal_provider
+
+    base = FakeProvider()
+    assert build_proposal_provider(Settings(llm_provider="fake"), base) is base
+    s = Settings(llm_provider="ollama", ollama_generation_model="lora", ollama_proposal_model="base",
+                 ollama_embedding_model="bge-m3")
+    prov = build_proposal_provider(s, base)
+    assert isinstance(prov, OllamaProvider) and prov.served_model == "ollama:base"
+    assert build_proposal_provider(Settings(llm_provider="ollama", ollama_generation_model="lora"), base) is base

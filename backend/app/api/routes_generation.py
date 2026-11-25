@@ -109,6 +109,10 @@ def generate_section(deliverable_id: str, section_key: str, repo: Repo, provider
     if _own(repo, deliverable_id, user) is None:
         return not_found("Livrable")
     try:
+        if proposal:
+            from app.config import get_settings
+            from app.llm import build_proposal_provider
+            provider = build_proposal_provider(get_settings(), provider)
         return generation.generate_section(repo, provider, search, deliverable_id, section_key, user,
                                            proposal=proposal)
     except GenerationError as exc:
