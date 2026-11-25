@@ -22,6 +22,7 @@ from app.generation.prompting import (
     estimate_tokens,
     fit_passages,
     passage_budget,
+    safe_tokens,
     system_prompt,
 )
 from app.generation.relevance import below_threshold, resolve_threshold
@@ -206,6 +207,22 @@ def generate_section(repo, provider: LLMProvider, search, deliverable_id: str, s
     decision_section = bool(spec.requires_decisions)
     passages: list[Passage] = []
     findings = repo.list_findings(dossier_id, validated_only=True) if spec.uses_findings else []
+    if findings and content.roadmap and len(content.roadmap.items) == 1:
+        # TdR / CdC d'UNE initiative : seulement ses constats (un vrai rapport en compte 50 à 100)
+        mine = set(content.roadmap.items[0].initiative.finding_ids)
+        findings = [f for f in findings if f.id in mine] or findings
+    findings_not_sent = 0
+    if findings:  # au plus 30 % de la fenêtre : le reste pour les passages et la réponse, jamais en silence
+        window = getattr(provider, "context_tokens", None) or 4096
+        room, used, kept = int(window * 0.3), 0, []
+        for f in findings:
+            cost = safe_tokens(f.text) + 4
+            if used + cost > room:
+                findings_not_sent += 1
+                continue
+            kept.append(f)
+            used += cost
+        findings = kept
     prompt, status, attempts, latency = "", "ok", 0, 0
     answer = ""
     relevance = None
@@ -299,10 +316,10 @@ def generate_section(repo, provider: LLMProvider, search, deliverable_id: str, s
     repo.audit(user.id, "section.generate", "deliverable", deliverable_id,
                {"section": section_key, "version": version, "run_id": run_id, "status": status,
                 "tpv": report.tpv, "relevance": relevance,
-                "decisions_sent": len(sent_decisions), "decisions_not_sent": dropped_decisions,
+                "decisions_sent": len(sent_decisions), "decisions_not_sent": dropped_decisions, "findings_not_sent": findings_not_sent,
                 "blocking": sum(i.severity == "blocking" for i in report.issues),
                 "model": provider.served_model})
     return {"version": version, "run_id": run_id, "status": status, "attempts": attempts,
-            "decisions_sent": len(sent_decisions), "decisions_not_sent": dropped_decisions,
+            "decisions_sent": len(sent_decisions), "decisions_not_sent": dropped_decisions, "findings_not_sent": findings_not_sent,
             "section": draft.model_dump(mode="json"), "report": report.model_dump(mode="json"),
             "tpv": report.tpv}

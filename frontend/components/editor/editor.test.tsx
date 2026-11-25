@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AckBar, ExportBar, TransitionBar } from "./ActionBars";
 import { deliverables } from "./client";
@@ -169,5 +169,19 @@ describe("feuille de route", () => {
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith("r1", [{ id: "I1", scores: [{ key: "impact", value: 5 }] }]),
     );
+  });
+
+  it("tableau axes × vagues quand les initiatives ont un axe", async () => {
+    const withAxes = structuredClone(deliverable) as Deliverable;
+    const items = withAxes.content.roadmap!.items;
+    items[0].initiative.axis = "Gouvernance";
+    items[1].initiative.axis = "Données";
+    vi.spyOn(deliverables, "get").mockResolvedValue(withAxes);
+    render(<RoadmapView id="r1" />);
+    const matrix = await screen.findByTestId("axis-matrix");
+    const rows = within(matrix).getAllByRole("row");
+    expect(rows[0]).toHaveTextContent("AxeVague 1Vague 2");
+    expect(rows[1]).toHaveTextContent("GouvernanceAutomatiser");
+    expect(rows[2]).toHaveTextContent("DonnéesFormer");
   });
 });

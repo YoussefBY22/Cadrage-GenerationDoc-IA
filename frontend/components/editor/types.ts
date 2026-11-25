@@ -50,6 +50,7 @@ export interface Initiative {
   depends_on_projects?: string[];
   proposal_status?: "proposed" | "accepted";
   proposal_flags?: string[];
+  axis?: string | null;
 }
 
 export interface RejectedLink {
