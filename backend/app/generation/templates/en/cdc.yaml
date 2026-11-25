@@ -21,9 +21,11 @@ sections:
 - key: fonctionnelles
   title: Functional requirements
   instructions: List the functional requirements as short statements ("The system shall…"), numbered REQ-1, REQ-2…,
-    one requirement per sentence, unambiguous, each verifiable and tied to a source or a finding.
+    one requirement per sentence, unambiguous, each verifiable and tied to a source or a finding. Information that a
+    recommendation or a finding asks to produce or track is a requirement.
   queries:
   - functional requirements
+  - report recommendations
   - expected features
   - business needs
   min_sources: 2

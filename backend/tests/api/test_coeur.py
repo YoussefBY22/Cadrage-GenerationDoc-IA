@@ -310,7 +310,7 @@ def test_generation_refuses_when_context_cannot_hold_priorities_and_projects(mak
 
 def test_passages_not_sent_are_reported(make):
     prov = FakeProvider(handler=honest)
-    prov.context_tokens = 2000
+    prov.context_tokens = 2700  # réserve de réponse : 1 800 jetons
     c = make(prov)
     did = new_dossier(c)
     for i in range(8):

@@ -12,8 +12,8 @@ import { useGuard } from "@/lib/useGuard";
 
 const TYPES: ProjectType[] = ["software", "data_ai", "infrastructure", "supplies", "services", "study", "change", "training"];
 const SHORT: (keyof ContextData)[] = ["sector", "size", "country", "language"];
-const LONG: (keyof ContextData)[] = ["scope", "constraints", "stakeholders"];
-const EMPTY: ContextData = { sector: "", size: "", country: "", language: "", project_types: [], scope: "", constraints: "", stakeholders: "" };
+const LONG: (keyof ContextData)[] = ["scope", "constraints", "stakeholders", "roadmap_axes"];
+const EMPTY: ContextData = { sector: "", size: "", country: "", language: "", project_types: [], scope: "", constraints: "", stakeholders: "", roadmap_axes: "" };
 
 /** Fiche de contexte (formulaire court) et chat : le chat propose, l'utilisateur confirme. */
 export default function ContextView({ dossierId }: { dossierId: string }) {

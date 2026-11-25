@@ -24,7 +24,7 @@ PROJECT_TYPE_LABELS: dict[str, dict[str, str]] = {
 # Champs texte de la fiche (hors types de projet) et longueur maximale de chacun.
 TEXT_FIELDS: dict[str, int] = {
     "sector": 200, "size": 200, "country": 100, "language": 50,
-    "scope": 2000, "constraints": 2000, "stakeholders": 2000,
+    "scope": 2000, "constraints": 2000, "stakeholders": 2000, "roadmap_axes": 1000,
 }
 FIELDS: tuple[str, ...] = (*TEXT_FIELDS, "project_types")
 
@@ -42,6 +42,8 @@ class ContextData(BaseModel):
     scope: str = Field(default="", max_length=2000)
     constraints: str = Field(default="", max_length=2000)
     stakeholders: str = Field(default="", max_length=2000)
+    # Axes imposés à la feuille de route (un par ligne ou séparés par « ; »), ex. « Gouvernance ; Sécurité »
+    roadmap_axes: str = Field(default="", max_length=1000)
 
     def missing(self) -> list[str]:
         """Champs encore vides : le chat pose ces questions."""

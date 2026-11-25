@@ -41,55 +41,94 @@ def test_noms_d_axes_fusionnes_sans_casse_ni_accents():
     assert groups[0][0] == axes.UNCLASSIFIED
 
 
+FIN = ["budget", "paie", "achats", "marchés", "contrats", "stocks"]
+INFO = ["sécurité", "réseau", "serveurs", "logiciels", "sauvegardes", "messagerie"]
+
+
+class SensProvider(FakeProvider):
+    """Vecteurs « de sens » maîtrisés : finances -> (1, 0), informatique -> (0, 1)."""
+
+    def embed(self, texts):
+        out = []
+        for k, t in enumerate(texts):
+            low = t.lower()
+            fin = any(w in low for w in FIN + ["finances"])
+            out.append([1.0, 0.0, 0.01 * k] if fin else [0.0, 1.0, 0.01 * k])
+        return out
+
+
 def _handler(prompt, schema):
-    """Axes : F impairs → Gouvernance, F pairs → Données. Initiatives : une par axe, + un titre commun."""
+    """Nom d'axe d'après le contenu ; initiatives : une par axe, + un titre commun à tous les axes."""
     labels = re.findall(r"^F(\d+):", prompt, re.MULTILINE)
-    if schema.__name__ == "LLMAxes":
-        known = re.findall(r"^A(\d+): (.+)$", prompt, re.MULTILINE)
-        ids = {name: f"A{k}" for k, name in known}
-        new_axes = [{"id": f"A{len(ids) + 1 + j}", "name": nm}
-                    for j, nm in enumerate(x for x in ("Gouvernance", "données") if x not in ids)]
-        ids |= {a["name"]: a["id"] for a in new_axes}
-        return {"new_axes": new_axes,
-                "assignments": [{"finding": f"F{n}", "axis": ids["Gouvernance" if int(n) % 2 else "données"]}
-                                for n in labels]}
+    if schema.__name__ == "LLMAxisName":
+        body = prompt.split("CONSTATS VALIDÉS :")[1]
+        return {"name": "Finances" if any(w in body for w in FIN) else "Systèmes d'information"}
     if schema.__name__ == "LLMInitiatives":
         axis = re.search(r"AXE DE LA FEUILLE DE ROUTE : (.+?) \(", prompt).group(1)
         sc = [{"key": k, "value": 3, "sources": [], "rationale": "r"}
-              for k in ("impact", "urgence", "effort", "risque")]
+              for k in ("impact", "urgence", "faisabilite", "cout", "risque")]
         return {"initiatives": [
             {"title": f"Renforcer {axis}", "description": "d", "findings": [f"F{n}" for n in labels],
              "scores": sc},
             {"title": "Piloter le programme", "description": "d", "findings": ["F1"], "scores": sc,
-             "depends_on_titles": ["Renforcer Gouvernance"]}]}
+             "depends_on_titles": ["Renforcer Finances"]}]}
     return None
 
 
-def test_beaucoup_de_constats_axes_puis_initiatives_par_axe(repo, tmp_path):
-    p = FakeProvider(handler=_handler)
+def _findings(extra=()):
+    fs = [_f(i, f"Le service {w} n'a pas de procédure écrite.", theme=w)
+          for i, w in enumerate(FIN + INFO, 1)]
+    return fs + list(extra)
+
+
+def test_beaucoup_de_constats_regroupes_par_le_sens_puis_initiatives_par_axe(repo, tmp_path):
+    p = SensProvider(handler=_handler)
     did, _s, _st = _setup(repo, p, tmp_path)
-    chunk = next(iter(repo.get_chunks(did, [c.id for c in repo.list_chunks(did)]).values())) \
-        if hasattr(repo, "list_chunks") else None
-    src = [chunk.id] if chunk else []
-    subjects = ["budget", "paie", "archives", "achats", "marchés", "formation", "sécurité", "réseau",
-                "courrier", "contrats", "stocks", "véhicules"]
-    fs = [_f(i, f"Le service {s} n'a pas de procédure écrite numéro {i}.", theme=s, src=src)
-          for i, s in enumerate(subjects, 1)]
-    fs.append(_f(99, "Le service budget n'a pas de procédure écrite numéro 1.", src=src))  # doublon de 1
+    fs = _findings([_f(99, "Le service budget n'a pas de procédure écrite !")])  # doublon du 1
     repo.save_findings(did, fs)
     r = roadmap_service.generate(repo, p, did, USER)
     items = [it["initiative"] for it in r["roadmap"]["items"]]
     by_title = {i["title"]: i for i in items}
-    assert set(by_title) == {"Renforcer Gouvernance", "Renforcer Données", "Piloter le programme"}
-    assert by_title["Renforcer Gouvernance"]["axis"] == "Gouvernance"
-    assert by_title["Renforcer Données"]["axis"] == "Données"
-    # même titre proposé dans deux axes : une seule initiative ; le doublon suit son représentant
-    assert "fnd_99" in by_title["Renforcer Gouvernance"]["finding_ids"]
-    covered = {f for i in items for f in i["finding_ids"]}
-    assert covered == {f.id for f in fs}  # aucun constat perdu
-    assert by_title["Piloter le programme"]["depends_on"] == [by_title["Renforcer Gouvernance"]["id"]]
+    assert set(by_title) == {"Renforcer Finances", "Renforcer Systèmes d'information", "Piloter le programme"}
+    fin_ids = {f.id for f in fs if any(w in f.text for w in FIN)}
+    assert set(by_title["Renforcer Finances"]["finding_ids"]) == fin_ids  # doublon compris
+    assert by_title["Renforcer Systèmes d'information"]["axis"] == "Systèmes d'information"
+    assert {f for i in items for f in i["finding_ids"]} == {f.id for f in fs}  # aucun constat perdu
+    assert by_title["Piloter le programme"]["depends_on"] == [by_title["Renforcer Finances"]["id"]]
     kinds = [c["schema"] for c in p.calls if c["kind"] == "structured"]
-    assert kinds.count("LLMAxes") == 1 and kinds.count("LLMInitiatives") == 2
+    assert kinds.count("LLMAxisName") == 2 and kinds.count("LLMInitiatives") == 2
+    assert "LLMAxes" not in kinds  # le modèle nomme, le code range
+
+
+def test_axes_imposes_par_la_fiche_confirmee(repo, tmp_path):
+    from app.services import context_sheet
+
+    p = SensProvider(handler=_handler)
+    did, _s, _st = _setup(repo, p, tmp_path)
+    repo.save_findings(did, _findings())
+    context_sheet.save(repo, did, USER, {"roadmap_axes": "Informatique" + chr(10) + "- Finances ; finances"})
+    r = roadmap_service.generate(repo, p, did, USER)  # fiche non confirmée : axes ignorés
+    assert "LLMAxisName" in [c["schema"] for c in p.calls]
+    context_sheet.confirm(repo, did, USER)
+    p.calls.clear()
+    r = roadmap_service.generate(repo, p, did, USER)
+    kinds = [c["schema"] for c in p.calls if c["kind"] == "structured"]
+    assert "LLMAxisName" not in kinds  # axes imposés : aucun nom à inventer
+    axes_ = {it["initiative"]["axis"] for it in r["roadmap"]["items"]
+             if it["initiative"]["title"] != "Piloter le programme"}
+    assert axes_ == {"Informatique", "Finances"}
+
+
+def test_axes_imposes_lus_proprement():
+    nl = chr(10)
+    text = f"1. Gouvernance{nl}- Sécurité ; sécurité{nl}{nl}• Données"
+    assert axes.parse_axes(text) == ["Gouvernance", "Sécurité", "Données"]
+
+
+def test_regroupement_deterministe_et_nombre_d_axes():
+    vecs = [[1, 0], [0.9, 0.1], [0, 1], [0.1, 0.9], [0.95, 0.05]]
+    assert axes.cluster(vecs, 2) == [[0, 1, 4], [2, 3]]
+    assert [axes.k_for(n) for n in (3, 8, 18, 55, 200)] == [1, 2, 3, 5, 6]
 
 
 def test_petit_dossier_un_seul_appel_sans_etape_axes(repo, tmp_path):
@@ -107,55 +146,65 @@ def test_petit_dossier_un_seul_appel_sans_etape_axes(repo, tmp_path):
 
 def test_une_partie_ratee_n_efface_pas_les_autres(repo, tmp_path):
     def handler(prompt, schema):
-        if schema.__name__ == "LLMInitiatives" and "AXE DE LA FEUILLE DE ROUTE : Données" in prompt:
+        if schema.__name__ == "LLMInitiatives" and "AXE DE LA FEUILLE DE ROUTE : Finances" in prompt:
             return "{pas du json"
         return _handler(prompt, schema)
 
-    p = FakeProvider(handler=handler)
+    p = SensProvider(handler=handler)
     did, _s, _st = _setup(repo, p, tmp_path)
-    repo.save_findings(did, [_f(i, f"Constat distinct sur le sujet {w}.", theme=w)
-                             for i, w in enumerate(["budget", "paie", "archives", "achats", "marchés",
-                                                    "formation", "sécurité", "réseau", "courrier",
-                                                    "contrats"], 1)])
+    repo.save_findings(did, _findings())
     r = roadmap_service.generate(repo, p, did, USER)
     titles = {it["initiative"]["title"] for it in r["roadmap"]["items"]}
-    assert "Renforcer Gouvernance" in titles and "Renforcer Données" not in titles
+    assert "Renforcer Systèmes d'information" in titles and "Renforcer Finances" not in titles
     assert any("Partie non générée" in w for w in r["warnings"])
 
 
 def test_tdr_d_une_initiative_ne_recoit_que_ses_constats(repo, tmp_path):
     from app.services import generation
 
-    p = FakeProvider(handler=_handler)
+    p = SensProvider(handler=_handler)
     did, search, st = _setup(repo, p, tmp_path)
-    words = ["budget", "paie", "archives", "achats", "marchés", "formation", "sécurité", "réseau",
-             "courrier", "contrats"]
-    repo.save_findings(did, [_f(i, f"Constat distinct sur le sujet {w}.", theme=w)
-                             for i, w in enumerate(words, 1)])
+    fs = _findings()
+    repo.save_findings(did, fs)
     r = roadmap_service.generate(repo, p, did, USER)
     ini = next(it["initiative"] for it in r["roadmap"]["items"]
-               if it["initiative"]["title"] == "Renforcer Données")
+               if it["initiative"]["title"] == "Renforcer Systèmes d'information")
     tor = generation.create_deliverable(repo, did, "tor", USER, initiative_id=ini["id"])
     p.handler = None
     n = len(p.calls)
     generation.generate_section(repo, p, search, tor, "contexte", USER, settings=st)
     prompts = [c["prompt"] for c in p.calls[n:] if c["kind"] == "structured"]
     assert prompts, "la section aurait dû appeler le modèle"
-    mine = {f"sujet {words[int(x[4:]) - 1]}" for x in ini["finding_ids"]}
-    others = {f"sujet {w}" for w in words} - mine
-    assert all(m in prompts[0] for m in mine) and not any(o in prompts[0] for o in others)
+    assert all(f"service {w} " in prompts[0] for w in INFO)
+    assert not any(f"service {w} " in prompts[0] for w in FIN)
 
 
-def test_lots_suivants_reutilisent_les_axes_par_identifiant(repo, tmp_path, monkeypatch):
-    monkeypatch.setattr(roadmap_service, "AXES_BATCH", 4)
-    p = FakeProvider(handler=_handler)
+def test_regroupement_equilibre_quand_tout_se_ressemble():
+    # 12 vecteurs proches d'une même direction commune, en 3 familles : le centrage les sépare
+    base = [5.0, 5.0, 5.0, 0.0, 0.0, 0.0]
+    fams = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+    vecs = [base[:3] + [f * (1 + 0.05 * i) for f in fams[i % 3]] for i in range(12)]
+    groups = axes.cluster_balanced(vecs, 3)
+    assert sorted(len(g) for g in groups) == [4, 4, 4]
+    assert all(len({i % 3 for i in g}) == 1 for g in groups)
+
+
+def test_titre_qui_recopie_la_consigne_est_ecarte():
+    assert roadmap_service._echo("Proposer des initiatives qui traitent les constats (cite F1..Fn dans « findings »)")
+    assert not roadmap_service._echo("Mettre en place un suivi des fournisseurs")
+
+
+def test_partie_trop_grosse_coupee_en_deux_et_reprise(repo, tmp_path):
+    def handler(prompt, schema):
+        if schema.__name__ == "LLMInitiatives" and len(re.findall(r"^F\d+:", prompt, re.MULTILINE)) > 3:
+            return "{tronqué"  # réponse coupée, comme en réel quand la partie est trop grosse
+        return _handler(prompt, schema)
+
+    p = SensProvider(handler=handler)
     did, _s, _st = _setup(repo, p, tmp_path)
-    words = ["budget", "paie", "archives", "achats", "marchés", "formation", "sécurité", "réseau",
-             "courrier", "contrats", "stocks"]
-    repo.save_findings(did, [_f(i, f"Constat distinct sur le sujet {w}.", theme=w)
-                             for i, w in enumerate(words, 1)])
+    fs = _findings()
+    repo.save_findings(did, fs)
     r = roadmap_service.generate(repo, p, did, USER)
-    axes_prompts = [c["prompt"] for c in p.calls if c.get("schema") == "LLMAxes"]
-    assert len(axes_prompts) == 3
-    assert "A1: Gouvernance" in axes_prompts[1] and "A2: Données" in axes_prompts[1]
-    assert {it["initiative"]["axis"] for it in r["roadmap"]["items"]} == {"Gouvernance", "Données"}
+    covered = {f for it in r["roadmap"]["items"] for f in it["initiative"]["finding_ids"]}
+    assert covered == {f.id for f in fs}  # tout est repris après découpage
+    assert not any("Partie non générée" in w for w in r["warnings"])

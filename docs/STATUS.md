@@ -1,5 +1,25 @@
 # STATUS — Phases A à G1 hors ligne (nuit 1), puis passage au réel (nuit 2, 22/11/2026)
 
+> **État au 25/11/2026 (matin).** Détail : `docs/19` §11-12 ; explications : [`20-comprendre-l-apprentissage.md`](20-comprendre-l-apprentissage.md).
+>
+> | Fait et vérifié (nuit du 24 au 25/11) | Preuve |
+> |---|---|
+> | PR #20, #21, #22, #19 fusionnées (CI verte) | GitHub |
+> | Entraînement v5 (Kaggle, 43 min) testé : équivalent à v4, v4 gardé | docs/19 §11, docs/20 |
+> | Axes : imposés par la fiche de contexte, sinon rangés par le sens (74 constats : 6 axes de 9 à 16) | docs/19 §12 |
+> | Feuille de route réelle (74 constats) en 24 min, 21 initiatives, aucune partie perdue | docs/19 §12 |
+> | Réponses du modèle bornées, phrases répétées retirées, titres recopiés écartés, partie ratée reprise | tests |
+> | Captures de l'interface dans Google Drive | « Cadrage IA — captures du 25-11-2026 » |
+>
+> | Reste à faire, dans l'ordre | |
+> |---|---|
+> | 1. Rattacher les constats orphelins (11 sur 74) à une initiative de leur axe | code |
+> | 2. CdC : utiliser décisions et exigences saisies (ou un document de besoins) ; « vas-y quand même » | code + UI |
+> | 3. Chat : consignes qui pilotent la génération (par mois, document prioritaire) | code + UI |
+> | 4. Horizons en mois (0-6 / 6-12 / 12-24) depuis une date de départ et des durées | code + UI |
+> | 5. Prochain paquet : TdR « objectifs / livrables » appuyés sur les recommandations ; plus de conflits | données |
+> | 6. Cache Ollama 8 bits ; tests sur les rapports de Youssef ; recalibrer le filtre de pertinence | mesure |
+>
 > **État au 24/11/2026 (soir).** Détail : [`19-entrainement-et-tests-reels.md`](19-entrainement-et-tests-reels.md).
 >
 > | Fait et vérifié (24/11) | Preuve |

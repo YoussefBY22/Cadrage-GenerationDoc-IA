@@ -7,7 +7,7 @@ import type { ChatReply, ContextSheet } from "@/lib/api-types";
 const router = { push: vi.fn() };
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
-const empty = { sector: "", size: "", country: "", language: "", project_types: [], scope: "", constraints: "", stakeholders: "" };
+const empty = { sector: "", size: "", country: "", language: "", project_types: [], scope: "", constraints: "", stakeholders: "", roadmap_axes: "" };
 const sheet: ContextSheet = { dossier_id: "d", data: empty, confirmed: false, confirmed_at: null, missing: [], flags: [] };
 const reply: ChatReply = {
   status: "ok",

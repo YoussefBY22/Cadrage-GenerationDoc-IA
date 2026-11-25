@@ -79,6 +79,17 @@ def call_model(provider: LLMProvider, prompt: str, schema, *, lang: str = "fr",
     return None, 2, int((time.perf_counter() - start) * 1000), error
 
 
+def _distinct(sentences):
+    """Une phrase répétée mot pour mot n'apporte rien (vu en réel : 6 fois la même) : on garde la première."""
+    seen, out = set(), []
+    for sn in sentences:
+        key = re.sub(r"\W+", " ", sn.text.lower()).strip()
+        if key not in seen:
+            seen.add(key)
+            out.append(sn)
+    return out
+
+
 SECTION_REPLY_TOKENS = 700  # place gardée pour la réponse
 
 
@@ -295,7 +306,7 @@ def generate_section(repo, provider: LLMProvider, search, deliverable_id: str, s
                 draft = draft.model_copy(update={"sentences": [
                     sn.model_copy(update={"finding_ids": [
                         fmap.get(re.sub(r"\W", "", x).upper(), x) for x in sn.finding_ids]})
-                    for sn in draft.sentences[:spec.max_sentences]]})
+                    for sn in _distinct(draft.sentences)[:spec.max_sentences]]})
                 if llm.status == "insufficient_evidence":
                     status = "refused"
     report: VerificationReport = verify_section(

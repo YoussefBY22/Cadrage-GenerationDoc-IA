@@ -45,13 +45,14 @@ def prompt_lines(sheet: ContextSheet, lang: str = "fr", *, only_confirmed: bool 
          ", ".join(labels[t] for t in d.project_types)),
         (("périmètre" if fr else "scope"), d.scope),
         (("contraintes" if fr else "constraints"), d.constraints),
-        (("parties prenantes" if fr else "stakeholders"), d.stakeholders)]
+        (("parties prenantes" if fr else "stakeholders"), d.stakeholders),
+        (("axes de la feuille de route" if fr else "roadmap axes"), d.roadmap_axes)]
     return " ; ".join(f"{k} : {v}" for k, v in parts if v)
 
 
 def flags(sheet_data: ContextData) -> list[str]:
     """Codes d'injection détectés dans la fiche (affichés, jamais bloquants pour la saisie)."""
     out: list[str] = []
-    for f in ("sector", "size", "country", "language", "scope", "constraints", "stakeholders"):
+    for f in ("sector", "size", "country", "language", "scope", "constraints", "stakeholders", "roadmap_axes"):
         out += [c for c in injection.scan(getattr(sheet_data, f)) if c not in out]
     return out

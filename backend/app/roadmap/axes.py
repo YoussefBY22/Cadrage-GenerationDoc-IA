@@ -108,3 +108,104 @@ def majority_theme(findings: Sequence[Finding]) -> str | None:
     """Axe d'une initiative quand on n'a pas eu besoin de découper : thème d'extraction le plus fréquent."""
     themes = Counter(f.theme.strip() for f in findings if f.theme and f.theme.strip())
     return themes.most_common(1)[0][0] if themes else None
+
+
+# --- regroupement par le sens (vecteurs) : fiable même avec un petit modèle -----------------------------------
+MAX_AXES = 6
+
+
+def parse_axes(text: str) -> list[str]:
+    """Axes imposés par le consultant : un par ligne ou séparés par « ; » (doublons et vides retirés, 7 au plus)."""
+    out: list[str] = []
+    for part in re.split(r"[;\n]", text or ""):
+        name = re.sub(r"^[\s\-•*\d.)]+", "", part).strip()
+        if name and axis_key(name) not in {axis_key(x) for x in out}:
+            out.append(name[:120])
+    return out[:7]
+
+
+def _cos(a: Sequence[float], b: Sequence[float]) -> float:
+    num = sum(x * y for x, y in zip(a, b, strict=False))
+    na = sum(x * x for x in a) ** 0.5
+    nb = sum(y * y for y in b) ** 0.5
+    return num / (na * nb) if na and nb else 0.0
+
+
+def nearest(vectors: Sequence[Sequence[float]], targets: Sequence[Sequence[float]]) -> list[int]:
+    """Indice de la cible la plus proche (cosinus) pour chaque vecteur."""
+    return [max(range(len(targets)), key=lambda j, v=v: _cos(v, targets[j])) for v in vectors]
+
+
+def k_for(n: int) -> int:
+    """Nombre d'axes visé : 2 à 6 selon le nombre de constats (55 constats -> 5 axes)."""
+    return max(2, min(MAX_AXES, round((n / 2) ** 0.5))) if n >= 4 else 1
+
+
+def cluster(vectors: Sequence[Sequence[float]], k: int) -> list[list[int]]:
+    """Regroupement hiérarchique (liaison moyenne, cosinus) jusqu'à k groupes ; déterministe."""
+    groups = [[i] for i in range(len(vectors))]
+    sim = [[_cos(a, b) for b in vectors] for a in vectors]
+
+    def link(g: list[int], h: list[int]) -> float:
+        return sum(sim[i][j] for i in g for j in h) / (len(g) * len(h))
+
+    while len(groups) > max(1, k):
+        best, pair = -2.0, (0, 1)
+        for x in range(len(groups)):
+            for y in range(x + 1, len(groups)):
+                s_ = link(groups[x], groups[y])
+                if s_ > best:
+                    best, pair = s_, (x, y)
+        x, y = pair
+        groups[x] = sorted(groups[x] + groups[y])
+        del groups[y]
+    return sorted(groups, key=lambda g: (-len(g), g[0]))
+
+
+def central(vectors: Sequence[Sequence[float]], members: list[int], limit: int) -> list[int]:
+    """Les membres les plus représentatifs du groupe (proches de tous les autres), pour le nommer."""
+    def score(i: int) -> float:
+        return sum(_cos(vectors[i], vectors[j]) for j in members)
+    return sorted(members, key=lambda i: -score(i))[:limit]
+
+
+def _center(vectors: Sequence[Sequence[float]]) -> list[list[float]]:
+    """Retire la composante commune : des constats d'un même rapport se ressemblent tous ; on garde ce qui les distingue."""
+    n, dim = len(vectors), len(vectors[0])
+    mean = [sum(v[d] for v in vectors) / n for d in range(dim)]
+    out = []
+    for v in vectors:
+        c = [v[d] - mean[d] for d in range(dim)]
+        norm = sum(x * x for x in c) ** 0.5 or 1.0
+        out.append([x / norm for x in c])
+    return out
+
+
+def cluster_balanced(vectors: Sequence[Sequence[float]], k: int, iterations: int = 25) -> list[list[int]]:
+    """k-moyennes sphériques sur vecteurs centrés, départ déterministe (points les plus éloignés).
+
+    Le regroupement hiérarchique, sur 74 vrais constats, faisait un groupe de 58 : les constats d'un rapport partagent
+    tous le même vocabulaire. Centrer les vecteurs puis répartir autour de k centres donne des axes équilibrés.
+    """
+    n = len(vectors)
+    if n <= k:
+        return [[i] for i in range(n)]
+    x = _center(vectors)
+    first = max(range(n), key=lambda i: -sum(_cos(x[i], x[j]) for j in range(n)))  # le plus « typique » d'abord
+    seeds = [first]
+    while len(seeds) < k:
+        seeds.append(max((i for i in range(n) if i not in seeds),
+                         key=lambda i: -max(_cos(x[i], x[s_]) for s_ in seeds)))
+    cents = [x[s_] for s_ in seeds]
+    assign = [0] * n
+    for _ in range(iterations):
+        new = [max(range(k), key=lambda c, v=v: _cos(v, cents[c])) for v in x]
+        if new == assign and _ > 0:
+            break
+        assign = new
+        for c in range(k):
+            members = [x[i] for i in range(n) if assign[i] == c]
+            if members:
+                cents[c] = [sum(m[d] for m in members) / len(members) for d in range(len(x[0]))]
+    groups = [[i for i in range(n) if assign[i] == c] for c in range(k)]
+    return sorted((g for g in groups if g), key=lambda g: (-len(g), g[0]))

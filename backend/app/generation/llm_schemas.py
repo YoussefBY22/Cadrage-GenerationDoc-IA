@@ -55,7 +55,7 @@ class LLMScore(BaseModel):
     key: str
     value: int = Field(ge=1, le=5)
     sources: list[str]
-    rationale: str
+    rationale: str = Field(max_length=160)
 
 
 class LLMInitiative(BaseModel):
@@ -103,16 +103,19 @@ def build_initiatives_schema(finding_labels: list[str], priority_labels: list[st
     n = len(criteria_keys)
     ini = create_model(
         "LLMInitiative", __config__=cfg,
-        title=(str, ...), description=(str, ...),
+        # longueurs bornées dans le schéma : le moteur ne peut plus partir en boucle (réponse tronquée, vu en réel)
+        title=(str, Field(max_length=160)), description=(str, Field(max_length=300)),
         findings=(list[str], labels(finding_labels)),
         scores=(list[score], Field(default_factory=list,
                                    json_schema_extra={"minItems": n, "maxItems": n})),
         depends_on_titles=(list[str], Field(default_factory=list)),
-        objective=(str, ""), expected_result=(str, ""), indicator=(str, ""),
+        objective=(str, Field(default="", max_length=200)),
+        expected_result=(str, Field(default="", max_length=200)),
+        indicator=(str, Field(default="", max_length=200)),
         priorities=(list[str], labels(priority_labels)),
         depends_on_projects=(list[str], labels(project_labels)))
-    # au plus 4 initiatives par appel : réponse courte, jamais tronquée par la fenêtre (vu sur un vrai rapport)
-    return create_model("LLMInitiatives", initiatives=(list[ini], Field(json_schema_extra={"maxItems": 4})))
+    # au plus 3 initiatives par appel : réponse courte, jamais tronquée par la fenêtre (vu sur un vrai rapport)
+    return create_model("LLMInitiatives", initiatives=(list[ini], Field(json_schema_extra={"maxItems": 3})))
 
 
 MAX_NEW_AXES = 7
@@ -141,3 +144,9 @@ def build_axes_schema(finding_labels: list[str], n_known: int = 0):
         "LLMAxes", __config__=cfg,
         new_axes=(list[axis], Field(json_schema_extra={"maxItems": MAX_NEW_AXES})),
         assignments=(list[row], Field(json_schema_extra={"minItems": n, "maxItems": n})))
+
+
+class LLMAxisName(BaseModel):
+    """Nom court d'un axe, donné à un groupe de constats déjà formé par le code (regroupement par le sens)."""
+
+    name: str = Field(max_length=80)

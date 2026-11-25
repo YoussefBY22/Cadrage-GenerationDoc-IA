@@ -69,6 +69,7 @@ export interface ContextData {
   scope: string;
   constraints: string;
   stakeholders: string;
+  roadmap_axes: string;
 }
 
 export interface ContextSheet {

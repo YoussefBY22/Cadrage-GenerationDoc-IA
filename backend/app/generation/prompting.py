@@ -115,6 +115,12 @@ _L = {
         "axes_known": "AXES DÉJÀ CRÉÉS :",
         "axes_none": "(aucun pour l'instant)",
         "reply_axes": "Réponds par un JSON LLMAxes.",
+        "task_axis_name": ("TÂCHE : ces constats forment UN axe d'une feuille de route de cabinet de conseil. "
+                           "Donne-lui un nom court (2 à 6 mots) qui dit le domaine commun, par exemple "
+                           "« Gouvernance et pilotage », « Sécurité des systèmes d'information », « Qualité des "
+                           "données ». Pas de verbe, pas de phrase, aucun nom déjà pris."),
+        "axes_taken": "NOMS DÉJÀ PRIS :",
+        "reply_axis_name": "Réponds par un JSON LLMAxisName.",
         "axis_hdr": "AXE DE LA FEUILLE DE ROUTE : {} (propose les initiatives de cet axe seulement ; "
                     "chaque constat F doit être traité par au moins une initiative)",
     },
@@ -180,6 +186,12 @@ _L = {
         "axes_known": "EXISTING AXES:",
         "axes_none": "(none yet)",
         "reply_axes": "Reply with a JSON LLMAxes.",
+        "task_axis_name": ("TASK: these findings form ONE axis of a consulting firm roadmap. Give it a short name "
+                           "(2 to 6 words) stating the common domain, for instance « Governance and steering », "
+                           "« Information system security », « Data quality ». No verb, no sentence, no name "
+                           "already taken."),
+        "axes_taken": "NAMES ALREADY TAKEN:",
+        "reply_axis_name": "Reply with a JSON LLMAxisName.",
         "axis_hdr": "ROADMAP AXIS: {} (propose initiatives for this axis only; every finding F must be "
                     "addressed by at least one initiative)",
     },
@@ -417,3 +429,13 @@ def build_axes_prompt(findings: Sequence[Finding], known_axes: Sequence[str], *,
     return NL.join([t["task_axes"].format(first=f"A{len(known_axes) + 1}"), t["axes_known"], known,
                     t["validated_short"],
                     render_axis_findings(findings, nonce), t["reply_axes"]])
+
+
+def build_axis_name_prompt(findings: Sequence[Finding], taken: Sequence[str], *, nonce: str,
+                           lang: Lang = "fr") -> str:
+    """Nommer un groupe de constats formé par le code (les plus représentatifs seulement)."""
+    t = _t(lang)
+    parts = [t["task_axis_name"]]
+    if taken:
+        parts += [t["axes_taken"], NL.join(f"- {neutralize(a, nonce)}" for a in taken)]
+    return NL.join([*parts, t["validated_short"], render_axis_findings(findings, nonce), t["reply_axis_name"]])
