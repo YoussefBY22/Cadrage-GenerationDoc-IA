@@ -394,6 +394,8 @@ export const fr = {
     decisionCited: "Décision humaine citée",
     needsDecision: (what: string) => `Décision requise : ${what}`,
     needsDecisionHint: "Cette section se rédige à partir d'une décision humaine confirmée",
+    propose: "Proposer quand même",
+    proposeHint: "Le modèle déduit la section des constats et recommandations ; chaque phrase est une proposition citée, à valider",
     legend: { verified: "Vérifiée", warning: "À vérifier", failed: "Non étayée" },
     origin: { generated: "Généré", edited: "Modifié", restored: "Restauré" } as Record<string, string>,
   },

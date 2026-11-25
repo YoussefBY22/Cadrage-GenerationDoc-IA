@@ -52,6 +52,10 @@ def system_prompt(lang: Lang = "fr") -> str:
 _L = {
     "fr": {
         "section": "SECTION : {}", "instr": "CONSIGNE : {}",
+        "proposal": ("DEMANDE DU CONSULTANT : les passages ne donnent pas cette section telle quelle ; propose-la "
+                     "quand même à partir des constats et des recommandations fournis. Chaque phrase est une "
+                     "PROPOSITION (kind « recommendation ») qui cite le passage du constat ou de la recommandation qui "
+                     "la justifie. N'invente aucun chiffre, aucune date, aucun nom absent des passages."),
         "limits": "Au plus {n} phrases ; au moins {m} passage(s) cité(s) sinon status = insufficient_evidence.",
         "ctx": "CONTEXTE {} : {}",
         "refs": ("RÉFÉRENTIELS (cadre de structure uniquement : jamais une source, ne les cite pas en "
@@ -126,6 +130,10 @@ _L = {
     },
     "en": {
         "section": "SECTION: {}", "instr": "INSTRUCTION: {}",
+        "proposal": ("CONSULTANT REQUEST: the passages do not give this section as such; propose it anyway from the "
+                     "findings and recommendations provided. Each sentence is a PROPOSAL (kind « recommendation ») "
+                     "citing the passage of the finding or recommendation that justifies it. Do not invent any "
+                     "figure, date or name absent from the passages."),
         "limits": "At most {n} sentences; at least {m} cited passage(s), otherwise status = insufficient_evidence.",
         "ctx": "CONTEXT {}: {}",
         "refs": ("FRAMEWORKS (structure only: never a source, do not cite them in \"sources\"; "
@@ -302,8 +310,13 @@ def build_section_prompt(
     lang: Lang = "fr",
     decisions: Sequence[Decision] = (),
     decision_section: bool = False,
+    proposal: bool = False,
 ) -> str:
-    """Message utilisateur pour rédiger une section (JSON ``LLMSection``)."""
+    """Message utilisateur pour rédiger une section (JSON ``LLMSection``).
+
+    ``proposal`` : le consultant demande une proposition malgré l'absence de passage direct (« proposer quand
+    même ») ; l'invite par défaut est inchangée (celle de l'entraînement).
+    """
     t = _t(lang)
     lines: list[str] = []
     for k, v in (context or {}).items():
@@ -322,6 +335,8 @@ def build_section_prompt(
     if spec.referentiels:
         lines.append(t["refs"].format(refs="; ".join(neutralize(r, nonce) for r in spec.referentiels)))
     lines.append(t["instr"].format(spec.instructions))
+    if proposal:
+        lines.append(t["proposal"])
     lines.append(t["limits"].format(n=spec.max_sentences, m=spec.min_sources))
     labels = [p.label for p in kept] + [f"D{i}" for i in range(1, len(decisions) + 1)]
     lines.append(t["rules"].format(labels=", ".join(labels)))

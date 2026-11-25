@@ -230,3 +230,24 @@ def test_constats_orphelins_rattaches_dans_leur_axe_et_marques(repo, tmp_path):
     assert set(fin["finding_ids"]) == fin_ids  # chacun dans SON axe
     assert len(fin["auto_finding_ids"]) == len(fin_ids) - 1  # marqués : proposés par le code
     assert all(c["code"] != "FINDING_NO_INITIATIVE" for c in r["coherence"]["issues"])
+
+
+def test_proposer_quand_meme_ajoute_la_demande_du_consultant(repo, tmp_path):
+    from app.services import generation
+
+    p = SensProvider(handler=_handler)
+    did, search, st = _setup(repo, p, tmp_path)
+    repo.save_findings(did, _findings())
+    r = roadmap_service.generate(repo, p, did, USER)
+    ini = r["roadmap"]["items"][0]["initiative"]["id"]
+    cdc = generation.create_deliverable(repo, did, "cdc", USER, initiative_id=ini)
+    p.handler = None
+    for proposal in (False, True):
+        n = len(p.calls)
+        out = generation.generate_section(repo, p, search, cdc, "fonctionnelles", USER, settings=st,
+                                          proposal=proposal)
+        prompts = [c["prompt"] for c in p.calls[n:] if c["kind"] == "structured"]
+        if proposal:
+            assert prompts and "DEMANDE DU CONSULTANT" in prompts[0]
+        assert all("DEMANDE DU CONSULTANT" not in x for x in prompts) or proposal
+        assert out["status"] in ("ok", "refused", "invalid")

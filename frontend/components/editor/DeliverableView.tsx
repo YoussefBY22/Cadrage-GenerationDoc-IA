@@ -192,6 +192,21 @@ export default function DeliverableView({ id }: { id: string }) {
                       {busy === "gen-" + key ? m.generating : m.generate}
                     </button>
                   )}
+                  {editable && needs.length === 0 && section?.status === "insufficient_evidence" && (
+                    <button
+                      className="btn btn-sm"
+                      title={m.proposeHint}
+                      disabled={busy !== null}
+                      data-testid={`propose-${key}`}
+                      onClick={() =>
+                        run("prop-" + key, async () => {
+                          await deliverables.generateSection(id, key, true);
+                        })
+                      }
+                    >
+                      {busy === "prop-" + key ? m.generating : m.propose}
+                    </button>
+                  )}
                 </header>
                 <div className="section-body">
                   {section && (
