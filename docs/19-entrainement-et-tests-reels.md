@@ -297,3 +297,46 @@ parties, chacune avec sa plage de points (ex. « 18 - 32 », « 33 - 56 »). Un 
 **Limites** : les titres d'axe sont ceux des auditeurs (phrases jusqu'à 30 mots), pas des noms courts de cabinet ;
 une source du pilote v3 a un certificat de sécurité expiré, la vérification n'a pas été contournée : le paquet v4 est
 repris tel quel au lieu d'être reconstruit ; l'entraînement v5 n'a pas encore tourné.
+
+## 11. Entraînement v5 (25/11, Kaggle) — résumé
+
+Tout est expliqué pas à pas dans [`20-comprendre-l-apprentissage.md`](20-comprendre-l-apprentissage.md). En bref :
+675 exemples (dont 140 « axes »), 43 min d'entraînement, meilleure erreur de validation 0,155 au pas 120, arrêt
+anticipé au pas 160. Test sur 205 exemples : v5 ≈ v4 (refus 29/31, position 49/50, conflit 11/24) ; axes : 57 % des
+paires de constats bien rangées (base 55 %), à peine mieux que le hasard. **Décision : on garde v4** ; le fichier v5
+n'a pas été téléchargé (session arrêtée avant l'export), son calque reste dans la version Kaggle enregistrée.
+
+## 12. Nuit du 24 au 25/11 : axes rangés par le code, parcours réel complet (v4)
+
+**Changement de méthode** (leçon de v5) : le **code** range les constats par leur sens, le **modèle** ne fait que
+nommer chaque axe. Le consultant peut aussi **imposer ses axes** dans la fiche de contexte (champ « Axes de la feuille
+de route », proposé aussi par le chat) ; chaque constat va alors à l'axe le plus proche.
+
+| Méthode de regroupement (74 vrais constats, vecteurs bge-m3) | Taille des axes |
+|---|---|
+| Hiérarchique (premier essai) | 58, 9, 3, 2, 1, 1 : un axe absorbe tout |
+| **Vecteurs centrés + k-moyennes sphériques** (retenue) | 16, 15, 13, 11, 10, 9 |
+
+Pourquoi centrer : tous les constats d'un même rapport partagent le même vocabulaire (« Commission »,
+« consultants ») ; on retire cette partie commune pour ne garder que ce qui les distingue.
+
+**Parcours réel** : rapport spécial 17/2022 (Cour des comptes européenne, 53 pages), modèle v4, GTX 1650, fenêtre
+4 096. Extraction : 74 constats en 15 min. Trois passages de la feuille de route, corrigés entre chaque :
+
+| Passage | Durée | Initiatives | Constats sans initiative | Parties perdues | Défauts vus → corrigés |
+|---|---|---|---|---|---|
+| 1 | 53 min | 17 | 16 | 1 | un axe de 58 constats ; un nom d'axe en boucle (17 500 caractères) ; un titre = la consigne recopiée → regroupement équilibré, longueurs bornées, titres recopiés écartés |
+| 2 | 38 min | 16 | 19 | 2 | réponses tronquées (4 500 à 7 300 caractères) → 3 initiatives par appel, justifications courtes, réserve de 1 800 jetons, partie ratée coupée en deux et reprise |
+| **3** | **24 min** | **21** | **11** | **0** | noms d'axe coupés à 80 caractères ; un axe nommé par défaut « constat d'audit » ; quelques titres-phrases |
+
+**TdR et CdC** (même dossier) : « contexte » rédigé et vérifié (TPV 1,0) ; une même phrase répétée 6 fois → les
+phrases identiques sont désormais retirées. « Objectifs » : rédigé au passage 3 (4 phrases, recommandations
+reformulées), refusé à la régénération : le modèle n'est pas stable sur cette section. Profil, calendrier,
+évaluation : « décision humaine requise » (voulu). **CdC : presque tout refusé** (« aucun passage ne contient
+d'exigence ») : un rapport d'audit ne décrit pas un système à construire. Pour un vrai CdC, il faut les décisions et
+exigences du consultant (fiche, décisions confirmées), ou un document de besoins.
+
+**Captures** (interface, ce dossier) : dossier Google Drive « Cadrage IA — captures du 25-11-2026 ».
+
+**Limites honnêtes à ce jour** : 24 min pour une feuille de route sur un PC à GPU de 4 Go ; 11 constats sur 74 sans
+initiative ; titres parfois maladroits ; CdC vide sans exigences fournies par un humain.

@@ -242,14 +242,17 @@ export default function RoadmapView({ id }: { id: string }) {
                   <tr key={a}>
                     <td style={{ fontWeight: 600 }}>{a}</td>
                     {waves.map((w) => (
-                      <td key={w}>
+                      <td key={w} style={{ verticalAlign: "top", minWidth: 220 }}>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                         {sorted
                           .filter((x) => x.wave === w && (x.initiative.axis || c.noAxis) === a)
                           .map((x) => (
-                            <span key={x.initiative.id} className={`chip${roadmap.critical_path.includes(x.initiative.id) ? " crit-path" : ""}`}>
+                            <span key={x.initiative.id} title={x.initiative.title} style={{ whiteSpace: "normal", maxWidth: 320 }}
+                              className={`chip${roadmap.critical_path.includes(x.initiative.id) ? " crit-path" : ""}`}>
                               {x.initiative.title}
                             </span>
                           ))}
+                        </div>
                       </td>
                     ))}
                   </tr>
