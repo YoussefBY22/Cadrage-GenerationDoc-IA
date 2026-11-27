@@ -554,6 +554,12 @@ export const fr = {
     deliverableHelp: "Un livrable (TdR ou cahier des charges) : chaque section est rédigée par l'IA à partir des sources, chaque phrase est vérifiée et cite sa preuve. Vous corrigez, puis le livrable passe en relecture et en validation.",
     modelsHelp: "Les modèles de langage installés, celui en service, et la taille de la fenêtre de contexte.",
   },
+  regen: {
+    button: "Régénérer",
+    hint: "Refaire la feuille de route à partir des recommandations et constats validés actuels ; l'ancienne version reste dans la liste des livrables.",
+    confirm: "Régénérer la feuille de route ?\n\nUne nouvelle feuille de route est créée à partir des recommandations et constats validés actuels. L'ancienne reste consultable (et supprimable) dans la liste des livrables du dossier.",
+    saveHint: "Enregistrer vos modifications de notes et de durées, puis recalculer rangs et vagues",
+  },
   viewer: {
     selection: "Sélection affichée dans le document",
     hint: (n: number) => `Cochez jusqu'à ${n} éléments pour voir leur preuve surlignée ; survolez un surlignage pour savoir à quoi il correspond.`,

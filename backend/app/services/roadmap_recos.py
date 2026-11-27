@@ -68,8 +68,12 @@ def wave_for(deadline: str | None, severity: int, today: date) -> tuple[int, str
 
 
 def to_infinitive(text: str) -> str:
-    """« analysant périodiquement… » → « Analyser périodiquement… » (sous-points au participe présent)."""
+    """« analysant périodiquement… » → « Analyser périodiquement… » (sous-points au participe présent) ;
+    « La Commission devrait rendre compte… » → « Rendre compte… » (recommandation sans sous-point)."""
     t = text.strip().rstrip(";.,")
+    t = t.split(". ")[0]  # la première phrase porte l'action
+    t = re.sub(r"(?i)^(?:la|le|les|l['’])\s*[\w\s'’-]{2,60}?\s+(?:devrait|devraient|doit|doivent)\s+(?:continuer\s+à\s+)?",
+               "", t)
     m = re.match(r"^(\w+)ant\b", t)
     if m and len(m.group(1)) > 2:
         stem = m.group(1)
@@ -133,11 +137,17 @@ def build(recs: list[dict], findings: list, links: dict, provider, today: date |
         else:
             orphans.append(f)
 
+    # gravité de repli : celle de la recommandation entière (un sous-point sans constat lié ne doit pas passer
+    # devant un sous-point appuyé par des constats : l'absence de preuve n'est pas une urgence)
+    reco_sev = {r["id"]: max((SEV.get(f.severity, 0) for f in by_reco[r["id"]]), default=0) for r in recs}
     initiatives = []
     for i, (r, label, txt) in enumerate(plan):
         fids = assigned[i]
-        sev = max((SEV.get(fmap[x].severity, 0) for x in fids), default=0)
+        own = max((SEV.get(fmap[x].severity, 0) for x in fids), default=0)
+        sev = own or reco_sev.get(r["id"], 0)
         wave, reason = wave_for(r.get("deadline"), sev, today)
+        if not own and sev:
+            reason += " (aucun constat rattaché à ce point : gravité prise sur l'ensemble de la recommandation)"
         axis = f"R{r['number']} — {r['title']}" if r.get("number") else r["title"]
         scores = []
         if sev:

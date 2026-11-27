@@ -549,6 +549,12 @@ export const en: Messages = {
     deliverableHelp: "A deliverable (ToR or specification): each section is written by the AI from the sources, each sentence is checked and cites its proof. You correct it, then it goes to review and approval.",
     modelsHelp: "The installed language models, the one in use, and the context window size.",
   },
+  regen: {
+    button: "Regenerate",
+    hint: "Rebuild the roadmap from the current validated recommendations and findings; the old version stays in the deliverables list.",
+    confirm: "Regenerate the roadmap?\n\nA new roadmap is built from the current validated recommendations and findings. The old one stays available (and deletable) in the case deliverables list.",
+    saveHint: "Save your score and duration edits, then recompute ranks and waves",
+  },
   viewer: {
     selection: "Selection shown in the document",
     hint: (n: number) => `Tick up to ${n} items to see their proof highlighted; hover a highlight to see what it belongs to.`,

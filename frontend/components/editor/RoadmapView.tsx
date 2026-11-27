@@ -1,5 +1,9 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { RefreshCw } from "lucide-react";
+import JobPanel from "@/components/JobPanel";
+import { useJob } from "@/lib/useJob";
 import { useViewerOpener } from "@/lib/viewerLink";
 import { AlertTriangle, ChevronRight, CircleCheck, Flag, Info, Route, Save } from "lucide-react";
 import Link from "next/link";
@@ -24,6 +28,37 @@ interface Edit {
 }
 
 const errText = (e: unknown) => (e instanceof ApiError ? e.message : t.common.error);
+
+/** Régénérer : nouvelle feuille de route (l'ancienne reste dans la liste des livrables du dossier). */
+function useRegen(dossierId: string) {
+  const router = useRouter();
+  return useJob(dossierId, "roadmap", (j) => {
+    const did = j.result?.deliverable_id as string | undefined;
+    if (j.status === "done" && did) router.push(`/deliverables/${did}/roadmap`);
+  });
+}
+
+function Regenerate({ dossierId }: { dossierId: string }) {
+  const job = useRegen(dossierId);
+  return (
+    <button
+      className="btn"
+      disabled={job.running}
+      title={t.regen.hint}
+      onClick={() => {
+        if (window.confirm(t.regen.confirm)) void job.start();
+      }}
+    >
+      <RefreshCw size={16} />
+      {t.regen.button}
+    </button>
+  );
+}
+
+function RegeneratePanel({ dossierId }: { dossierId: string }) {
+  const job = useRegen(dossierId);
+  return job.job ? <JobPanel job={job.job} onCancel={() => void job.cancel()} onClose={job.dismiss} /> : null;
+}
 
 export default function RoadmapView({ id }: { id: string }) {
   const viewer = useViewerOpener();
@@ -156,15 +191,17 @@ export default function RoadmapView({ id }: { id: string }) {
           </div>
           <h1>{m.roadmap}</h1>
         </div>
-        {editable && (
-          <div className="actions">
-            <button className="btn btn-dark" disabled={Object.keys(edits).length === 0} onClick={save}>
+        <div className="actions">
+          <Regenerate dossierId={d.dossier_id} />
+          {editable && (
+            <button className="btn btn-dark" disabled={Object.keys(edits).length === 0} onClick={save} title={t.regen.saveHint}>
               <Save size={16} />
               {m.saveRoadmap}
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+      <RegeneratePanel dossierId={d.dossier_id} />
       {roadmap.cycles.map((cycle, i) => (
         <div key={i} className="toast err" role="alert" data-testid="cycle-alert">
           <AlertTriangle size={16} />
