@@ -163,6 +163,11 @@ export const fr = {
     none: "Aucun passage",
   },
   findings: {
+    validateShown: (n: number) => `Valider les ${n} constat(s) affichés`,
+    validateShownHint: "Respecte les filtres : par exemple, n'afficher que la recommandation n° 2, relire, puis valider.",
+    confirmValidateShown: (n: number) => `Valider ${n} constat(s) ? Vous confirmez les avoir relus (texte et phrase du rapport).`,
+    toReview: "Reformulé par l'IA — à relire",
+    toReviewHint: "Comparez avec la phrase exacte du rapport avant de valider : l'IA peut se tromper (≈ 1 fois sur 10 mesuré).",
     clean: (n: number) => `Nettoyer ${n} constat(s) (IA)`,
     cleanHelp: "Écarte les phrases de méthode et de figure, fusionne les doublons par le sens, et reformule chaque constat en mots simples (« Il a été constaté que… ») en gardant la phrase exacte du rapport comme preuve.",
     confirmClean: (n: number) => `Nettoyer ${n} constat(s) ?\n\n• phrases de méthode, légendes, cellules de tableau : écartées (rétablissables) ;\n• doublons : fusionnés (défusionnables) ;\n• reformulation en mots simples par l'IA, la phrase exacte du rapport reste affichée et sert de preuve.\n\nDurée : environ 10 à 15 s par constat. Vous pourrez suivre et arrêter.`,

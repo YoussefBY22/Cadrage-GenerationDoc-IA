@@ -242,6 +242,23 @@ export default function FindingsView({ dossierId }: { dossierId: string }) {
           )}
         </div>
       )}
+      {view === "active" && shown.some((f) => !f.validated) && (
+        <div className="row" style={{ margin: "-4px 0 12px" }}>
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={async () => {
+              const todo = shown.filter((f) => !f.validated);
+              if (!window.confirm(t.findings.confirmValidateShown(todo.length))) return;
+              for (const f of todo) await patch(f, { validated: true });
+            }}
+          >
+            <Check size={14} />
+            {t.findings.validateShown(shown.filter((f) => !f.validated).length)}
+          </button>
+          <small className="muted">{t.findings.validateShownHint}</small>
+        </div>
+      )}
       {view === "discarded" && <p className="muted">{t.findings.discardedHint}</p>}
       {findings === null && !error && <p className="muted">{t.common.loading}</p>}
       <div className={`split${source ? " with-panel" : ""}`}>
@@ -279,6 +296,11 @@ export default function FindingsView({ dossierId }: { dossierId: string }) {
                       )}
                       <span className={`badge sev-${f.severity}`}>{t.findings.severity[f.severity]}</span>
                       {f.kind && f.kind !== "contexte" && <span className="tag">{t.findings.kind[f.kind]}</span>}
+                      {f.rewritten && !f.validated && f.status !== "discarded" && (
+                        <span className="tag tag-warn" title={t.findings.toReviewHint}>
+                          {t.findings.toReview}
+                        </span>
+                      )}
                       {(f.recommendations ?? []).map((r) => (
                         <Link key={r.id} className="tag tag-link" href={`/dossiers/${dossierId}/recommendations#${r.id}`} title={t.findings.recoLinkHint(f.paragraph)}>
                           → {t.findings.recoN(r.number)}

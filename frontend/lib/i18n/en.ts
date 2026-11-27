@@ -164,6 +164,11 @@ export const en: Messages = {
     none: "No passage",
   },
   findings: {
+    validateShown: (n: number) => `Validate the ${n} finding(s) shown`,
+    validateShownHint: "Follows the filters: e.g. show only recommendation 2, review, then validate.",
+    confirmValidateShown: (n: number) => `Validate ${n} finding(s)? You confirm you reviewed them (text and report sentence).`,
+    toReview: "Rewritten by the AI — to review",
+    toReviewHint: "Compare with the report's exact sentence before validating: the AI can be wrong (≈ 1 in 10 measured).",
     clean: (n: number) => `Clean ${n} finding(s) (AI)`,
     cleanHelp: "Discards method and figure sentences, merges duplicates by meaning, and rewrites each finding in plain words while keeping the report's exact sentence as proof.",
     confirmClean: (n: number) => `Clean ${n} finding(s)?\n\n• method sentences, captions, table cells: discarded (can be restored);\n• duplicates: merged (can be unmerged);\n• plain-words rewriting by the AI, the report's exact sentence stays visible as proof.\n\nAbout 10-15 s per finding. You can follow and stop it.`,

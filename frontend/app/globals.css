@@ -444,3 +444,4 @@ mark { background: #fff0a0; padding: 0 1px; border-radius: 2px; }
 .assistant-intro p { margin: 0 0 8px; font-size: 13px; color: var(--grey); }
 .assistant-form { display: flex; gap: 6px; padding: 10px; border-top: 1px solid var(--line); }
 .assistant-form input { flex: 1; }
+.tag-warn { background: #fff1e6; border-color: #f3b98a; color: #9a4a0c; }
