@@ -1,5 +1,6 @@
 "use client";
 
+import WaitNote from "@/components/WaitNote";
 import { CheckCheck, ChevronRight, MessageSquare, Sparkles, Save } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -208,6 +209,9 @@ export default function DeliverableView({ id }: { id: string }) {
                     </button>
                   )}
                 </header>
+                {(busy === "gen-" + key || busy === "prop-" + key) && (
+                  <WaitNote label={t.wait.section} typical={t.wait.sectionTypical} />
+                )}
                 <div className="section-body">
                   {section && (
                     <SectionEditor

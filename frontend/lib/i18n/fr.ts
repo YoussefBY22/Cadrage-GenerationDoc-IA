@@ -157,6 +157,9 @@ export const fr = {
     none: "Aucun passage",
   },
   findings: {
+    extractHelp: "Le modèle relit tous les rapports du dossier, passage par passage, et propose des constats avec leur preuve. Environ 15 min pour 50 pages sur ce poste.",
+    confirmRerun: (n: number) => `Relire tous les rapports ?\n\nLes ${n} constats actuels sont gardés tels quels (validations comprises). Seuls des constats nouveaux sont ajoutés ; ceux qui répètent un constat existant sont écartés.\n\nDurée : environ 15 min pour 50 pages. Vous pourrez suivre et arrêter.`,
+
     hint: "Les faits relevés dans les rapports, chacun avec sa preuve. Vérifiez-les et validez-les : seuls les constats validés servent à la feuille de route.",
     proof: "Preuve",
     page: "p.",
@@ -493,6 +496,26 @@ export const fr = {
   },
   viewer: {
     finding: "Constat dont on cherche la preuve",
+
+  },
+  job: {
+    status: { running: "en cours", done: "terminé", failed: "échec", cancelled: "arrêté" } as Record<string, string>,
+    elapsed: "Écoulé",
+    remaining: "reste",
+    estimating: "estimation après le premier lot",
+    stop: "Arrêter",
+    stopping: "Arrêt en cours…",
+    note: "Le modèle local est lent : vous pouvez quitter la page, la tâche continue et ce bloc la retrouve à votre retour.",
+    history: (n: number) => `Historique (${n} étapes)`,
+    busy: (label: string) => `Le modèle est occupé : ${label}. Votre demande attendra la fin.`,
+
+  },
+  wait: {
+    section: "Le modèle rédige cette section à partir des sources",
+    sectionTypical: "habituellement 40 s à 2 min sur ce poste",
+    chat: "Le modèle prépare la réponse",
+    chatTypical: "habituellement 30 s à 2 min",
+    search: "Recherche par le sens dans les documents",
 
   },
 };

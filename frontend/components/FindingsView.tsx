@@ -3,6 +3,7 @@
 import { Check, ChevronRight, ExternalLink, FileText, ListChecks, Pencil, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import JobPanel from "@/components/JobPanel";
 import SourcePanel from "@/components/SourcePanel";
 import { Alert, Empty } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -10,6 +11,7 @@ import type { Coverage, Finding, Severity, SourceRef } from "@/lib/api-types";
 import { t } from "@/lib/i18n";
 import { useDossier } from "@/lib/useDossier";
 import { useGuard } from "@/lib/useGuard";
+import { useJob } from "@/lib/useJob";
 
 /** Liste des constats : valider, corriger le texte, ouvrir les sources dans le panneau de droite. */
 const pages = (r: SourceRef) =>
@@ -25,7 +27,6 @@ export default function FindingsView({ dossierId }: { dossierId: string }) {
   const [filter, setFilter] = useState<Severity | "all">("all");
   const [order, setOrder] = useState<"document" | "severity">("document");
   const [doc, setDoc] = useState<string>("all");
-  const [busy, setBusy] = useState(false);
   const [coverage, setCoverage] = useState<Coverage | null>(null);
   const dossier = useDossier(dossierId);
 
@@ -49,19 +50,23 @@ export default function FindingsView({ dossierId }: { dossierId: string }) {
     }
   };
 
+  const job = useJob(dossierId, "findings", (j) => {
+    if (j.result && "coverage" in j.result) setCoverage(j.result.coverage as Coverage);
+    load();
+  });
+  const busy = job.running;
+
   const extract = async () => {
     setError(null);
-    setBusy(true);
-    try {
-      const r = await api.extractFindings(dossierId);
-      setCoverage(r.coverage ?? null);
-      load();
-    } catch (e) {
-      setError(guard(e));
-    } finally {
-      setBusy(false);
-    }
+    if (findings && findings.length > 0 && !window.confirm(t.findings.confirmRerun(findings.length))) return;
+    await job.start();
   };
+
+  // pendant l'extraction, les constats apparaissent au fil de l'eau
+  const done = job.job?.done;
+  useEffect(() => {
+    if (job.running) load();
+  }, [done, job.running, load]);
 
   const first = (f: Finding): SourceRef | undefined =>
     [...(f.sources ?? [])].sort((a, b) => a.document_rank - b.document_rank || a.ordinal - b.ordinal)[0];
@@ -122,13 +127,15 @@ export default function FindingsView({ dossierId }: { dossierId: string }) {
               )}
             </>
           )}
-          <button className="btn btn-primary" onClick={extract} disabled={busy}>
+          <button className="btn btn-primary" onClick={extract} disabled={busy} title={t.findings.extractHelp}>
             <Sparkles size={16} />
             {t.findings.extract}
           </button>
         </div>
       </div>
       {error && <Alert>{error}</Alert>}
+      {job.error && <Alert>{job.error}</Alert>}
+      {job.job && <JobPanel job={job.job} onCancel={() => void job.cancel()} onClose={job.dismiss} />}
       {coverage && (
         <p className="muted" data-testid="coverage" style={{ marginTop: 0 }}>
           {t.coeur.coverage.read(coverage.chunks_read, coverage.chunks_total)}
@@ -198,7 +205,7 @@ export default function FindingsView({ dossierId }: { dossierId: string }) {
                         >
                           <FileText size={13} />
                           {r.filename
-                            ? `${t.findings.proof} ${i + 1} · ${r.filename} | ${t.findings.page} ${pages(r)}`
+                            ? `${t.findings.proof} ${i + 1} · ${r.filename}${r.page_start ? ` | ${t.findings.page} ${pages(r)}` : ""}`
                             : `${t.findings.proof} ${i + 1}`}
                         </button>
                         {r.document_id && (

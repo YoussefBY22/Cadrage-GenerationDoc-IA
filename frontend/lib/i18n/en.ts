@@ -158,6 +158,9 @@ export const en: Messages = {
     none: "No passage",
   },
   findings: {
+    extractHelp: "The model rereads every report of the case, passage by passage, and proposes findings with their proof. About 15 min for 50 pages on this machine.",
+    confirmRerun: (n: number) => `Reread all reports?\n\nThe ${n} current findings are kept as they are (validations included). Only new findings are added; those repeating an existing finding are discarded.\n\nDuration: about 15 min for 50 pages. You can follow and stop it.`,
+
     hint: "Facts found in the reports, each with its proof. Check and validate them: only validated findings feed the roadmap.",
     proof: "Proof",
     page: "p.",
@@ -488,6 +491,26 @@ export const en: Messages = {
   },
   viewer: {
     finding: "Finding whose proof is shown",
+
+  },
+  job: {
+    status: { running: "running", done: "done", failed: "failed", cancelled: "stopped" } as Record<string, string>,
+    elapsed: "Elapsed",
+    remaining: "left",
+    estimating: "estimate after the first batch",
+    stop: "Stop",
+    stopping: "Stopping…",
+    note: "The local model is slow: you can leave the page, the task keeps running and this block finds it when you come back.",
+    history: (n: number) => `History (${n} steps)`,
+    busy: (label: string) => `The model is busy: ${label}. Your request will wait.`,
+
+  },
+  wait: {
+    section: "The model is writing this section from the sources",
+    sectionTypical: "usually 40 s to 2 min on this machine",
+    chat: "The model is preparing the answer",
+    chatTypical: "usually 30 s to 2 min",
+    search: "Searching the documents by meaning",
 
   },
 };

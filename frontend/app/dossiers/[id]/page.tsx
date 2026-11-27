@@ -4,6 +4,7 @@ import { BookOpen, Check, ChevronRight, FileSpreadsheet, FileText, FileType2, Pr
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type DragEvent } from "react";
+import JobPanel from "@/components/JobPanel";
 import ProfileCard from "@/components/ProfileCard";
 import Shell from "@/components/Shell";
 import { Alert, Empty } from "@/components/ui";
@@ -12,6 +13,7 @@ import type { DeliverableSummary, DocumentInfo, DocumentRole, Dossier, Finding }
 import { t } from "@/lib/i18n";
 import { getRefs, setRefs, type DossierRefs } from "@/lib/refs";
 import { useGuard } from "@/lib/useGuard";
+import { useJob } from "@/lib/useJob";
 
 function uploadMessage(err: unknown, guard: (e: unknown) => string): string {
   if (err instanceof ApiError) {
@@ -258,20 +260,20 @@ export default function DossierPage() {
     }
   };
 
+  const roadmapJob = useJob(id, "roadmap", (j) => {
+    const did = j.result?.deliverable_id as string | undefined;
+    if (j.status === "done" && did) {
+      const items = (j.result?.roadmap as { items?: { rank: number; initiative: { id: string } }[] } | undefined)?.items ?? [];
+      const top = [...items].sort((a, b) => a.rank - b.rank)[0];
+      setRefsState(setRefs(id, { roadmap: did, initiative: top?.initiative.id }));
+      router.push(`/deliverables/${did}/roadmap`);
+    }
+  });
+
   const roadmap = async () => {
     if (refs.roadmap) return router.push(`/deliverables/${refs.roadmap}/roadmap`);
-    setBusy("roadmap");
     setError(null);
-    try {
-      const r = await api.generateRoadmap(id);
-      const top = [...r.roadmap.items].sort((a, b) => a.rank - b.rank)[0];
-      setRefsState(setRefs(id, { roadmap: r.deliverable_id, initiative: top?.initiative.id }));
-      router.push(`/deliverables/${r.deliverable_id}/roadmap`);
-    } catch (e) {
-      setError(guard(e));
-    } finally {
-      setBusy(null);
-    }
+    await roadmapJob.start();
   };
 
   const tor = async () => {
@@ -327,6 +329,10 @@ export default function DossierPage() {
       {error && <Alert>{error}</Alert>}
 
       <ProfileCard dossierId={id} />
+      {roadmapJob.error && <Alert>{roadmapJob.error}</Alert>}
+      {roadmapJob.job && (
+        <JobPanel job={roadmapJob.job} onCancel={() => void roadmapJob.cancel()} onClose={roadmapJob.dismiss} />
+      )}
 
       <div className="steps">
         {steps.map((s, i) => (

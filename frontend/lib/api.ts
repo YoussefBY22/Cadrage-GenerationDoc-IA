@@ -1,4 +1,5 @@
 import type {
+  Job,
   DeliverableSummary,
   DocumentDeletePreview,
   DossierDeletePreview,
@@ -159,6 +160,11 @@ export const api = {
   deleteDocument: (id: string) => request<DocumentDeletePreview>(`/documents/${id}`, { method: "DELETE" }),
   dossierDeletePreview: (id: string) => request<DossierDeletePreview>(`/dossiers/${id}/delete-preview`),
   deleteDossier: (id: string) => request<DossierDeletePreview>(`/dossiers/${id}`, { method: "DELETE" }),
+  startJob: (dossierId: string, kind: Job["kind"]) => request<Job>(`/dossiers/${dossierId}/jobs`, json("POST", { kind })),
+  listJobs: (dossierId: string) => request<Job[]>(`/dossiers/${dossierId}/jobs`),
+  getJob: (id: string) => request<Job>(`/jobs/${id}`),
+  cancelJob: (id: string) => request<Job>(`/jobs/${id}:cancel`, { method: "POST" }),
+  busy: () => request<{ label: string; dossier_id: string; done: number; total: number | null }[]>("/jobs/busy"),
   listDeliverables: (dossierId: string) => request<DeliverableSummary[]>(`/dossiers/${dossierId}/deliverables`),
   deleteDeliverable: (id: string) => request<void>(`/deliverables/${id}`, { method: "DELETE" }),
   setDocumentRole: (id: string, role: DocumentRole) =>

@@ -115,6 +115,8 @@ def _group_by_meaning(repo, provider, dossier_id, reps, language) -> tuple[list,
         group = [reps[i] for i in members]
         sample = [reps[i] for i in axes_mod.central(vectors, members, 10)]
         prompt = build_axis_name_prompt(sample, names, nonce=nonce, lang=language)
+        from . import jobs
+        jobs.current().step(f"Le modèle nomme l'axe n° {len(names) + 1} ({len(group)} constats)")
         llm, attempts, latency, error = call_model(provider, prompt, LLMAxisName, lang=language)
         calls += 1
         record_run(repo, provider, dossier_id=dossier_id, kind="axes", prompt=prompt,
@@ -177,7 +179,10 @@ def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
     ctx_tokens = getattr(provider, "context_tokens", None)
     nonce = new_nonce()
 
+    from . import jobs
+    job = jobs.current()
     reps, dups = axes_mod.dedupe(findings)
+    job.step(f"{len(findings)} constats validés ; {len(findings) - len(reps)} doublon(s) fusionné(s) → {len(reps)} à traiter")
     fixed1 = _fixed_prompt(reps[:1], criteria, priorities, projects, nonce, language, "x" * 40)
     if ctx_tokens and safe_tokens(fixed1) + ROADMAP_REPLY_TOKENS + 64 > ctx_tokens:
         raise GenerationError(
@@ -195,6 +200,7 @@ def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
     if direct:
         groups: list[tuple[str | None, list]] = [(None, reps)]
     else:
+        job.step("Regroupement des constats par le sens, puis le modèle nomme chaque axe")
         groups, axis_errors, axis_calls, axis_mode = _group_by_meaning(repo, provider, dossier_id, reps,
                                                                       language)
 
@@ -205,11 +211,19 @@ def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
     failed_findings: list[str] = []
     drafts: list[tuple[Initiative, list[str]]] = []
     fmap = {f.id: f for f in findings}
+    planned = []
     for axis, group in groups:
         def fits(part, axis=axis):
             return _fits(ctx_tokens, part, criteria, priorities, projects, nonce, language, axis)
 
-        for part in _split_to_fit(group, fits):
+        planned += [(axis, part) for part in _split_to_fit(group, fits)]
+    if not direct:
+        job.step(f"{len(groups)} axe(s) : " + " ; ".join(f"{a} ({len(g)})" for a, g in groups))
+    job.total(len(planned), "lots de constats")
+    for n_part, (axis, part) in enumerate(planned, 1):
+        job.step(f"Lot {n_part}/{len(planned)} — axe « {axis or 'unique'} » : le modèle propose des initiatives "
+                 f"pour {len(part)} constat(s)")
+        if True:
             # une partie ratée est coupée en deux et reprise une fois ; sinon signalée, sans effacer les autres
             pending = [(part, 0)]
             while pending:
@@ -229,7 +243,10 @@ def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
                 rejected += rj
                 not_sent += ns
                 run_ids.append(rid)
+                job.step(f"Lot {n_part} : {len(d)} initiative(s) proposée(s)")
+        job.advance()
 
+    job.step("Classement des initiatives, chemin critique et répartition en vagues (calcul, sans modèle)")
     # Doublons : ils suivent leur représentant. Même titre (deux axes ou deux parties) : une seule initiative.
     merged: dict[str, tuple[Initiative, list[str]]] = {}
     for ini, deps in drafts:

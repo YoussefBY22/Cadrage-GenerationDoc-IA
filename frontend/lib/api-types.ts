@@ -369,3 +369,26 @@ export interface DeliverableSummary {
   created_at: string | null;
   updated_at: string | null;
 }
+
+export interface JobStep {
+  t: number;
+  text: string;
+}
+
+export interface Job {
+  id: string;
+  kind: "findings" | "roadmap";
+  dossier_id: string;
+  label: string;
+  status: "running" | "done" | "failed" | "cancelled";
+  current: string;
+  elapsed_s: number;
+  remaining_s: number | null;
+  done: number;
+  total: number | null;
+  unit: string;
+  cancel_requested: boolean;
+  result: Record<string, unknown> | null;
+  error: string | null;
+  steps?: JobStep[];
+}

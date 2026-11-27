@@ -361,3 +361,20 @@ details > summary { cursor: pointer; color: var(--grey); font-size: 12.5px; marg
 .reco-table .reco-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
 .reco-table td:nth-child(4) { width: 110px; }
 .reco-table .reco-actions .mini-select { width: auto; max-width: 320px; }
+.job { margin: 0 0 16px; border-left: 4px solid var(--yellow); }
+.job-done { border-left-color: var(--ok); }
+.job-failed, .job-cancelled { border-left-color: var(--bad); }
+.job-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.job-times { margin-left: auto; color: var(--grey); font-size: 13px; font-variant-numeric: tabular-nums; }
+.job-now { margin: 8px 0; font-size: 14px; }
+.job-bar { position: relative; height: 18px; background: #ececf1; border-radius: 4px; overflow: hidden; margin-bottom: 6px; }
+.job-bar i { display: block; height: 100%; background: var(--yellow); transition: width 0.6s; }
+.job-bar small { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11.5px; }
+.job-history { margin-top: 6px; }
+.job-history .link { display: inline-flex; align-items: center; gap: 4px; }
+.job-history ol { list-style: none; padding: 8px 10px; margin: 6px 0 0; max-height: 220px; overflow: auto; background: #f7f7fa; border-radius: 6px; font-size: 12.5px; }
+.job-history li { padding: 2px 0; }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.wait-note { display: flex; gap: 8px; align-items: flex-start; padding: 8px 12px; margin: 8px 0; background: #fffbe0; border-radius: 6px; font-size: 13px; }
+.wait-busy { display: block; color: var(--bad); margin-top: 2px; }

@@ -59,6 +59,8 @@ def call_model(provider: LLMProvider, prompt: str, schema, *, lang: str = "fr",
 
     Renvoie (résultat | None, tentatives, latence_ms, erreur | None).
     """
+    from . import jobs
+    jobs.current().check()  # arrêt demandé : avant d'occuper le modèle, jamais au milieu d'une réponse
     start = time.perf_counter()
     error: str | None = None
     system = system or system_prompt(lang)
