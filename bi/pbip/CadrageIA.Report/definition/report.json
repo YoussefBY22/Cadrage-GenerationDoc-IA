@@ -11,7 +11,7 @@
       "type": "SharedResources"
     },
     "customTheme": {
-      "name": "cadrage-ey.json",
+      "name": "cadrage.json",
       "reportVersionAtImport": {
         "visual": "2.7.0",
         "report": "3.2.0",
@@ -59,8 +59,8 @@
       "type": "RegisteredResources",
       "items": [
         {
-          "name": "cadrage-ey.json",
-          "path": "cadrage-ey.json",
+          "name": "cadrage.json",
+          "path": "cadrage.json",
           "type": "CustomTheme"
         }
       ]

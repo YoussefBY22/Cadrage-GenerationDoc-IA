@@ -3,11 +3,11 @@
   "name": "synthese_pied",
   "position": {
     "x": 24,
-    "y": 848,
-    "z": 1500,
+    "y": 868,
+    "z": 1800,
     "width": 220,
-    "height": 40,
-    "tabOrder": 1500
+    "height": 24,
+    "tabOrder": 1800
   },
   "visual": {
     "visualType": "shape",
@@ -92,7 +92,7 @@
             "fontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "9.5D"
+                  "Value": "9D"
                 }
               }
             },

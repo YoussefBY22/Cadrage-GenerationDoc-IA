@@ -7,26 +7,28 @@ model Model
 annotation __PBI_TimeIntelligenceEnabled = 0
 
 ref table Indicateurs
-ref table Missions
+ref table Projets
 ref table 'Types de livrable'
+ref table Sections
+ref table 'Types d''erreur'
 ref table Personnes
 ref table Calendrier
-ref table 'Choix de période'
+ref table 'Choix du mois'
+ref table 'Choix des données'
+ref table 'Choix du projet'
 ref table 'Choix du client'
 ref table 'Choix du type'
 ref table 'Choix du consultant'
 ref table 'Accès'
-ref table 'Règles'
 ref table 'Générations'
-ref table 'Sections approuvées'
 ref table Livrables
-ref table 'Sections courantes'
-ref table Actions
-ref table 'Prévisions'
-ref table 'Série de prévision'
-ref table 'Source des données'
-ref table Banc
-ref table Documents
+ref table Constats
+ref table Initiatives
+ref table Rapports
+ref table Recommandations
+ref table 'Entraînements'
+ref table 'Courbe de validation'
+ref table Scores
 
 ref role Consultant
 ref role Responsable

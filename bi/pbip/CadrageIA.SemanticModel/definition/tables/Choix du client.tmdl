@@ -22,9 +22,9 @@ table 'Choix du client'
 		mode: import
 		source =
 				let
-				    Valeurs = List.Buffer(List.Sort(List.Distinct(List.RemoveNulls(List.Combine({Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_deliverable"), {"client_name"}), {{"client_name", type text}}, CultureCsv), "client_name"), Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_generation"), {"client_name"}), {{"client_name", type text}}, CultureCsv), "client_name")}))))),
+				    Valeurs = List.Buffer(List.Sort(List.Distinct(List.RemoveNulls(Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_project"), {"client_name"}), {{"client_name", type text}}, CultureCsv), "client_name"))))),
 				    Toutes = List.Transform(Valeurs, each {"Tous", _, 0}),
-				    Chacune = List.Transform(Valeurs, each {_, _, List.PositionOf(Valeurs, _) + 1}),
+				    Chacune = List.Transform(List.Positions(Valeurs), each {Valeurs{_}, Valeurs{_}, _ + 1}),
 				    Resultat = #table(type table [choix = text, cible = text, rang = Int64.Type], Toutes & Chacune)
 				in
 				    Resultat

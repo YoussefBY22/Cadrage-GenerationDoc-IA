@@ -1,0 +1,54 @@
+table Constats
+
+	column 'Identifiant du constat'
+		dataType: string
+		isHidden
+		sourceColumn: finding_id
+		summarizeBy: none
+
+	column 'Clé de mission'
+		dataType: int64
+		isHidden
+		sourceColumn: mission_key
+		summarizeBy: none
+
+	column 'Code de gravité'
+		dataType: string
+		isHidden
+		sourceColumn: severity
+		summarizeBy: none
+
+	column Axe
+		dataType: string
+		sourceColumn: axis
+		summarizeBy: none
+
+	column 'Validé'
+		dataType: int64
+		isHidden
+		sourceColumn: validated
+		summarizeBy: none
+
+	column 'Gravité'
+		dataType: string
+		sourceColumn: gravite
+		sortByColumn: 'Ordre de gravité'
+		summarizeBy: none
+
+	column 'Ordre de gravité'
+		dataType: int64
+		isHidden
+		sourceColumn: ordre
+		summarizeBy: none
+
+	partition Constats = m
+		mode: import
+		source =
+				let
+				    Brut = Vue("v_finding"),
+				    Choix = Table.SelectColumns(Brut, {"finding_id", "mission_key", "severity", "axis", "validated"}),
+				    Typage = Table.TransformColumnTypes(Choix, {{"finding_id", type text}, {"mission_key", Int64.Type}, {"severity", type text}, {"axis", type text}, {"validated", Int64.Type}}, CultureCsv),
+				    AvecGravite = Table.AddColumn(Typage, "gravite", each if [severity] = null then "Non précisée" else Record.FieldOrDefault([#"high" = "Élevée", #"medium" = "Moyenne", #"low" = "Faible"], [severity], "Non précisée"), type text),
+				    AvecOrdre = Table.AddColumn(AvecGravite, "ordre", each Number.From(Record.FieldOrDefault([#"high" = "1", #"medium" = "2", #"low" = "3"], [severity], "9")), Int64.Type)
+				in
+				    AvecOrdre

@@ -41,9 +41,9 @@ def test_filters_reach_kpis_and_recommendations(engine):
 
 
 def test_filtered_report_stays_internal(engine, tmp_path):
-    body = text_of(report.write_report(engine, report.Scope(client="Société Démo 2"), tmp_path / "c.docx"))
-    assert "Société Démo 2" in body and report.INTERNAL_NOTICE in body
-    assert "Société Démo 1" not in body and "Société Démo 3" not in body
+    body = text_of(report.write_report(engine, report.Scope(client="Région Littoral (démo)"), tmp_path / "c.docx"))
+    assert "Région Littoral (démo)" in body and report.INTERNAL_NOTICE in body
+    assert "Groupe Industriel Atlas" not in body and "Banque Coopérative Nord" not in body
 
 
 def test_there_is_no_client_audience(monkeypatch, capsys):

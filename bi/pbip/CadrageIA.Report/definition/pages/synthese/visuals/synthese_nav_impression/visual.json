@@ -3,10 +3,10 @@
   "name": "synthese_nav_impression",
   "position": {
     "x": 24,
-    "y": 288,
+    "y": 252,
     "z": 800,
     "width": 208,
-    "height": 38,
+    "height": 32,
     "tabOrder": 800
   },
   "visual": {
@@ -183,7 +183,7 @@
             "fontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "11D"
+                  "Value": "10.5D"
                 }
               }
             },
@@ -322,7 +322,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Aller à la page Rapport'"
+                  "Value": "'Aller à la page Rapport imprimable'"
                 }
               }
             }
@@ -356,7 +356,7 @@
             "tooltip": {
               "expr": {
                 "Literal": {
-                  "Value": "'Aller à : Rapport'"
+                  "Value": "'Aller à : Rapport imprimable'"
                 }
               }
             }

@@ -2,11 +2,11 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
   "name": "synthese_kpi4",
   "position": {
-    "x": 1260.0,
-    "y": 186,
+    "x": 1065.6,
+    "y": 108,
     "z": 2600,
-    "width": 308.0,
-    "height": 128,
+    "width": 243.2,
+    "height": 108,
     "tabOrder": 2600
   },
   "visual": {
@@ -24,11 +24,11 @@
                       "Entity": "Indicateurs"
                     }
                   },
-                  "Property": "Délai de validation"
+                  "Property": "Temps moyen affiché"
                 }
               },
-              "queryRef": "Indicateurs.Délai de validation",
-              "nativeQueryRef": "Délai de validation"
+              "queryRef": "Indicateurs.Temps moyen affiché",
+              "nativeQueryRef": "Temps moyen affiché"
             }
           ]
         }
@@ -82,7 +82,7 @@
             "fontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "28D"
+                  "Value": "26D"
                 }
               }
             },
@@ -107,7 +107,7 @@
             "showBlankAs": {
               "expr": {
                 "Literal": {
-                  "Value": "'Non mesuré'"
+                  "Value": "'—'"
                 }
               }
             },
@@ -217,14 +217,14 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Délai de validation'"
+                  "Value": "'Temps moyen par appel'"
                 }
               }
             },
             "fontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "13D"
+                  "Value": "11.5D"
                 }
               }
             },
@@ -232,6 +232,17 @@
               "expr": {
                 "Literal": {
                   "Value": "true"
+                }
+              }
+            },
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#5F5F6B'"
+                    }
+                  }
                 }
               }
             }
@@ -256,7 +267,7 @@
                       "Entity": "Indicateurs"
                     }
                   },
-                  "Property": "Note Délai de validation"
+                  "Property": "Note temps"
                 }
               }
             },
@@ -341,7 +352,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Indicateur : Délai de validation'"
+                  "Value": "'Indicateur : Temps moyen par appel'"
                 }
               }
             }

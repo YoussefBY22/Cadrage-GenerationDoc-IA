@@ -20,6 +20,7 @@ from sqlalchemy import (
     SmallInteger,
     String,
     Table,
+    Text,
     UniqueConstraint,
     text,
 )
@@ -356,6 +357,104 @@ fact_bench = _t(
     Column("latency_p95_ms", Float),
     Column("simulated", Boolean, nullable=False),
     _demo(),
+)
+
+# --- Projets, recommandations des rapports, constats, feuille de route, entraînements ---------
+# Reconstruits à chaque ETL. Sans texte du client : un résumé de la demande (200 car.), des numéros,
+# des pages, des statuts, des noms d'axe produits par le modèle. Le logo est une image (data URI).
+dim_project = _t(
+    "dim_project",
+    Column("mission_key", Integer, _fk("dim_mission.mission_key"), primary_key=True, autoincrement=False),
+    Column("request_summary", String(200), nullable=False, default=""),
+    Column("start_date_key", Integer),
+    Column("end_date_key", Integer),
+    Column("logo", Text),
+    Column("documents", Integer, nullable=False, default=0),
+    Column("audit_reports", Integer, nullable=False, default=0),
+    _demo(),
+)
+
+fact_report_check = _t(
+    "fact_report_check",
+    Column("document_key", Integer, _fk("dim_document.document_key"), primary_key=True, autoincrement=False),
+    Column("mission_key", Integer, _fk("dim_mission.mission_key"), nullable=False),
+    Column("report_label", String(200), nullable=False),
+    Column("pages", Integer),
+    Column("expected", Integer),  # NULL = le rapport n'annonce aucun numéro
+    Column("extracted", Integer, nullable=False),
+    Column("validated", Integer, nullable=False),
+    Column("missing", Integer, nullable=False),
+    Column("duplicates", Integer, nullable=False),
+    Column("missing_list", String(200), nullable=False, default=""),
+    Column("status", String(16), nullable=False),
+    _demo(),
+)
+
+fact_audit_recommendation = _t(
+    "fact_audit_recommendation",
+    Column("recommendation_id", String(32), primary_key=True),
+    Column("mission_key", Integer, _fk("dim_mission.mission_key"), nullable=False),
+    Column("document_key", Integer, _fk("dim_document.document_key"), nullable=False),
+    Column("number", Integer),
+    Column("page", Integer),
+    Column("status", String(12), nullable=False),
+    Column("origin", String(12), nullable=False),
+    _demo(),
+)
+
+fact_finding = _t(
+    "fact_finding",
+    Column("finding_id", String(32), primary_key=True),
+    Column("mission_key", Integer, _fk("dim_mission.mission_key"), nullable=False),
+    Column("severity", String(8), nullable=False),
+    Column("axis", String(200), nullable=False),
+    Column("validated", Boolean, nullable=False),
+    _demo(),
+)
+
+fact_initiative = _t(
+    "fact_initiative",
+    Column("initiative_id", String(32), primary_key=True),
+    Column("mission_key", Integer, _fk("dim_mission.mission_key"), nullable=False),
+    Column("axis", String(200), nullable=False),
+    Column("wave", Integer),
+    Column("rank", Integer),
+    Column("findings", Integer, nullable=False, default=0),
+    _demo(),
+)
+
+fact_training_run = _t(
+    "fact_training_run",
+    Column("run_id", String(40), primary_key=True),
+    Column("label", String(80), nullable=False),
+    Column("run_date_key", Integer, nullable=False),
+    Column("platform", String(40), nullable=False),
+    Column("gpu", String(40)),
+    Column("examples", Integer, nullable=False),
+    Column("test_examples", Integer),
+    Column("duration_min", Float),
+    Column("stop_step", Integer),
+    Column("best_step", Integer),
+    Column("best_val_loss", Float),
+    Column("adopted", Boolean, nullable=False),
+    Column("outcome", String(200), nullable=False),
+)
+
+fact_training_point = _t(
+    "fact_training_point",
+    Column("run_id", String(40), primary_key=True),
+    Column("step", Integer, primary_key=True, autoincrement=False),
+    Column("val_loss", Float, nullable=False),
+    Column("is_best", Boolean, nullable=False),
+)
+
+fact_training_score = _t(
+    "fact_training_score",
+    Column("run_id", String(40), primary_key=True),
+    Column("model", String(20), primary_key=True),
+    Column("task", String(40), primary_key=True),
+    Column("correct", Integer, nullable=False),
+    Column("total", Integer, nullable=False),
 )
 
 # --- Techniques ------------------------------------------------------------------------------

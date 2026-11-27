@@ -12,16 +12,53 @@ table Calendrier
 		sourceColumn: date_key
 		summarizeBy: none
 
+	column 'Clé de mois'
+		dataType: int64
+		isHidden
+		sourceColumn: mois_key
+		summarizeBy: none
+
+	column Mois
+		dataType: string
+		sourceColumn: mois
+		sortByColumn: 'Clé de mois'
+		summarizeBy: none
+
+	column Jour
+		dataType: string
+		sourceColumn: jour_court
+		sortByColumn: 'Clé de date'
+		summarizeBy: none
+
+	column 'Clé de semaine'
+		dataType: int64
+		isHidden
+		sourceColumn: semaine_key
+		summarizeBy: none
+
+	column Semaine
+		dataType: string
+		sourceColumn: semaine
+		sortByColumn: 'Clé de semaine'
+		summarizeBy: none
+
 	partition Calendrier = m
 		mode: import
 		source =
 				let
-				    Cles = List.Buffer(List.RemoveNulls(List.Combine({Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_generation"), {"date_key"}), {{"date_key", Int64.Type}}, CultureCsv), "date_key"), Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_deliverable"), {"approved_date_key"}), {{"approved_date_key", Int64.Type}}, CultureCsv), "approved_date_key"), Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_deliverable"), {"submitted_date_key"}), {{"submitted_date_key", Int64.Type}}, CultureCsv), "submitted_date_key")}))),
+				    Cles = List.Buffer(List.RemoveNulls(List.Combine({Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_generation"), {"date_key"}), {{"date_key", Int64.Type}}, CultureCsv), "date_key"), Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_deliverable"), {"created_date_key"}), {{"created_date_key", Int64.Type}}, CultureCsv), "created_date_key")}))),
 				    VersDate = (k as number) as date => #date(Number.IntegerDivide(k, 10000), Number.Mod(Number.IntegerDivide(k, 100), 100), Number.Mod(k, 100)),
 				    Premier = VersDate(List.Min(Cles, 20260101)),
 				    Dernier = VersDate(List.Max(Cles, 20261231)),
 				    Jours = List.Dates(Date.StartOfMonth(Premier), Duration.Days(Date.EndOfMonth(Dernier) - Date.StartOfMonth(Premier)) + 1, #duration(1, 0, 0, 0)),
+				    NomMois = (d as date) as text => {"Janv.", "Févr.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."}{Date.Month(d) - 1} & " " & Text.From(Date.Year(d)),
 				    Base = Table.FromColumns({Jours}, type table [jour = date]),
-				    AvecCle = Table.AddColumn(Base, "date_key", each Date.Year([jour]) * 10000 + Date.Month([jour]) * 100 + Date.Day([jour]), Int64.Type)
+				    AvecCle = Table.AddColumn(Base, "date_key", each Date.Year([jour]) * 10000 + Date.Month([jour]) * 100 + Date.Day([jour]), Int64.Type),
+				    AvecMoisCle = Table.AddColumn(AvecCle, "mois_key", each Date.Year([jour]) * 100 + Date.Month([jour]), Int64.Type),
+				    AvecMois = Table.AddColumn(AvecMoisCle, "mois", each NomMois([jour]), type text),
+				    AvecJour = Table.AddColumn(AvecMois, "jour_court", each Text.PadStart(Text.From(Date.Day([jour])), 2, "0") & "/" & Text.PadStart(Text.From(Date.Month([jour])), 2, "0"), type text),
+				    Lundi = (d as date) as date => Date.StartOfWeek(d, Day.Monday),
+				    AvecSemaineCle = Table.AddColumn(AvecJour, "semaine_key", each Date.Year(Lundi([jour])) * 10000 + Date.Month(Lundi([jour])) * 100 + Date.Day(Lundi([jour])), Int64.Type),
+				    AvecSemaine = Table.AddColumn(AvecSemaineCle, "semaine", each Text.PadStart(Text.From(Date.Day(Lundi([jour]))), 2, "0") & "/" & Text.PadStart(Text.From(Date.Month(Lundi([jour]))), 2, "0"), type text)
 				in
-				    AvecCle
+				    AvecSemaine

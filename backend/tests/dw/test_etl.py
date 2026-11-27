@@ -114,11 +114,12 @@ def test_pseudonymization(repo, ops):
 
 
 def test_no_free_text_columns():
-    """Liste blanche : aucune colonne texte de plus de 200 caractères dans dw."""
+    """Liste blanche : aucune colonne texte de plus de 200 caractères dans dw. Seule exception : le logo
+    du projet, une image (data URI PNG d'au plus 100 Ko), pas un texte du client."""
     from sqlalchemy import String, Text
     wide = [f"{t.name}.{c.name}" for t in dw.dw_metadata.tables.values() for c in t.columns
             if isinstance(c.type, Text) or (isinstance(c.type, String) and (c.type.length or 0) > 200)]
-    assert wide == []
+    assert wide == ["dim_project.logo"]
 
 
 def test_etl_log_and_error(repo, ops):

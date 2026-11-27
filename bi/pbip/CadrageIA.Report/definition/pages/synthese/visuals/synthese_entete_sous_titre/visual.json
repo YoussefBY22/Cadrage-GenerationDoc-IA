@@ -3,11 +3,11 @@
   "name": "synthese_entete_sous_titre",
   "position": {
     "x": 308,
-    "y": 78,
-    "z": 1800,
-    "width": 1260,
-    "height": 30,
-    "tabOrder": 1800
+    "y": 70,
+    "z": 2100,
+    "width": 840,
+    "height": 26,
+    "tabOrder": 2100
   },
   "visual": {
     "visualType": "shape",
@@ -85,7 +85,7 @@
                       "Entity": "Indicateurs"
                     }
                   },
-                  "Property": "Sous-titre synthese"
+                  "Property": "Périmètre"
                 }
               }
             },
@@ -202,7 +202,7 @@
                       "Entity": "Indicateurs"
                     }
                   },
-                  "Property": "Sous-titre synthese"
+                  "Property": "Périmètre"
                 }
               }
             }

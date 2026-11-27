@@ -5,14 +5,15 @@ Usage : python bi/pbip/build_pbip.py [--csv DOSSIER]   (idempotent)
 - indicateurs.py : définitions, formules DAX et seuils (source unique)
 - modele.py      : tables en français, Power Query, relations
 - rapport.py     : pages, barre latérale, visuels (briques dans pbir.py)
-- backend/app/dw/pilotage.py : seuils, règles et méthode de prédiction
-- ../theme/cadrage-ey.json : thème copié dans les ressources du rapport
+- sections.py    : libellé et rôle de chaque section, lus dans les gabarits
+- ../theme/cadrage.json : thème copié dans les ressources du rapport
 
 Ne pas enregistrer depuis Power BI Desktop : la génération suivante écraserait ses modifications.
 """
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import shutil
 import time
@@ -20,11 +21,23 @@ from pathlib import Path
 
 from indicateurs import kpi_md, measures_dax
 from modele import construire_modele, ecrire
-from rapport import construire_rapport
+from rapport import PROJET_PAR_DEFAUT, TOUS, construire_rapport, pages
 
 RACINE = Path(__file__).resolve().parent
 BI = RACINE.parent
 CSV_PAR_DEFAUT = r"C:\Users\youss\Desktop\PFE-IA-Cadrage\bi\export"
+
+
+def projet_reel(dossier: Path) -> str | None:
+    """Projet ouvert par défaut sur la page Projet : le premier projet réel de l'export, s'il existe."""
+    fichier = dossier / "v_project.csv"
+    if not fichier.exists():
+        return None
+    with open(fichier, encoding="utf-8-sig", newline="") as f:
+        texte = f.read()
+    lignes = list(csv.DictReader(texte.splitlines(), delimiter=";" if texte.count(";") > texte.count(",") else ","))
+    reels = sorted(r["mission_name"] for r in lignes if r.get("is_demo") in ("false", "0", ""))
+    return reels[0] if reels else None
 
 
 def effacer(dossier: Path) -> None:
@@ -52,8 +65,10 @@ def main() -> None:
                     rapport / "StaticResources" / "RegisteredResources"):
         effacer(dossier)
 
+    PROJET_PAR_DEFAUT["valeur"] = projet_reel(Path(args.csv)) or TOUS
+    liste = pages()  # d'abord : les pages déclarent les sous-titres que le modèle porte en mesures
     construire_modele(modele, args.csv)
-    construire_rapport(rapport, BI / "theme" / "cadrage-ey.json")
+    construire_rapport(rapport, BI / "theme" / "cadrage.json", liste)
     ecrire(BI / "measures.dax", measures_dax())
     ecrire(BI / "KPI.md", kpi_md())
     ecrire(RACINE / "CadrageIA.pbip", json.dumps(

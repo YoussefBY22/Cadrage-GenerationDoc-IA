@@ -1,0 +1,54 @@
+table Scores
+
+	column 'Code de l''essai'
+		dataType: string
+		isHidden
+		sourceColumn: run_id
+		summarizeBy: none
+
+	column 'Code du modèle'
+		dataType: string
+		isHidden
+		sourceColumn: model
+		summarizeBy: none
+
+	column 'Tâche'
+		dataType: string
+		sourceColumn: task
+		summarizeBy: none
+
+	column 'Réussis'
+		dataType: int64
+		isHidden
+		sourceColumn: correct
+		summarizeBy: none
+
+	column Total
+		dataType: int64
+		isHidden
+		sourceColumn: total
+		summarizeBy: none
+
+	column 'Modèle testé'
+		dataType: string
+		sourceColumn: modele
+		sortByColumn: 'Ordre du modèle'
+		summarizeBy: none
+
+	column 'Ordre du modèle'
+		dataType: int64
+		isHidden
+		sourceColumn: ordre
+		summarizeBy: none
+
+	partition Scores = m
+		mode: import
+		source =
+				let
+				    Brut = Vue("v_training_score"),
+				    Choix = Table.SelectColumns(Brut, {"run_id", "model", "task", "correct", "total"}),
+				    Typage = Table.TransformColumnTypes(Choix, {{"run_id", type text}, {"model", type text}, {"task", type text}, {"correct", Int64.Type}, {"total", Int64.Type}}, CultureCsv),
+				    AvecModele = Table.AddColumn(Typage, "modele", each if [model] = null then "Autre" else Record.FieldOrDefault([#"base" = "Modèle de base", #"essai1" = "Essai 1", #"v4" = "v4 (adopté)", #"v5" = "v5"], [model], "Autre"), type text),
+				    AvecOrdre = Table.AddColumn(AvecModele, "ordre", each Number.From(Record.FieldOrDefault([#"base" = "0", #"essai1" = "1", #"v4" = "2", #"v5" = "3"], [model], "9")), Int64.Type)
+				in
+				    AvecOrdre

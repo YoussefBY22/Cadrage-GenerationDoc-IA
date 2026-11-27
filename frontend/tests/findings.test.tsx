@@ -5,8 +5,12 @@ import SourcePanel from "@/components/SourcePanel";
 import { api } from "@/lib/api";
 import type { ChunkDetail, Finding } from "@/lib/api-types";
 
-const push = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+// routeur STABLE : un nouvel objet à chaque rendu relançait le chargement et écrasait l'état (test instable)
+const { push, router } = vi.hoisted(() => {
+  const push = vi.fn();
+  return { push, router: { push } };
+});
+vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 const finding: Finding = {
   id: "f1",

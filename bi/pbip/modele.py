@@ -2,7 +2,7 @@
 
 Les noms techniques des vues ne sont conservés que comme `sourceColumn` ; le rapport ne voit que les libellés.
 Chaque segment porte une vraie valeur « Tous » (table de choix reliée en plusieurs-à-plusieurs) : le libellé
-ne dépend donc pas de la langue de Power BI Desktop, et la prédiction sait quel périmètre lire.
+ne dépend donc pas de la langue de Power BI Desktop. Aucune clé technique n'est visible : chaque code a son libellé.
 """
 from __future__ import annotations
 
@@ -10,12 +10,11 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from indicateurs import TOUS, TOUT, pilotage, toutes
+from indicateurs import ERREURS, TOUS, TOUS_MOIS, TOUTES_DONNEES, toutes
 
 ENTIER, DECIMAL, TEXTE, DATE = "int64", "double", "string", "dateTime"
 M_TYPE = {ENTIER: "Int64.Type", DECIMAL: "type number", TEXTE: "type text", DATE: "type date"}
-BOOLEENS = ["is_demo", "unchanged", "was_refused", "returned", "refused", "first_rejected",
-            "has_retrieval", "simulated"]
+BOOLEENS = ["is_demo", "returned", "refused", "first_rejected", "validated", "adopted", "is_best"]
 
 
 @dataclass(frozen=True)
@@ -26,6 +25,7 @@ class Col:
     masquee: bool = True
     tri: str | None = None
     ajoutee: bool = False  # colonne créée dans Power Query, absente de la vue
+    categorie: str | None = None  # ex. ImageUrl : le logo s'affiche comme une image
 
 
 def m_texte(valeur: str) -> str:
@@ -65,7 +65,9 @@ def colonne_tmdl(c: Col) -> str:
         out.append("\t\tisHidden")
     if c.type == DATE:
         # Jour et mois en chiffres : les noms de mois suivraient la langue de Power BI Desktop
-        out.append("\t\tformatString: " + ("dd/MM" if c.source == "period_end" else "dd/MM/yyyy"))
+        out.append("\t\tformatString: dd/MM/yyyy")
+    if c.categorie:
+        out.append(f"\t\tdataCategory: {c.categorie}")
     out.append(f"\t\tsourceColumn: {c.source}")
     if c.tri:
         out.append(f"\t\tsortByColumn: {q(c.tri)}")
@@ -109,27 +111,47 @@ def colonne_lue(vue: str, colonne: str, typ: str) -> str:
 
 
 # ---------------------------------------------------------------- libellés
-FORMATS = {
-    "application/pdf": "PDF", "text/plain": "Texte", "text/markdown": "Markdown",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "Word",
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation": "PowerPoint",
-}
 TYPES = [(1, "findings", "Constats"), (2, "roadmap", "Feuille de route"),
          (3, "tor", "Termes de référence"), (4, "cdc", "Cahier des charges")]
-TYPES_COURTS = {"1": "constats", "2": "feuille de route", "3": "TdR", "4": "CdC"}
-ETATS = {"draft": "Brouillon", "in_review": "En relecture", "approved": "Approuvé", "rejected": "Renvoyé"}
-DECISIONS = {"reference": "Référence", "retain": "À retenir", "inconclusive": "Non concluant",
-             "unsafe": "Rejetée : sécurité dégradée", "worse": "Moins bonne", "not_paired": "Non comparable"}
-MONTAGES = {"A": "Sans recherche", "B": "Référence", "C": "B + LoRA", "D": "Autre taille de modèle"}
-MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août",
-        "Septembre", "Octobre", "Novembre", "Décembre"]
+TYPES_COURTS = {"findings": "Constats", "roadmap": "Feuille de route", "tor": "TdR", "cdc": "CdC"}
+ETATS = [("draft", "Brouillon", 1), ("in_review", "En relecture", 2), ("approved", "Approuvé", 3),
+         ("rejected", "Renvoyé", 4)]
+GRAVITES = [("high", "Élevée", 1), ("medium", "Moyenne", 2), ("low", "Faible", 3)]
+CONTROLES = {"ok": "Cohérent", "ecart": "Écart", "non_detectees": "Non détectées",
+             "non_lu": "Pas encore lu"}
+STATUTS_RECO = {"proposed": "À valider", "validated": "Validée", "deleted": "Supprimée", "merged": "Fusionnée"}
+ORIGINES = {"rules": "Relevée dans le rapport", "consultant": "Ajoutée par le consultant"}
+RESULTATS = {"ok": "Réussi", "refused": "Refus voulu (preuve insuffisante)", "invalid": "Sortie invalide"}
+AVEC_ERREUR = "Réussi, avec phrase ou citation fautive"
+MODELES = {"base": "Modèle de base", "essai1": "Essai 1", "v4": "v4 (adopté)", "v5": "v5"}
+MOIS = ["Janv.", "Févr.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."]
 VERS_DATE = ("(k as number) as date => #date(Number.IntegerDivide(k, 10000), "
              "Number.Mod(Number.IntegerDivide(k, 100), 100), Number.Mod(k, 100))")
-CLE_DU_JOUR = "Date.Year([jour]) * 10000 + Date.Month([jour]) * 100 + Date.Day([jour])"
+DEMO, REEL = "Démonstration", "Réelles"
+
+
+def libelle_modele() -> str:
+    """« ollama:cadrage-4b-lora » → « Qwen3-4B + LoRA v4 » ; tout modèle de démo porte [DÉMO]."""
+    return ('each if [is_demo] = 1 then "[DÉMO] modèle de démonstration" '
+            'else if Text.Contains([model_name] ?? "", "lora") then "Qwen3-4B + LoRA v4 (adopté)" '
+            'else if Text.Contains([model_name] ?? "", "base") then "Qwen3-4B de base" '
+            'else [model_name] ?? "Inconnu", type text')
+
+
+def sections_m() -> str:
+    """Libellé lisible et rôle de chaque section, lus dans les gabarits (backend/app/generation/templates)."""
+    from sections import sections
+    return m_table([("cle", "text"), ("libelle", "text"), ("role", "text"), ("livrable", "text")], sections())
 
 
 def types_m() -> str:
-    return m_table([("type_key", "Int64.Type"), ("type_code", "text"), ("libelle", "text")], TYPES)
+    return m_table([("type_key", "Int64.Type"), ("type_code", "text"), ("libelle", "text"), ("court", "text")],
+                   [(k, c, lib, TYPES_COURTS[c]) for k, c, lib in TYPES])
+
+
+def ordre(colonne: str, paires: dict[str, int]) -> str:
+    texte = {k: str(v) for k, v in paires.items()}
+    return f'each Number.From(Record.FieldOrDefault({m_libelles(texte)}, [{colonne}], "9")), Int64.Type'
 
 
 # ---------------------------------------------------------------- tables de faits
@@ -139,182 +161,203 @@ def tables_de_faits() -> dict[str, str]:
     cols = [
         Col("date_key", "Clé de date", ENTIER), Col("mission_key", "Clé de mission", ENTIER),
         Col("author_key", "Clé de consultant", ENTIER), Col("type_code", "Code du type"),
+        Col("section_code", "Code de section"), Col("model_name", "Nom du modèle"),
         Col("status", "Statut"), Col("sentences_total", "Phrases produites", ENTIER),
         Col("sentences_verified", "Phrases validées", ENTIER),
+        Col("sentences_warning", "Phrases à revoir", ENTIER),
+        Col("sentences_failed", "Phrases non vérifiées", ENTIER),
         Col("citations_total", "Citations produites", ENTIER),
-        Col("citations_valid", "Citations valides en nombre", ENTIER),
+        Col("citations_valid", "Citations valides", ENTIER),
+        Col("latency_ms", "Durée en ms", ENTIER), Col("is_demo", "Est une démonstration", ENTIER),
+        Col("cle_section", "Clé de section", ajoutee=True),
+        Col("resultat", "Résultat", masquee=False, ajoutee=True),
+        Col("modele", "Modèle", masquee=False, ajoutee=True),
+        Col("en_erreur", "En erreur", ENTIER, ajoutee=True),
     ]
-    t["Générations"] = table_tmdl("Générations", cols, depuis_vue("v_generation", cols), masquee=True)
-
-    cols = [
-        Col("date_key", "Clé de date", ENTIER), Col("mission_key", "Clé de mission", ENTIER),
-        Col("type_key", "Clé de type", ENTIER), Col("author_key", "Clé de consultant", ENTIER),
-        Col("unchanged", "Sans retouche", ENTIER), Col("was_refused", "Refusée", ENTIER),
-    ]
-    t["Sections approuvées"] = table_tmdl("Sections approuvées", cols, depuis_vue("v_outcome", cols), masquee=True)
+    t["Générations"] = table_tmdl("Générations", cols, depuis_vue("v_generation", cols) + [
+        ("AvecSection", 'Table.AddColumn(Typage, "cle_section", each [type_code] & "|" & [section_code], type text)'),
+        # Un refus faute de preuve est le comportement voulu : ce n'est pas une erreur.
+        ("AvecErreur", 'Table.AddColumn(AvecSection, "en_erreur", each if [status] = "invalid" or '
+                       '([status] = "ok" and ([sentences_failed] > 0 or [citations_valid] < [citations_total])) '
+                       'then 1 else 0, Int64.Type)'),
+        ("AvecResultat", f'Table.AddColumn(AvecErreur, "resultat", each if [status] = "ok" and [en_erreur] = 1 then '
+                         f'{m_texte(AVEC_ERREUR)} else Record.FieldOrDefault({m_libelles(RESULTATS)}, [status], "Autre"), '
+                         'type text)'),
+        ("AvecModele", f'Table.AddColumn(AvecResultat, "modele", {libelle_modele()})'),
+    ])
 
     cols = [
         Col("deliverable_id", "Identifiant du livrable"), Col("mission_key", "Clé de mission", ENTIER),
-        Col("mission_name", "Mission d'origine"), Col("type_key", "Clé de type", ENTIER),
-        Col("author_key", "Clé de consultant", ENTIER), Col("reviewer_key", "Clé de responsable", ENTIER),
-        Col("dossier", "Livrable", masquee=False, ajoutee=True),
-        Col("state", "Code d'état"), Col("etat", "État", masquee=False, ajoutee=True),
-        Col("approved_date_key", "Clé d'approbation", ENTIER),
-        Col("submitted_date_key", "Clé de soumission", ENTIER),
-        Col("as_of", "Date de situation"), Col("state_age_hours", "Heures dans l'état", DECIMAL),
-        Col("idle_hours", "Heures sans activité", DECIMAL), Col("returned", "Renvoyé", ENTIER),
-        Col("reason_code", "Code du motif"), Col("motif", "Motif du renvoi", masquee=False, ajoutee=True),
-        Col("refused_sections", "Sections sans preuve", ENTIER),
-        Col("blocking_open", "Phrases bloquantes", ENTIER),
-        Col("citations_total", "Citations finales", ENTIER),
+        Col("type_key", "Clé de type", ENTIER), Col("author_key", "Clé de consultant", ENTIER),
+        Col("reviewer_key", "Clé de responsable", ENTIER), Col("created_date_key", "Clé de création", ENTIER),
+        Col("state", "Code d'état"), Col("blocking_open", "Phrases bloquantes", ENTIER),
         Col("citations_invalid", "Citations sans source", ENTIER),
-        Col("delay_hours", "Délai en heures", DECIMAL),
-        Col("first_rejected", "Renvoyé en première relecture", ENTIER),
-        Col("risk", "Risque", DECIMAL), Col("risk_low", "Risque bas", DECIMAL),
-        Col("risk_high", "Risque haut", DECIMAL), Col("risk_n", "Risque effectif", ENTIER),
-        Col("is_demo", "Est une démonstration", ENTIER),
+        Col("etat", "État", masquee=False, ajoutee=True, tri="Ordre d'état"),
+        Col("ordre", "Ordre d'état", ENTIER, ajoutee=True),
     ]
-    motifs = {code: libelle for code, libelle, _ in pilotage.REASONS}
     t["Livrables"] = table_tmdl("Livrables", cols, depuis_vue("v_deliverable", cols) + [
-        ("AvecNom", 'Table.AddColumn(Typage, "dossier", each [mission_name] & " · " & '
-                    f'Record.FieldOrDefault({m_libelles(TYPES_COURTS)}, Text.From([type_key]), "autre"), type text)'),
-        ("AvecEtat", f'Table.AddColumn(AvecNom, "etat", {m_libelle("state", ETATS, "Inconnu")})'),
-        ("AvecMotif", f'Table.AddColumn(AvecEtat, "motif", {m_libelle("reason_code", motifs, "—")})'),
+        ("AvecEtat", f'Table.AddColumn(Typage, "etat", {m_libelle("state", {c: l for c, l, _ in ETATS}, "Inconnu")})'),
+        ("AvecOrdre", f'Table.AddColumn(AvecEtat, "ordre", {ordre("state", {c: o for c, _, o in ETATS})})'),
     ])
 
     cols = [
-        Col("deliverable_id", "Identifiant du livrable"),
-        Col("section_title", "Section", masquee=False),
-        Col("blocking", "Bloquantes", ENTIER), Col("citations_invalid", "Sans source", ENTIER),
-        Col("refused", "Refus", ENTIER), Col("priority", "Priorité de section", ENTIER),
-        Col("libelle", "Section à revoir", masquee=False, ajoutee=True),
+        Col("finding_id", "Identifiant du constat"), Col("mission_key", "Clé de mission", ENTIER),
+        Col("severity", "Code de gravité"), Col("axis", "Axe", masquee=False),
+        Col("validated", "Validé", ENTIER),
+        Col("gravite", "Gravité", masquee=False, ajoutee=True, tri="Ordre de gravité"),
+        Col("ordre", "Ordre de gravité", ENTIER, ajoutee=True),
     ]
-    t["Sections courantes"] = table_tmdl("Sections courantes", cols, depuis_vue("v_section_current", cols) + [
-        ("Livres", lu("v_deliverable", deliverable_id=TEXTE, mission_name=TEXTE)),
-        ("Jointure", 'Table.NestedJoin(Typage, {"deliverable_id"}, Livres, {"deliverable_id"}, "l", JoinKind.LeftOuter)'),
-        ("AvecMission", 'Table.ExpandTableColumn(Jointure, "l", {"mission_name"})'),
-        ("AvecLibelle", 'Table.AddColumn(AvecMission, "libelle", each [section_title] & " · " & [mission_name], type text)'),
-        ("Utiles", 'Table.RemoveColumns(AvecLibelle, {"mission_name"})'),
-    ])
-
-    cols = [Col("deliverable_id", "Identifiant du livrable"), Col("rule_code", "Code de règle signalée")]
-    t["Actions"] = table_tmdl("Actions", cols, depuis_vue("v_action", cols), masquee=True)
-
-    cols = [
-        Col("forecast_key", "Clé de prévision", ENTIER), Col("client_name", "Client prévu"),
-        Col("type_key", "Clé de type prévu", ENTIER), Col("author_key", "Clé de personne prévue", ENTIER),
-        Col("reviewer_key", "Clé de responsable prévu", ENTIER),
-        Col("rang", "Rang de périmètre", ENTIER, ajoutee=True),
-        Col("status", "Statut de prévision"), Col("weeks", "Semaines", ENTIER),
-        Col("events", "Soumissions", ENTIER), Col("origins", "Origines", ENTIER),
-        Col("point", "Point", DECIMAL), Col("low", "Bas", DECIMAL), Col("high", "Haut", DECIMAL),
-        Col("mae", "Erreur", DECIMAL), Col("mae_naive", "Erreur naïve", DECIMAL),
-        Col("risk_status", "Statut du risque"), Col("risk_brier", "Brier", DECIMAL),
-        Col("risk_brier_naive", "Brier naïf", DECIMAL), Col("risk_tested", "Cas testés", ENTIER),
-        Col("perimetre_client", "Périmètre client", ajoutee=True),
-        Col("perimetre_type", "Périmètre type", ajoutee=True),
-        Col("perimetre_consultant", "Périmètre consultant", ajoutee=True),
-    ]
-    types = m_libelles({str(k): libelle for k, _, libelle in TYPES})
-    t["Prévisions"] = table_tmdl("Prévisions", cols, depuis_vue("v_forecast", cols) + [
-        ("AvecClient", 'Table.AddColumn(Typage, "perimetre_client", each if [client_name] = null or [client_name] = "" '
-                       f'then {m_texte(TOUS)} else [client_name], type text)'),
-        ("AvecType", 'Table.AddColumn(AvecClient, "perimetre_type", each if [type_key] = null '
-                     f'then {m_texte(TOUS)} else Record.FieldOrDefault({types}, Text.From([type_key]), "Autre"), type text)'),
-        ("Gens", lu("v_person", user_key=ENTIER, user_label=TEXTE)),
-        ("Jointure", 'Table.NestedJoin(AvecType, {"author_key"}, Gens, {"user_key"}, "p", JoinKind.LeftOuter)'),
-        ("AvecNom", 'Table.ExpandTableColumn(Jointure, "p", {"user_label"})'),
-        ("AvecRang", 'Table.AddColumn(AvecNom, "rang", each (if [author_key] = null then 0 else 1) '
-                     '+ (if [reviewer_key] = null then 0 else 2), Int64.Type)'),
-        ("AvecPersonne", 'Table.AddColumn(AvecRang, "perimetre_consultant", each if [author_key] = null '
-                         f'then {m_texte(TOUS)} else [user_label], type text)'),
-        ("Utiles", 'Table.RemoveColumns(AvecPersonne, {"user_label"})'),
-    ], masquee=True)
-
-    cols = [
-        Col("forecast_key", "Clé de prévision", ENTIER),
-        Col("period_end", "Fin de quinzaine", DATE, masquee=False),
-        Col("actual", "Réel", ENTIER), Col("point", "Point prévu", DECIMAL),
-        Col("low", "Borne basse prévue", DECIMAL), Col("high", "Borne haute prévue", DECIMAL),
-    ]
-    t["Série de prévision"] = table_tmdl("Série de prévision", cols, depuis_vue("v_forecast_point", cols))
-
-    cols = [Col("as_of", "Date de situation", ajoutee=True), Col("is_demo", "Est une démonstration", ENTIER, ajoutee=True)]
-    # Une ligne, hors RLS : date et nature des données, qui doivent rester visibles pour tous les rôles.
-    t["Source des données"] = table_tmdl("Source des données", cols, [
-        ("Tous", lu("v_deliverable", as_of=TEXTE, is_demo=ENTIER)),
-        ("Resultat", '#table(type table [as_of = text, is_demo = Int64.Type], '
-                     '{{List.Max(Tous[as_of]), List.Max(Tous[is_demo], 0)}})'),
-    ], masquee=True)
-
-    cols = [
-        Col("config_label", "Configuration", masquee=False), Col("model_name", "Modèle du banc"),
-        Col("adapter", "Adaptation"), Col("has_retrieval", "Avec recherche", ENTIER),
-        Col("montage", "Montage", ajoutee=True),
-        Col("n_sections", "Sections du banc", ENTIER), Col("tpv", "TPV", DECIMAL),
-        Col("tpv_low", "TPV bas", DECIMAL), Col("tpv_high", "TPV haut", DECIMAL),
-        Col("delta", "Écart", DECIMAL), Col("delta_low", "Écart bas", DECIMAL),
-        Col("delta_high", "Écart haut", DECIMAL), Col("decision", "Code de décision"),
-        Col("verdict", "Décision", ajoutee=True),
-        Col("citation_validity", "Citations valides", DECIMAL), Col("number_fidelity", "Chiffres fidèles", DECIMAL),
-        Col("attack_success", "Attaques réussies", DECIMAL), Col("latency_p95_ms", "Latence p95", DECIMAL),
-        Col("simulated", "Simulé", ENTIER),
-    ]
-    t["Banc"] = table_tmdl("Banc", cols, depuis_vue("v_bench", cols) + [
-        # Un résultat simulé n'est pas une mesure ; le protocole reste lisible sans résultat.
-        ("Mesures", "Table.Buffer(Table.SelectRows(Typage, each [simulated] <> 1))"),
-        ("Absentes", "Table.SelectRows(" + m_table([("config_label", "text")], [(k,) for k in MONTAGES])
-                     + ', each not List.Contains(Table.Column(Mesures, "config_label"), [config_label]))'),
-        ("Completees", "Table.Combine({Mesures, Absentes})"),
-        ("AvecMontage", 'Table.AddColumn(Completees, "montage", each if [model_name] = null '
-                        f'then Record.FieldOrDefault({m_libelles(MONTAGES)}, [config_label], "") else [model_name] & '
-                        '(if [adapter] = null or [adapter] = "" then "" else " + LoRA") & '
-                        '(if [has_retrieval] = 1 then "" else ", sans recherche"), type text)'),
-        ("AvecVerdict", f'Table.AddColumn(AvecMontage, "verdict", {m_libelle("decision", DECISIONS, "Non mesuré")})'),
+    t["Constats"] = table_tmdl("Constats", cols, depuis_vue("v_finding", cols) + [
+        ("AvecGravite", f'Table.AddColumn(Typage, "gravite", '
+                        f'{m_libelle("severity", {c: l for c, l, _ in GRAVITES}, "Non précisée")})'),
+        ("AvecOrdre", f'Table.AddColumn(AvecGravite, "ordre", {ordre("severity", {c: o for c, _, o in GRAVITES})})'),
     ])
 
     cols = [
-        Col("mission_key", "Clé de mission", ENTIER), Col("mime", "Code de format"),
-        Col("format", "Format", masquee=False, ajoutee=True), Col("injection_alert_count", "Alertes", ENTIER),
+        Col("initiative_id", "Identifiant de l'initiative"), Col("mission_key", "Clé de mission", ENTIER),
+        Col("axis", "Axe de l'initiative", masquee=False), Col("wave", "Numéro de vague", ENTIER),
+        Col("rank", "Rang", ENTIER), Col("findings", "Constats traités", ENTIER),
+        Col("vague", "Vague", masquee=False, ajoutee=True, tri="Numéro de vague"),
     ]
-    t["Documents"] = table_tmdl("Documents", cols, depuis_vue("v_security", cols) + [
-        ("AvecFormat", f'Table.AddColumn(Typage, "format", {m_libelle("mime", FORMATS, "Autre")})'),
+    t["Initiatives"] = table_tmdl("Initiatives", cols, depuis_vue("v_initiative", cols) + [
+        ("AvecVague", 'Table.AddColumn(Typage, "vague", each "Vague " & Text.From([wave] ?? 0), type text)'),
+    ])
+
+    cols = [
+        Col("document_key", "Clé de document", ENTIER), Col("mission_key", "Clé de mission", ENTIER),
+        Col("report_label", "Rapport", masquee=False), Col("pages", "Pages", ENTIER),
+        Col("expected", "Annoncées", ENTIER), Col("extracted", "Retenues", ENTIER),
+        Col("validated", "Validées", ENTIER), Col("missing", "Manquantes", ENTIER),
+        Col("duplicates", "Doublons", ENTIER), Col("missing_list", "Numéros manquants"),
+        Col("status", "Code du contrôle"),
+        Col("controle", "Contrôle", masquee=False, ajoutee=True),
+        Col("alerte", "En alerte", ENTIER, ajoutee=True),
+        Col("projet", "Projet du rapport", masquee=False, ajoutee=True),
+    ]
+    t["Rapports"] = table_tmdl("Rapports", cols, depuis_vue("v_report_check", cols) + [
+        ("AvecControle", f'Table.AddColumn(Typage, "controle", {m_libelle("status", CONTROLES, "Inconnu")})'),
+        ("AvecAlerte", 'Table.AddColumn(AvecControle, "alerte", each if List.Contains({"ecart", "non_detectees"}, '
+                       '[status]) then 1 else 0, Int64.Type)'),
+        ("Noms", lu("v_project", mission_key=ENTIER, mission_name=TEXTE)),
+        ("Jointure", 'Table.NestedJoin(AvecAlerte, {"mission_key"}, Noms, {"mission_key"}, "p", JoinKind.LeftOuter)'),
+        ("AvecNom", 'Table.ExpandTableColumn(Jointure, "p", {"mission_name"})'),
+        ("AvecProjet", 'Table.AddColumn(AvecNom, "projet", each [mission_name], type text)'),
+        ("Utiles", 'Table.RemoveColumns(AvecProjet, {"mission_name"})'),
+    ])
+
+    cols = [
+        Col("recommendation_id", "Identifiant de la recommandation"), Col("document_key", "Clé de document", ENTIER),
+        Col("number", "Numéro", ENTIER), Col("page", "Page", ENTIER), Col("status", "Code du statut"),
+        Col("origin", "Code de l'origine"),
+        Col("statut", "Statut", masquee=False, ajoutee=True), Col("origine", "Origine", masquee=False, ajoutee=True),
+        Col("active", "Active", ENTIER, ajoutee=True),
+    ]
+    t["Recommandations"] = table_tmdl("Recommandations", cols, depuis_vue("v_recommendation", cols) + [
+        ("AvecStatut", f'Table.AddColumn(Typage, "statut", {m_libelle("status", STATUTS_RECO, "Inconnu")})'),
+        ("AvecOrigine", f'Table.AddColumn(AvecStatut, "origine", {m_libelle("origin", ORIGINES, "Inconnue")})'),
+        ("AvecActive", 'Table.AddColumn(AvecOrigine, "active", each if List.Contains({"proposed", "validated"}, '
+                       '[status]) then 1 else 0, Int64.Type)'),
+    ])
+
+    cols = [
+        Col("run_id", "Code de l'essai"), Col("label", "Essai", masquee=False, tri="Clé de date d'essai"),
+        Col("run_date_key", "Clé de date d'essai", ENTIER), Col("platform", "Plateforme", masquee=False),
+        Col("gpu", "GPU", masquee=False), Col("examples", "Exemples d'entraînement", ENTIER),
+        Col("test_examples", "Exemples de test", ENTIER), Col("duration_min", "Durée en minutes", DECIMAL),
+        Col("stop_step", "Pas d'arrêt", ENTIER), Col("best_step", "Meilleur pas", ENTIER),
+        Col("best_val_loss", "Meilleure erreur de validation", DECIMAL), Col("adopted", "Adopté", ENTIER),
+        Col("outcome", "Résultat de l'essai", masquee=False),
+        Col("date", "Date de l'essai", DATE, masquee=False, ajoutee=True),
+    ]
+    t["Entraînements"] = table_tmdl("Entraînements", cols, depuis_vue("v_training_run", cols) + [
+        ("VersDate", VERS_DATE),
+        ("AvecDate", 'Table.AddColumn(Typage, "date", each VersDate([run_date_key]), type date)'),
+    ])
+
+    cols = [Col("run_id", "Code de l'essai"), Col("step", "Pas", ENTIER, masquee=False),
+            Col("val_loss", "Erreur de validation", DECIMAL), Col("is_best", "Meilleur", ENTIER)]
+    t["Courbe de validation"] = table_tmdl("Courbe de validation", cols, depuis_vue("v_training_point", cols))
+
+    cols = [Col("run_id", "Code de l'essai"), Col("model", "Code du modèle"), Col("task", "Tâche", masquee=False),
+            Col("correct", "Réussis", ENTIER), Col("total", "Total", ENTIER),
+            Col("modele", "Modèle testé", masquee=False, ajoutee=True, tri="Ordre du modèle"),
+            Col("ordre", "Ordre du modèle", ENTIER, ajoutee=True)]
+    t["Scores"] = table_tmdl("Scores", cols, depuis_vue("v_training_score", cols) + [
+        ("AvecModele", f'Table.AddColumn(Typage, "modele", {m_libelle("model", MODELES, "Autre")})'),
+        ("AvecOrdre", f'Table.AddColumn(AvecModele, "ordre", {ordre("model", {k: i for i, k in enumerate(MODELES)})})'),
     ])
     return t
 
 
 # ---------------------------------------------------------------- dimensions et choix
-def choix(nom: str, libelle: str, tous: str, valeurs: str) -> str:
-    """Table de segment : la valeur « Tous » pointe vers chaque membre, chaque membre vers lui-même."""
+def choix(nom: str, libelle: str, tous: str, valeurs: str, rangs: str | None = None,
+          avant: list[tuple[str, str]] | None = None) -> str:
+    """Table de segment : « Tous » pointe vers chaque membre, chaque membre vers lui-même.
+
+    `rangs` : liste M parallèle à `valeurs` qui donne l'ordre (sinon l'ordre alphabétique).
+    """
+    if rangs is None:
+        etapes = [("Valeurs", f"List.Buffer(List.Sort(List.Distinct(List.RemoveNulls({valeurs}))))")]
+    else:
+        etapes = [("Paires", f"List.Distinct(List.Zip({{{valeurs}, {rangs}}}))"),
+                  ("Triees", "List.Sort(List.Select(Paires, each _{0} <> null), (a, b) => Value.Compare(a{1}, b{1}))"),
+                  ("Valeurs", "List.Buffer(List.Transform(Triees, each _{0}))")]
     return table_tmdl(nom, [
         Col("choix", libelle, masquee=False, tri="Rang"), Col("cible", "Cible"), Col("rang", "Rang", ENTIER),
-    ], [
-        ("Valeurs", f"List.Buffer(List.Sort(List.Distinct(List.RemoveNulls({valeurs}))))"),
+    ], (avant or []) + etapes + [
         ("Toutes", f"List.Transform(Valeurs, each {{{m_texte(tous)}, _, 0}})"),
-        ("Chacune", "List.Transform(Valeurs, each {_, _, List.PositionOf(Valeurs, _) + 1})"),
+        ("Chacune", "List.Transform(List.Positions(Valeurs), each {Valeurs{_}, Valeurs{_}, _ + 1})"),
         ("Resultat", '#table(type table [choix = text, cible = text, rang = Int64.Type], Toutes & Chacune)'),
     ])
 
 
 def dimensions() -> dict[str, str]:
     t = {}
-
-    t["Missions"] = table_tmdl("Missions", [
-        Col("mission_key", "Clé de mission", ENTIER), Col("mission_name", "Mission", masquee=False),
-        Col("client_name", "Client", masquee=False),
-    ], [
-        ("Suivies", lu("v_deliverable", mission_key=ENTIER, mission_name=TEXTE, client_name=TEXTE)),
-        ("Actives", lu("v_generation", mission_key=ENTIER, mission_name=TEXTE, client_name=TEXTE)),
-        ("Importees", lu("v_security", mission_key=ENTIER, mission_name=TEXTE)),
-        ("SansClient", 'Table.AddColumn(Importees, "client_name", each "Non renseigné", type text)'),
-        # Table.Buffer fige l'ordre : le client connu l'emporte sur « Non renseigné »
-        ("Resultat", 'Table.Distinct(Table.Buffer(Table.Combine({Suivies, Actives, SansClient})), {"mission_key"})'),
+    cols = [
+        Col("mission_key", "Clé de mission", ENTIER), Col("mission_name", "Projet", masquee=False),
+        Col("client_name", "Client", masquee=False), Col("sector", "Secteur", masquee=False),
+        Col("request_summary", "Demande du client", masquee=False),
+        Col("start_date_key", "Clé de début", ENTIER), Col("end_date_key", "Clé de fin", ENTIER),
+        Col("logo", "Logo", masquee=False, categorie="ImageUrl"),
+        Col("documents", "Documents", ENTIER), Col("audit_reports", "Rapports d'audit", ENTIER),
+        Col("is_demo", "Est une démonstration", ENTIER),
+        Col("donnees", "Données", masquee=False, ajoutee=True),
+        Col("debut", "Début", DATE, masquee=False, ajoutee=True), Col("fin", "Fin", DATE, masquee=False, ajoutee=True),
+    ]
+    t["Projets"] = table_tmdl("Projets", cols, depuis_vue("v_project", cols) + [
+        ("VersDate", VERS_DATE),
+        ("AvecDonnees", f'Table.AddColumn(Typage, "donnees", each if [is_demo] = 1 then {m_texte(DEMO)} '
+                        f'else {m_texte(REEL)}, type text)'),
+        ("AvecDebut", 'Table.AddColumn(AvecDonnees, "debut", each if [start_date_key] = null then null '
+                      'else VersDate([start_date_key]), type date)'),
+        ("AvecFin", 'Table.AddColumn(AvecDebut, "fin", each if [end_date_key] = null then null '
+                    'else VersDate([end_date_key]), type date)'),
     ])
 
     t["Types de livrable"] = table_tmdl("Types de livrable", [
         Col("type_key", "Clé de type", ENTIER), Col("type_code", "Code du type"),
         Col("libelle", "Type de livrable", masquee=False, tri="Clé de type"),
+        Col("court", "Type", masquee=False, tri="Clé de type"),
     ], [("Resultat", types_m())])
+
+    t["Sections"] = table_tmdl("Sections", [
+        Col("cle", "Clé de section"), Col("libelle", "Section", masquee=False),
+        Col("role", "À quoi sert la section", masquee=False), Col("livrable", "Livrable de la section", masquee=False),
+    ], [("Gabarits", sections_m()),
+        ("Vues", lu("v_generation", type_code=TEXTE, section_code=TEXTE, section_title=TEXTE)),
+        ("Cles", 'Table.Distinct(Table.AddColumn(Vues, "cle", each [type_code] & "|" & [section_code], type text), {"cle"})'),
+        ("Absentes", 'Table.SelectRows(Cles, each not List.Contains(Gabarits[cle], [cle]))'),
+        ("AvecLibelle", 'Table.AddColumn(Absentes, "libelle", each [section_title], type text)'),
+        ("AvecRole", 'Table.AddColumn(AvecLibelle, "role", each "Section sans description dans les gabarits", type text)'),
+        ("AvecLivrable", f'Table.AddColumn(AvecRole, "livrable", each Record.FieldOrDefault('
+                         f'{m_libelles(TYPES_COURTS)}, [type_code], "Autre"), type text)'),
+        ("Resultat", 'Table.Combine({Gabarits, Table.SelectColumns(AvecLivrable, {"cle", "libelle", "role", "livrable"})})')])
+
+    t["Types d'erreur"] = table_tmdl("Types d'erreur", [
+        Col("code", "Code d'erreur"), Col("libelle", "Type d'erreur", masquee=False, tri="Ordre d'erreur"),
+        Col("ordre", "Ordre d'erreur", ENTIER), Col("explication", "Explication", masquee=False),
+    ], [("Resultat", m_table([("code", "text"), ("libelle", "text"), ("ordre", "Int64.Type"), ("explication", "text")],
+                             ERREURS))])
 
     t["Personnes"] = table_tmdl("Personnes", [
         Col("user_key", "Clé de personne", ENTIER), Col("user_label", "Consultant", masquee=False),
@@ -325,57 +368,57 @@ def dimensions() -> dict[str, str]:
         ("Resultat", "Table.SelectRows(Gens, each List.Contains(Auteurs, [user_key]))"),
     ])
 
+    mois = "{" + ", ".join(map(m_texte, MOIS)) + "}"
     bornes = [
         ("Cles", f'List.Buffer(List.RemoveNulls(List.Combine({{{colonne_lue("v_generation", "date_key", ENTIER)}, '
-                 f'{colonne_lue("v_deliverable", "approved_date_key", ENTIER)}, '
-                 f'{colonne_lue("v_deliverable", "submitted_date_key", ENTIER)}}})))'),
+                 f'{colonne_lue("v_deliverable", "created_date_key", ENTIER)}}})))'),
         ("VersDate", VERS_DATE),
         ("Premier", "VersDate(List.Min(Cles, 20260101))"),
         ("Dernier", "VersDate(List.Max(Cles, 20261231))"),
         ("Jours", "List.Dates(Date.StartOfMonth(Premier), "
                   "Duration.Days(Date.EndOfMonth(Dernier) - Date.StartOfMonth(Premier)) + 1, #duration(1, 0, 0, 0))"),
+        ("NomMois", f'(d as date) as text => {mois}{{Date.Month(d) - 1}} & " " & Text.From(Date.Year(d))'),
     ]
     t["Calendrier"] = table_tmdl("Calendrier", [
         Col("jour", "Date", DATE, masquee=False), Col("date_key", "Clé de date", ENTIER),
+        Col("mois_key", "Clé de mois", ENTIER), Col("mois", "Mois", masquee=False, tri="Clé de mois"),
+        Col("jour_court", "Jour", masquee=False, tri="Clé de date"),
+        Col("semaine_key", "Clé de semaine", ENTIER),
+        Col("semaine", "Semaine", masquee=False, tri="Clé de semaine"),
     ], bornes + [
         ("Base", "Table.FromColumns({Jours}, type table [jour = date])"),
-        ("AvecCle", f'Table.AddColumn(Base, "date_key", each {CLE_DU_JOUR}, Int64.Type)'),
+        ("AvecCle", 'Table.AddColumn(Base, "date_key", each Date.Year([jour]) * 10000 + Date.Month([jour]) * 100 '
+                    '+ Date.Day([jour]), Int64.Type)'),
+        ("AvecMoisCle", 'Table.AddColumn(AvecCle, "mois_key", each Date.Year([jour]) * 100 + Date.Month([jour]), '
+                        'Int64.Type)'),
+        ("AvecMois", 'Table.AddColumn(AvecMoisCle, "mois", each NomMois([jour]), type text)'),
+        ("AvecJour", 'Table.AddColumn(AvecMois, "jour_court", each Text.PadStart(Text.From(Date.Day([jour])), 2, "0") '
+                     '& "/" & Text.PadStart(Text.From(Date.Month([jour])), 2, "0"), type text)'),
+        ("Lundi", "(d as date) as date => Date.StartOfWeek(d, Day.Monday)"),
+        ("AvecSemaineCle", 'Table.AddColumn(AvecJour, "semaine_key", each Date.Year(Lundi([jour])) * 10000 + '
+                           'Date.Month(Lundi([jour])) * 100 + Date.Day(Lundi([jour])), Int64.Type)'),
+        ("AvecSemaine", 'Table.AddColumn(AvecSemaineCle, "semaine", each '
+                        'Text.PadStart(Text.From(Date.Day(Lundi([jour]))), 2, "0") & "/" & '
+                        'Text.PadStart(Text.From(Date.Month(Lundi([jour]))), 2, "0"), type text)'),
     ])
-
-    mois = "{" + ", ".join(map(m_texte, MOIS)) + "}"
-    cle = "(d as date) as number => Date.Year(d) * 10000 + Date.Month(d) * 100 + Date.Day(d)"
-    t["Choix de période"] = table_tmdl("Choix de période", [
-        Col("choix", "Période choisie", masquee=False, tri="Rang"), Col("date_key", "Clé de date cible", ENTIER),
-        Col("rang", "Rang", ENTIER),
-    ], bornes + [
-        ("Cle", cle),
-        ("Historique", f"List.Transform(Jours, each {{{m_texte(TOUT)}, Cle(_), 0}})"),
-        ("Recentes4", 'List.Transform(List.Select(Jours, each _ > Date.AddDays(Dernier, -28) and _ <= Dernier), '
-                      'each {"4 dernières semaines", Cle(_), 1})'),
-        ("Recentes13", 'List.Transform(List.Select(Jours, each _ > Date.AddDays(Dernier, -91) and _ <= Dernier), '
-                       'each {"13 dernières semaines", Cle(_), 2})'),
-        ("ParMois", f'List.Transform(Jours, each {{{mois}{{Date.Month(_) - 1}} & " " & Text.From(Date.Year(_)), '
-                    "Cle(_), 300000 - (Date.Year(_) * 100 + Date.Month(_))})"),
-        ("Resultat", "#table(type table [choix = text, date_key = Int64.Type, rang = Int64.Type], "
-                     "Historique & Recentes4 & Recentes13 & ParMois)"),
-    ])
-
-    t["Choix du client"] = choix(
-        "Choix du client", "Client choisi", TOUS,
-        f'List.Combine({{{colonne_lue("v_deliverable", "client_name", TEXTE)}, '
-        f'{colonne_lue("v_generation", "client_name", TEXTE)}}})')
-    t["Choix du type"] = choix(
-        "Choix du type", "Type choisi", TOUS,
-        f'let Presents = List.Buffer({colonne_lue("v_deliverable", "type_key", ENTIER)}) in '
-        f'Table.Column(Table.SelectRows({types_m()}, each List.Contains(Presents, [type_key])), "libelle")')
+    t["Choix du mois"] = choix("Choix du mois", "Mois choisi", TOUS_MOIS, "List.Transform(Jours, each NomMois(_))",
+                               "List.Transform(Jours, each Date.Year(_) * 100 + Date.Month(_))", avant=bornes)
+    t["Choix des données"] = choix("Choix des données", "Données choisies", TOUTES_DONNEES,
+                                   f"{{{m_texte(REEL)}, {m_texte(DEMO)}}}", "{1, 2}")
+    t["Choix du projet"] = choix("Choix du projet", "Projet choisi", TOUS,
+                                 colonne_lue("v_project", "mission_name", TEXTE))
+    t["Choix du client"] = choix("Choix du client", "Client choisi", TOUS,
+                                 colonne_lue("v_project", "client_name", TEXTE))
+    t["Choix du type"] = choix("Choix du type", "Type choisi", TOUS, "{" + ", ".join(m_texte(l) for _, _, l in TYPES) + "}",
+                               "{1, 2, 3, 4}")
     t["Choix du consultant"] = choix(
         "Choix du consultant", "Consultant choisi", TOUS,
-        f'let Auteurs = List.Buffer({colonne_lue("v_deliverable", "author_key", ENTIER)}) in '
+        f'let Auteurs = List.Buffer(List.Combine({{{colonne_lue("v_deliverable", "author_key", ENTIER)}, '
+        f'{colonne_lue("v_generation", "author_key", ENTIER)}}})) in '
         f'Table.Column(Table.SelectRows({lu("v_person", user_key=ENTIER, user_label=TEXTE)}, '
         'each List.Contains(Auteurs, [user_key])), "user_label")')
 
     # Qui est qui pour la RLS : fichier hors entrepôt, jamais versionné (bi/acces.exemple.csv).
-    # Absent, il donne une table vide : les rôles Consultant et Responsable ne voient alors rien.
     t["Accès"] = table_tmdl("Accès", [
         Col("utilisateur", "Utilisateur"), Col("user_key", "Clé de personne autorisée", ENTIER),
     ], [
@@ -388,16 +431,6 @@ def dimensions() -> dict[str, str]:
         ("AvecCle", 'Table.ExpandTableColumn(Jointure, "p", {"user_key"})'),
         ("Resultat", 'Table.SelectColumns(AvecCle, {"utilisateur", "user_key"})'),
     ], masquee=True)
-
-    regles = [(r.code, r.priority, r.actor, r.label, r.population, r.threshold, r.action, "|".join(r.states))
-              for r in pilotage.RULES]
-    noms = [("code", "text"), ("priorite", "Int64.Type"), ("acteur", "text"), ("libelle", "text"),
-            ("population", "text"), ("seuil", "text"), ("action", "text"), ("etats", "text")]
-    t["Règles"] = table_tmdl("Règles", [
-        Col("code", "Code de règle"), Col("priorite", "Priorité", ENTIER), Col("acteur", "Acteur"),
-        Col("libelle", "Libellé"), Col("population", "Population"), Col("seuil", "Seuil"),
-        Col("action", "Action"), Col("etats", "États"),
-    ], [("Resultat", m_table(noms, regles))], masquee=True)
     return t
 
 
@@ -419,31 +452,30 @@ def indicateurs_tmdl() -> str:
                       [("Vide", "#table(type table [Colonne = text], {})")], mesures=blocs)
 
 
-ACTIVE, INACTIVE, CHOIX = "active", "inactive", "choix"
+ACTIVE, CHOIX = "active", "choix"
 RELATIONS = [
-    ("Générations", "Clé de mission", "Missions", "Clé de mission", ACTIVE),
-    ("Sections approuvées", "Clé de mission", "Missions", "Clé de mission", ACTIVE),
-    ("Livrables", "Clé de mission", "Missions", "Clé de mission", ACTIVE),
-    ("Documents", "Clé de mission", "Missions", "Clé de mission", ACTIVE),
+    ("Générations", "Clé de mission", "Projets", "Clé de mission", ACTIVE),
+    ("Livrables", "Clé de mission", "Projets", "Clé de mission", ACTIVE),
+    ("Constats", "Clé de mission", "Projets", "Clé de mission", ACTIVE),
+    ("Initiatives", "Clé de mission", "Projets", "Clé de mission", ACTIVE),
+    ("Rapports", "Clé de mission", "Projets", "Clé de mission", ACTIVE),
+    ("Recommandations", "Clé de document", "Rapports", "Clé de document", ACTIVE),
     ("Générations", "Code du type", "Types de livrable", "Code du type", ACTIVE),
-    ("Sections approuvées", "Clé de type", "Types de livrable", "Clé de type", ACTIVE),
     ("Livrables", "Clé de type", "Types de livrable", "Clé de type", ACTIVE),
     ("Générations", "Clé de consultant", "Personnes", "Clé de personne", ACTIVE),
-    ("Sections approuvées", "Clé de consultant", "Personnes", "Clé de personne", ACTIVE),
     ("Livrables", "Clé de consultant", "Personnes", "Clé de personne", ACTIVE),
     ("Générations", "Clé de date", "Calendrier", "Clé de date", ACTIVE),
-    ("Sections approuvées", "Clé de date", "Calendrier", "Clé de date", ACTIVE),
-    # La situation courante ne suit pas la période ; les flux l'activent par USERELATIONSHIP.
-    ("Livrables", "Clé d'approbation", "Calendrier", "Clé de date", INACTIVE),
-    ("Livrables", "Clé de soumission", "Calendrier", "Clé de date", INACTIVE),
-    ("Actions", "Identifiant du livrable", "Livrables", "Identifiant du livrable", ACTIVE),
-    ("Sections courantes", "Identifiant du livrable", "Livrables", "Identifiant du livrable", ACTIVE),
-    ("Série de prévision", "Clé de prévision", "Prévisions", "Clé de prévision", ACTIVE),
+    ("Livrables", "Clé de création", "Calendrier", "Clé de date", ACTIVE),
+    ("Générations", "Clé de section", "Sections", "Clé de section", ACTIVE),
+    ("Courbe de validation", "Code de l'essai", "Entraînements", "Code de l'essai", ACTIVE),
+    ("Scores", "Code de l'essai", "Entraînements", "Code de l'essai", ACTIVE),
     # Segments : le choix filtre la dimension, jamais l'inverse.
-    ("Missions", "Client", "Choix du client", "Cible", CHOIX),
+    ("Projets", "Données", "Choix des données", "Cible", CHOIX),
+    ("Projets", "Projet", "Choix du projet", "Cible", CHOIX),
+    ("Projets", "Client", "Choix du client", "Cible", CHOIX),
     ("Types de livrable", "Type de livrable", "Choix du type", "Cible", CHOIX),
     ("Personnes", "Consultant", "Choix du consultant", "Cible", CHOIX),
-    ("Calendrier", "Clé de date", "Choix de période", "Clé de date cible", CHOIX),
+    ("Calendrier", "Mois", "Choix du mois", "Cible", CHOIX),
 ]
 
 
@@ -451,8 +483,6 @@ def relations_tmdl() -> str:
     out = ""
     for i, (a, b, c, e, genre) in enumerate(RELATIONS, 1):
         out += f"relationship r{i:02d}\n"
-        if genre == INACTIVE:
-            out += "\tisActive: false\n"
         if genre == CHOIX:
             out += "\ttoCardinality: many\n\tcrossFilteringBehavior: oneDirection\n"
         out += f"\tfromColumn: {q(a)}.{q(b)}\n\ttoColumn: {q(c)}.{q(e)}\n\n"
@@ -460,43 +490,25 @@ def relations_tmdl() -> str:
 
 
 def roles_tmdl() -> dict[str, str]:
-    """Rôles RLS (bi/PUBLICATION.md). Ils ne filtrent que les Lecteurs d'un espace de travail du Service.
+    """Rôles RLS (bi/PUBLICATION.md), effectifs seulement pour les Lecteurs d'un espace du Service.
 
-    Le filtre est posé sur chaque table qui porte des données : le seul filtre de `Personnes` laisserait
-    visibles les missions, les documents, les listes de clients et les prévisions des autres.
+    Un consultant voit les projets où il a rédigé ou généré ; un responsable, ceux où il relit.
     """
     moi = ("CALCULATETABLE(VALUES('Accès'[Clé de personne autorisée]), "
            "'Accès'[Utilisateur] = USERPRINCIPALNAME())")
-    mon_acces = "'Accès'[Utilisateur] = USERPRINCIPALNAME()"
+    acces = "'Accès'[Utilisateur] = USERPRINCIPALNAME()"
 
-    def mes_livrables(colonne_acteur: str, colonne: str) -> str:
-        return (f"SELECTCOLUMNS(FILTER(Livrables, Livrables[{colonne_acteur}] IN {moi}), "
-                f"\"cle\", Livrables[{colonne}])")
+    def projets(colonne: str, aussi_generations: bool) -> str:
+        cles = f'SELECTCOLUMNS(FILTER(Livrables, Livrables[{colonne}] IN {moi}), "k", Livrables[Clé de mission])'
+        if aussi_generations:
+            cles = (f"UNION({cles}, SELECTCOLUMNS(FILTER('Générations', 'Générations'[Clé de consultant] IN {moi}), "
+                    "\"k\", 'Générations'[Clé de mission]))")
+        return f"'Projets'[Clé de mission] IN {cles}"
 
-    def perimetre(colonne_acteur: str) -> dict[str, str]:
-        missions = mes_livrables(colonne_acteur, "Clé de mission")
-        return {
-            "Livrables": f"Livrables[{colonne_acteur}] IN {moi}",
-            "Missions": f"'Missions'[Clé de mission] IN {missions}",
-            "Choix du client": ("'Choix du client'[Cible] IN SELECTCOLUMNS(FILTER(Missions, "
-                                f"Missions[Clé de mission] IN {missions}), \"client\", Missions[Client])"),
-            "Accès": mon_acces,
-        }
-
-    def personnes(cles: str) -> dict[str, str]:
-        return {
-            "Personnes": f"'Personnes'[Clé de personne] IN {cles}",
-            "Choix du consultant": ("'Choix du consultant'[Cible] IN SELECTCOLUMNS(FILTER(Personnes, "
-                                    f"Personnes[Clé de personne] IN {cles}), \"nom\", Personnes[Consultant])"),
-        }
-
-    prevu_auteur = f"'Prévisions'[Clé de personne prévue] IN {moi}"
-    prevu_relecteur = f"'Prévisions'[Clé de responsable prévu] IN {moi}"
     roles = {
-        "Consultant": {**perimetre("Clé de consultant"), **personnes(moi), "Prévisions": prevu_auteur},
-        "Responsable": {**perimetre("Clé de responsable"),
-                        **personnes(mes_livrables("Clé de responsable", "Clé de consultant")),
-                        "Prévisions": prevu_relecteur},
+        "Consultant": {"Projets": projets("Clé de consultant", True),
+                       "Personnes": f"'Personnes'[Clé de personne] IN {moi}", "Accès": acces},
+        "Responsable": {"Projets": projets("Clé de responsable", False), "Accès": acces},
         "Administration": {},
     }
     out = {}

@@ -31,7 +31,7 @@ européenne (53 pages, CC BY 4.0).
    qui exigent une décision humaine (budget, profil, calendrier) attendent cette décision. Sur demande, il **propose
    quand même** une section en citant constats et recommandations.
 6. **Vérifie chaque phrase** (la source existe ? le chiffre y figure ?) et la colore dans l'éditeur ; **validation à
-   deux** (consultant, puis responsable), versions, audit, exports Word / PowerPoint / PDF, tableau de bord Power BI.
+   deux** (consultant, puis responsable), versions, audit, exports Word / PowerPoint / PDF, tableau de bord Power BI de décision.
 
 ```mermaid
 flowchart LR
@@ -75,17 +75,18 @@ fidèles 97-99 % → **100 %** ; temps par section (p95) 37 s → **24 s**.
 16 constats, 19 initiatives, aucun constat oublié ; contexte des TdR rédigé et vérifié à 100 % ; 12 exigences
 fonctionnelles proposées, toutes vérifiées.
 
-## Tableau de bord du consultant (Power BI)
+## Tableau de bord de décision (Power BI)
 
-Un entrepôt de données (schéma en étoile, sans aucun texte client) alimente un rapport Power BI par acteur. Ci-dessous,
-la page du **consultant**, chargée avec les **vraies données** de l'application après le travail sur le rapport de la
-Cour (25/11/2026) : 12 livrables à traiter, 18 phrases à corriger (source ou chiffre non vérifié), les sections à
-compléter et, pour chaque problème, l'action conseillée. Le taux d'acceptation sans retouche reste « non mesuré » tant
-qu'aucun livrable n'a été validé : le rapport n'invente pas de chiffre.
+Un entrepôt de données (schéma en étoile, sans texte client) alimente un rapport Power BI de quatre pages et une page
+imprimable : synthèse avec trois actions à mener calculées par règles, fiche projet (logo, demande du client,
+recommandations par rapport d'audit, constats par axe, feuille de route), qualité de l'IA (erreurs par jour, par type,
+par modèle, alertes quand les recommandations extraites ne correspondent pas au rapport) et entraînements (courbes de
+validation, base contre v4 / v5 par tâche). Le projet de la Cour des comptes et les entraînements sont réels ; cinq
+projets « [DÉMO] », signalés sur chaque visuel, montrent la comparaison entre projets.
 
-![Tableau de bord du consultant](docs/img/powerbi-consultant.png)
+![Synthèse du tableau de bord](docs/img/powerbi-synthese.png)
 
-Indicateurs et formules : [`bi/KPI.md`](bi/KPI.md) ; autres pages (responsable, administration) : [`bi/README.md`](bi/README.md).
+Pages, indicateurs et règles : [`bi/README.md`](bi/README.md), [`bi/pages.md`](bi/pages.md), [`bi/KPI.md`](bi/KPI.md).
 
 ## Entraînement
 

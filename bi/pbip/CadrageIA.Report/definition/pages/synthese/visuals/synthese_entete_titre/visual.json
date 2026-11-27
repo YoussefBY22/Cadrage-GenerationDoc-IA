@@ -3,11 +3,11 @@
   "name": "synthese_entete_titre",
   "position": {
     "x": 308,
-    "y": 22,
-    "z": 1700,
-    "width": 700,
-    "height": 54,
-    "tabOrder": 1700
+    "y": 20,
+    "z": 2000,
+    "width": 760,
+    "height": 50,
+    "tabOrder": 2000
   },
   "visual": {
     "visualType": "shape",
@@ -76,7 +76,7 @@
             "fontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "24D"
+                  "Value": "23D"
                 }
               }
             },

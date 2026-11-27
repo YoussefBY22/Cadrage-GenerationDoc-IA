@@ -1,4 +1,4 @@
-"""Les 14 vues de Power BI (07 §4), en SQL portable SQLite / PostgreSQL.
+"""Les 22 vues de Power BI (07 §4), en SQL portable SQLite / PostgreSQL.
 
 Pas de fonction propre à un moteur : les percentiles et médianes se font en DAX ou dans `kpi.py`.
 `{s}` est le préfixe de schéma (« dw. » sur PostgreSQL, vide sur SQLite).
@@ -126,6 +126,43 @@ SELECT b.config_label, b.model_name, b.adapter, b.has_retrieval, b.n_sections, b
        b.tpv_high, b.delta, b.delta_low, b.delta_high, b.decision, b.degraded, b.citation_validity,
        b.number_fidelity, b.attack_success, b.latency_p95_ms, b.simulated, b.is_demo
 FROM {s}fact_bench b
+""",
+    "v_project": """
+SELECT m.mission_key, m.mission_name, c.client_name, c.sector, p.request_summary, p.start_date_key,
+       p.end_date_key, p.logo, p.documents, p.audit_reports, m.created_date_key, m.is_demo
+FROM {s}dim_project p
+JOIN {s}dim_mission m ON m.mission_key = p.mission_key
+JOIN {s}dim_client c ON c.client_key = m.client_key
+""",
+    "v_report_check": """
+SELECT r.document_key, r.mission_key, r.report_label, r.pages, r.expected, r.extracted, r.validated,
+       r.missing, r.duplicates, r.missing_list, r.status, r.is_demo
+FROM {s}fact_report_check r
+""",
+    "v_recommendation": """
+SELECT a.recommendation_id, a.mission_key, a.document_key, a.number, a.page, a.status, a.origin, a.is_demo
+FROM {s}fact_audit_recommendation a
+""",
+    "v_finding": """
+SELECT f.finding_id, f.mission_key, f.severity, f.axis, f.validated, f.is_demo
+FROM {s}fact_finding f
+""",
+    "v_initiative": """
+SELECT i.initiative_id, i.mission_key, i.axis, i.wave, i.rank, i.findings, i.is_demo
+FROM {s}fact_initiative i
+""",
+    "v_training_run": """
+SELECT r.run_id, r.label, r.run_date_key, r.platform, r.gpu, r.examples, r.test_examples,
+       r.duration_min, r.stop_step, r.best_step, r.best_val_loss, r.adopted, r.outcome
+FROM {s}fact_training_run r
+""",
+    "v_training_point": """
+SELECT p.run_id, p.step, p.val_loss, p.is_best
+FROM {s}fact_training_point p
+""",
+    "v_training_score": """
+SELECT s.run_id, s.model, s.task, s.correct, s.total, 1.0 * s.correct / NULLIF(s.total, 0) AS rate
+FROM {s}fact_training_score s
 """,
 }
 

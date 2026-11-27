@@ -1,0 +1,99 @@
+table Rapports
+
+	column 'Clé de document'
+		dataType: int64
+		isHidden
+		sourceColumn: document_key
+		summarizeBy: none
+
+	column 'Clé de mission'
+		dataType: int64
+		isHidden
+		sourceColumn: mission_key
+		summarizeBy: none
+
+	column Rapport
+		dataType: string
+		sourceColumn: report_label
+		summarizeBy: none
+
+	column Pages
+		dataType: int64
+		isHidden
+		sourceColumn: pages
+		summarizeBy: none
+
+	column 'Annoncées'
+		dataType: int64
+		isHidden
+		sourceColumn: expected
+		summarizeBy: none
+
+	column Retenues
+		dataType: int64
+		isHidden
+		sourceColumn: extracted
+		summarizeBy: none
+
+	column 'Validées'
+		dataType: int64
+		isHidden
+		sourceColumn: validated
+		summarizeBy: none
+
+	column Manquantes
+		dataType: int64
+		isHidden
+		sourceColumn: missing
+		summarizeBy: none
+
+	column Doublons
+		dataType: int64
+		isHidden
+		sourceColumn: duplicates
+		summarizeBy: none
+
+	column 'Numéros manquants'
+		dataType: string
+		isHidden
+		sourceColumn: missing_list
+		summarizeBy: none
+
+	column 'Code du contrôle'
+		dataType: string
+		isHidden
+		sourceColumn: status
+		summarizeBy: none
+
+	column 'Contrôle'
+		dataType: string
+		sourceColumn: controle
+		summarizeBy: none
+
+	column 'En alerte'
+		dataType: int64
+		isHidden
+		sourceColumn: alerte
+		summarizeBy: none
+
+	column 'Projet du rapport'
+		dataType: string
+		sourceColumn: projet
+		summarizeBy: none
+
+	partition Rapports = m
+		mode: import
+		source =
+				let
+				    Brut = Vue("v_report_check"),
+				    Choix = Table.SelectColumns(Brut, {"document_key", "mission_key", "report_label", "pages", "expected", "extracted", "validated", "missing", "duplicates", "missing_list", "status"}),
+				    Typage = Table.TransformColumnTypes(Choix, {{"document_key", Int64.Type}, {"mission_key", Int64.Type}, {"report_label", type text}, {"pages", Int64.Type}, {"expected", Int64.Type}, {"extracted", Int64.Type}, {"validated", Int64.Type}, {"missing", Int64.Type}, {"duplicates", Int64.Type}, {"missing_list", type text}, {"status", type text}}, CultureCsv),
+				    AvecControle = Table.AddColumn(Typage, "controle", each if [status] = null then "Inconnu" else Record.FieldOrDefault([#"ok" = "Cohérent", #"ecart" = "Écart", #"non_detectees" = "Non détectées", #"non_lu" = "Pas encore lu"], [status], "Inconnu"), type text),
+				    AvecAlerte = Table.AddColumn(AvecControle, "alerte", each if List.Contains({"ecart", "non_detectees"}, [status]) then 1 else 0, Int64.Type),
+				    Noms = Table.TransformColumnTypes(Table.SelectColumns(Vue("v_project"), {"mission_key", "mission_name"}), {{"mission_key", Int64.Type}, {"mission_name", type text}}, CultureCsv),
+				    Jointure = Table.NestedJoin(AvecAlerte, {"mission_key"}, Noms, {"mission_key"}, "p", JoinKind.LeftOuter),
+				    AvecNom = Table.ExpandTableColumn(Jointure, "p", {"mission_name"}),
+				    AvecProjet = Table.AddColumn(AvecNom, "projet", each [mission_name], type text),
+				    Utiles = Table.RemoveColumns(AvecProjet, {"mission_name"})
+				in
+				    Utiles

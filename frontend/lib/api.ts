@@ -23,6 +23,10 @@ import type {
   ProjectState,
   RoadmapGenerated,
   UploadResult,
+  AuditRecommendation,
+  ProfilePatch,
+  ProjectProfile,
+  RecommendationsOverview,
 } from "./api-types";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -191,5 +195,30 @@ export const api = {
   testModel: (model: string) => request<TestReport>("/admin/models/test", json("POST", { model })),
   activateModel: (model: string) =>
     request<{ active: string }>("/admin/models/activate", json("POST", { model })),
+  getProfile: (dossierId: string) => request<ProjectProfile>(`/dossiers/${dossierId}/profile`),
+  saveProfile: (dossierId: string, body: ProfilePatch) =>
+    request<ProjectProfile>(`/dossiers/${dossierId}/profile`, json("PUT", body)),
+  uploadLogo(dossierId: string, file: File): Promise<ProjectProfile> {
+    const form = new FormData();
+    form.append("file", file);
+    return request<ProjectProfile>(`/dossiers/${dossierId}/profile/logo`, { method: "POST", body: form });
+  },
+  listRecommendations: (dossierId: string) =>
+    request<RecommendationsOverview>(`/dossiers/${dossierId}/recommendations`),
+  extractRecommendations: (dossierId: string) =>
+    request<RecommendationsOverview>(`/dossiers/${dossierId}/recommendations:extract`, { method: "POST" }),
+  addRecommendation: (
+    dossierId: string,
+    body: { document_id: string; title: string; number?: number | null; page?: number | null },
+  ) => request<AuditRecommendation>(`/dossiers/${dossierId}/recommendations`, json("POST", body)),
+  patchRecommendation: (
+    id: string,
+    body: { title?: string; number?: number | null; page?: number | null; status?: "validated" | "proposed" | "deleted"; merge_into?: string },
+  ) => request<AuditRecommendation>(`/recommendations/${id}`, json("PATCH", body)),
+  setNoRecommendation: (dossierId: string, documentId: string, value: boolean) =>
+    request<RecommendationsOverview>(
+      `/dossiers/${dossierId}/reports/${documentId}/no-recommendation`,
+      json("PUT", { value }),
+    ),
   rollbackModel: () => request<{ active: string }>("/admin/models/rollback", { method: "POST" }),
 };

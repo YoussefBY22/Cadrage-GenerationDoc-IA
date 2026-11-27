@@ -1,37 +1,37 @@
 relationship r01
 	fromColumn: 'Générations'.'Clé de mission'
-	toColumn: Missions.'Clé de mission'
+	toColumn: Projets.'Clé de mission'
 
 relationship r02
-	fromColumn: 'Sections approuvées'.'Clé de mission'
-	toColumn: Missions.'Clé de mission'
+	fromColumn: Livrables.'Clé de mission'
+	toColumn: Projets.'Clé de mission'
 
 relationship r03
-	fromColumn: Livrables.'Clé de mission'
-	toColumn: Missions.'Clé de mission'
+	fromColumn: Constats.'Clé de mission'
+	toColumn: Projets.'Clé de mission'
 
 relationship r04
-	fromColumn: Documents.'Clé de mission'
-	toColumn: Missions.'Clé de mission'
+	fromColumn: Initiatives.'Clé de mission'
+	toColumn: Projets.'Clé de mission'
 
 relationship r05
+	fromColumn: Rapports.'Clé de mission'
+	toColumn: Projets.'Clé de mission'
+
+relationship r06
+	fromColumn: Recommandations.'Clé de document'
+	toColumn: Rapports.'Clé de document'
+
+relationship r07
 	fromColumn: 'Générations'.'Code du type'
 	toColumn: 'Types de livrable'.'Code du type'
 
-relationship r06
-	fromColumn: 'Sections approuvées'.'Clé de type'
-	toColumn: 'Types de livrable'.'Clé de type'
-
-relationship r07
+relationship r08
 	fromColumn: Livrables.'Clé de type'
 	toColumn: 'Types de livrable'.'Clé de type'
 
-relationship r08
-	fromColumn: 'Générations'.'Clé de consultant'
-	toColumn: Personnes.'Clé de personne'
-
 relationship r09
-	fromColumn: 'Sections approuvées'.'Clé de consultant'
+	fromColumn: 'Générations'.'Clé de consultant'
 	toColumn: Personnes.'Clé de personne'
 
 relationship r10
@@ -43,35 +43,37 @@ relationship r11
 	toColumn: Calendrier.'Clé de date'
 
 relationship r12
-	fromColumn: 'Sections approuvées'.'Clé de date'
+	fromColumn: Livrables.'Clé de création'
 	toColumn: Calendrier.'Clé de date'
 
 relationship r13
-	isActive: false
-	fromColumn: Livrables.'Clé d''approbation'
-	toColumn: Calendrier.'Clé de date'
+	fromColumn: 'Générations'.'Clé de section'
+	toColumn: Sections.'Clé de section'
 
 relationship r14
-	isActive: false
-	fromColumn: Livrables.'Clé de soumission'
-	toColumn: Calendrier.'Clé de date'
+	fromColumn: 'Courbe de validation'.'Code de l''essai'
+	toColumn: 'Entraînements'.'Code de l''essai'
 
 relationship r15
-	fromColumn: Actions.'Identifiant du livrable'
-	toColumn: Livrables.'Identifiant du livrable'
+	fromColumn: Scores.'Code de l''essai'
+	toColumn: 'Entraînements'.'Code de l''essai'
 
 relationship r16
-	fromColumn: 'Sections courantes'.'Identifiant du livrable'
-	toColumn: Livrables.'Identifiant du livrable'
+	toCardinality: many
+	crossFilteringBehavior: oneDirection
+	fromColumn: Projets.'Données'
+	toColumn: 'Choix des données'.Cible
 
 relationship r17
-	fromColumn: 'Série de prévision'.'Clé de prévision'
-	toColumn: 'Prévisions'.'Clé de prévision'
+	toCardinality: many
+	crossFilteringBehavior: oneDirection
+	fromColumn: Projets.Projet
+	toColumn: 'Choix du projet'.Cible
 
 relationship r18
 	toCardinality: many
 	crossFilteringBehavior: oneDirection
-	fromColumn: Missions.Client
+	fromColumn: Projets.Client
 	toColumn: 'Choix du client'.Cible
 
 relationship r19
@@ -89,6 +91,6 @@ relationship r20
 relationship r21
 	toCardinality: many
 	crossFilteringBehavior: oneDirection
-	fromColumn: Calendrier.'Clé de date'
-	toColumn: 'Choix de période'.'Clé de date cible'
+	fromColumn: Calendrier.Mois
+	toColumn: 'Choix du mois'.Cible
 

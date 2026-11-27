@@ -1,40 +1,42 @@
-# Rapport de pilotage Power BI
+# Tableau de bord Power BI
 
-Le rapport sert les deux acteurs de l'application, le **consultant** qui rédige et le **responsable** qui valide :
-constat, 3 recommandations, prédiction de la charge, et un rapport à imprimer.
-Qui voit quoi, et pourquoi : [docs/14](../docs/14-acteurs-dashboard.md).
+Le rapport aide à **décider** : où en sont les projets, où l'IA se trompe, si l'entraînement a servi, et quoi faire
+ensuite. Il complète l'application par ce qu'elle ne fait pas : l'analyse dans le temps et entre projets, les filtres
+croisés et les info-bulles, une page imprimable, et trois actions calculées par des règles explicites.
 
-> **Valeurs inventées.** Les chiffres du jeu de démonstration (`python -m app.dw.demo --seed 42`) sont fictifs : ils
-> montrent le pilotage possible et ne jugent aucun modèle réel. Le rapport l'affiche sur chaque page.
+> **Réel et démonstration.** Le projet « Recours aux consultants externes (RS 17/2022) » et les trois entraînements
+> sont réels. Les cinq projets « [DÉMO] » sont inventés, pour montrer les courbes et la comparaison entre projets :
+> tout visuel qui les inclut le dit, et le filtre **Données** permet de n'afficher que le réel.
 
 ![Synthèse](../docs/img/powerbi-synthese.png)
 
-| Page | Pour qui | Capture |
+| Page | Ce qu'on y décide | Capture |
 |---|---|---|
-| Synthèse | les deux acteurs, direction du cabinet | [voir](../docs/img/powerbi-synthese.png) |
-| Production | consultant | [voir](../docs/img/powerbi-production.png) |
-| Validation | responsable | [voir](../docs/img/powerbi-validation.png) |
-| Administration | profil technique | [voir](../docs/img/powerbi-administration.png) |
-| Rapport (masquée, par bouton) | impression | [voir](../docs/img/powerbi-rapport.png) |
+| Synthèse | quoi faire en premier : 3 actions, activité par mois, livrables par état, activité par projet | [voir](../docs/img/powerbi-synthese.png) |
+| Projet | fiche (logo, client, demande, dates), recommandations par rapport d'audit, constats par axe, feuille de route, avancement, qualité par section | [voir](../docs/img/powerbi-projet.png) |
+| Qualité de l'IA | erreurs par jour, par type, par modèle ; alertes « recommandations extraites ≠ annoncées » | [voir](../docs/img/powerbi-qualite.png) |
+| Entraînement | les 3 entraînements, courbe de validation, réussite par tâche base contre v4 / v5 | [voir](../docs/img/powerbi-entrainement.png) |
+| Rapport imprimable (par bouton) | une page A4 pour la direction | [voir](../docs/img/powerbi-rapport.png) |
 
-Indicateurs : [`KPI.md`](KPI.md). Contenu des pages : [`pages.md`](pages.md). Mise en ligne, préparée et non
-faite : [`PUBLICATION.md`](PUBLICATION.md). Fichiers produits :
-[rapport interne](exemples/rapport-pilotage-demo.pdf). Rien ici ne se transmet à un client.
+Contenu détaillé : [`pages.md`](pages.md). Indicateurs, formules et règles d'action : [`KPI.md`](KPI.md). Qui voit
+quoi : [docs/14](../docs/14-acteurs-dashboard.md). Mise en ligne, préparée et non faite : [`PUBLICATION.md`](PUBLICATION.md).
 
 ## Confidentialité (contrainte C1)
 
 - Power BI **Desktop** tourne en local. **Ne pas publier** sur Power BI Service, hébergé par Microsoft.
-- L'entrepôt `dw` ne contient ni phrases ni passages des clients ([07 §1](../docs/07-entrepot-bi.md)), et le rôle
-  `bi_reader` n'a accès qu'à ce schéma.
+- L'entrepôt `dw` ne contient ni phrases ni passages des clients ([07 §1](../docs/07-entrepot-bi.md)) : de la
+  demande du client, il ne garde qu'un résumé de 200 caractères ; le logo est une image. Le rôle `bi_reader` n'a
+  accès qu'à ce schéma.
 
 ## Ouvrir le rapport
 
-1. Produire les données (les 14 CSV : un export antérieur à ce modèle ne se charge pas) :
+1. Produire les données (22 CSV ; un export antérieur à ce modèle ne se charge pas) :
 
    ```powershell
    cd backend
-   $env:STORAGE_URL = "sqlite:///./data/demo-bi.db"  # une base neuve : la démo ne se régénère pas
-   python -m app.dw.demo --seed 42
+   python -m app.training_registry import ..\training\registre\essai1.json ..\training\registre\v4.json ..\training\registre\v5.json
+   python -m app.dw.demo --seed 42   # facultatif : les 5 projets [DÉMO], sur une base de démonstration
+   python -m app.dw.etl --full
    python -m app.dw.export_csv --out ../bi/export/
    ```
 
@@ -47,19 +49,21 @@ faite : [`PUBLICATION.md`](PUBLICATION.md). Fichiers produits :
    Sans régénérer : dans Power BI, *Transformer les données → Modifier les paramètres → DossierCsv*.
 
 3. Ouvrir `bi/pbip/CadrageIA.pbip`. Le cache de données n'est pas versionné : cliquer **Refresh now**, puis
-   **Apply changes** si le bandeau « pending changes » s'affiche. Ce bandeau apparaît à la première ouverture d'un
-   projet sans cache et ne modifie pas les fichiers.
+   **Apply changes** si le bandeau « pending changes » s'affiche.
 
 Dans Power BI Desktop, les boutons de navigation se suivent avec **Ctrl + clic**.
 
-### Avec de vraies données
+### Mettre à jour (« temps réel »)
 
-- CSV : `python -m app.dw.etl`, puis le même export. Sur un entrepôt antérieur à la correction des refus :
-  recharger avec `--full`.
-- PostgreSQL, en lecture seule : `psql -f db/dw/roles.sql` (changer le mot de passe), puis dans les paramètres
-  `Source` = `PostgreSQL`, `PgServer`, `PgDatabase`. Importer avec `bi_reader`. **Ce chemin n'a pas été testé dans
-  Power BI Desktop** (pilote Npgsql, port 5432 à exposer en local seulement).
-- Export anglais (`--locale en`) : paramètre `CultureCsv` = `en-US`. Non testé dans Power BI Desktop.
+Les chiffres datent du dernier passage de l'ETL (date en pied de page). En démonstration : relancer l'ETL et
+l'export, puis **Actualiser**. En production, deux voies, non testées ici : ETL planifié et actualisation planifiée
+sur Power BI Report Server, ou DirectQuery sur les vues PostgreSQL (fraîcheur = dernier ETL). Détail :
+[07 §8.1](../docs/07-entrepot-bi.md).
+
+### Avec PostgreSQL
+
+`psql -f db/dw/roles.sql` (changer le mot de passe), puis dans les paramètres `Source` = `PostgreSQL`, `PgServer`,
+`PgDatabase`, et importer avec `bi_reader`. **Non testé dans Power BI Desktop** (pilote Npgsql, port 5432 en local).
 
 ## Modifier le rapport
 
@@ -67,50 +71,49 @@ Le projet PBIP est **généré**. Ne pas enregistrer depuis Power BI : la géné
 
 | Pour changer | Fichier |
 |---|---|
-| un seuil, une règle, la prédiction | [`pilotage.py`](../backend/app/dw/pilotage.py), puis relancer l'ETL |
-| un indicateur, une formule | [`pbip/indicateurs.py`](pbip/indicateurs.py) (génère aussi `KPI.md` et `measures.dax`) |
-| une table, un libellé, une relation | [`pbip/modele.py`](pbip/modele.py) |
-| une page, un visuel, la barre latérale | [`pbip/rapport.py`](pbip/rapport.py), briques dans [`pbip/pbir.py`](pbip/pbir.py) |
-| les couleurs et polices | [`theme/cadrage-ey.json`](theme/cadrage-ey.json) |
+| un indicateur, une formule, une règle d'action | [`pbip/indicateurs.py`](pbip/indicateurs.py) (génère aussi `KPI.md` et `measures.dax`) |
+| une table, un libellé, une relation, un filtre | [`pbip/modele.py`](pbip/modele.py) |
+| le libellé ou le rôle d'une section | les gabarits `backend/app/generation/templates/`, lus par [`pbip/sections.py`](pbip/sections.py) |
+| une page, un visuel, une couleur par valeur | [`pbip/rapport.py`](pbip/rapport.py), briques dans [`pbip/pbir.py`](pbip/pbir.py) |
+| les couleurs et polices | [`theme/cadrage.json`](theme/cadrage.json) |
 
 Ensuite : fermer Power BI, lancer `python bi/pbip/build_pbip.py`, rouvrir et **regarder chaque page**.
 
 Pièges rencontrés :
 
-- **Thème ignoré en silence** : une seule propriété inconnue (ici `tertiaryBackground`) fait rejeter tout le thème,
-  et Power BI revient à ses couleurs bleues.
+- **Thème ignoré en silence** : une seule propriété inconnue fait rejeter tout le thème.
 - **`Formula.Firewall`** : une requête ne peut pas référencer une autre requête et lire une source. Chaque table lit
   donc la vue elle-même, par la fonction `Vue`.
-- **« A cyclic reference was encountered during evaluation »**, par intermittence à la première actualisation : le
-  chargement parallèle est coupé dans `CadrageIA.SemanticModel/.pbi/editorSettings.json`, qui est versionné.
+- **« A cyclic reference was encountered during evaluation »**, par intermittence : le chargement parallèle est
+  coupé dans `CadrageIA.SemanticModel/.pbi/editorSettings.json`.
+- **Axe continu** : la valeur PBIR est `axisType = "Scalar"` (et non « Continuous »), sinon l'axe reste en catégories.
+- **Segments « All »** : chaque segment lit une table de choix avec une vraie valeur « Tous », sinon le libellé suit la
+  langue de Power BI Desktop.
 
 ## Modèle de données
 
-Étoile en français au-dessus des vues de [07 §4](../docs/07-entrepot-bi.md). Les colonnes techniques sont masquées.
+Étoile en français au-dessus des vues de [07 §4](../docs/07-entrepot-bi.md). Les colonnes techniques sont masquées ;
+aucun code ne s'affiche sans son libellé.
 
 | Table | Vue source | Filtrée par |
 |---|---|---|
-| Livrables | `v_deliverable` | client, type, consultant ; la période seulement dans les mesures de flux |
-| Actions | `v_action` | via Livrables |
-| Sections courantes | `v_section_current` | via Livrables |
-| Sections approuvées | `v_outcome` | période (approbation), client, type, consultant |
-| Générations | `v_generation` | période, client, type, consultant |
-| Documents | `v_security` | client |
-| Prévisions, Série de prévision | `v_forecast`, `v_forecast_point` | le périmètre choisi, lu par clé |
-| Banc | `v_bench` | aucun filtre |
+| Projets | `v_project` | données, projet, client |
+| Générations (appels au modèle) | `v_generation` | projet, période, consultant, type, section |
+| Livrables | `v_deliverable` | projet, période de création, consultant, type |
+| Constats, Initiatives, Rapports | `v_finding`, `v_initiative`, `v_report_check` | projet |
+| Recommandations | `v_recommendation` | rapport |
+| Entraînements, Courbe de validation, Scores | `v_training_run`, `v_training_point`, `v_training_score` | aucun filtre de projet |
+| Sections | gabarits de l'application | — |
+| Calendrier, Personnes, Types de livrable, Types d'erreur | générées | — |
 | Accès | `acces.csv` (hors entrepôt) | sert aux rôles RLS |
-
-Chaque segment lit une table de choix avec une vraie valeur « Tous », reliée en plusieurs-à-plusieurs : le libellé
-ne suit pas la langue de Power BI et la prévision sait quel périmètre lire. Le banc d'essai se charge à part :
-`python -m app.dw.bench eval/results/<A>.json <B>.json …` (la démo n'en charge aucun ; un résultat simulé ne s'affiche pas).
 
 ## Charte
 
 - Anthracite `#2E2E38`, gris `#747480` et `#C4C4CD`, fond `#F6F6FA`, Segoe UI.
-- Jaune `#FFE600` pour ce qu'il faut regarder : page active, total, meilleure valeur.
+- Jaune `#FFE600` pour ce qu'il faut regarder : page active, « Que faire ensuite », modèle adopté.
+- Rouge `#B4232F` réservé à ce qui demande une action (renvoyé, manquant, sortie invalide), toujours légendé.
 - Texte gris en `#5F5F6B` (le `#747480` ne fait que 4,28:1 sur le fond).
-- Rouge réservé aux alertes, toujours doublé d'un libellé, jamais opposé à un vert.
-- Ni logo ni nom de cabinet : le produit s'appelle « Cadrage ».
+- Le produit s'appelle « Cadrage » ; aucun logo ni nom de cabinet.
 
 ## Sources de conception
 

@@ -1,0 +1,32 @@
+table 'Types d''erreur'
+
+	column 'Code d''erreur'
+		dataType: string
+		isHidden
+		sourceColumn: code
+		summarizeBy: none
+
+	column 'Type d''erreur'
+		dataType: string
+		sourceColumn: libelle
+		sortByColumn: 'Ordre d''erreur'
+		summarizeBy: none
+
+	column 'Ordre d''erreur'
+		dataType: int64
+		isHidden
+		sourceColumn: ordre
+		summarizeBy: none
+
+	column Explication
+		dataType: string
+		sourceColumn: explication
+		summarizeBy: none
+
+	partition 'Types d''erreur' = m
+		mode: import
+		source =
+				let
+				    Resultat = #table(type table [#"code" = text, #"libelle" = text, #"ordre" = Int64.Type, #"explication" = text], {{"failed", "Phrase non vérifiée", 1, "Le vérificateur ne retrouve pas la phrase dans la source citée."}, {"warning", "Phrase à revoir", 2, "Appui faible : la source ne soutient la phrase qu'en partie."}, {"citation", "Citation sans source", 3, "La source citée n'existe pas dans le dossier."}, {"invalid", "Sortie invalide", 4, "La réponse du modèle ne respecte pas le format attendu."}})
+				in
+				    Resultat

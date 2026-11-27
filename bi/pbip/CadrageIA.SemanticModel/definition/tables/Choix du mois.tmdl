@@ -1,0 +1,38 @@
+table 'Choix du mois'
+
+	column 'Mois choisi'
+		dataType: string
+		sourceColumn: choix
+		sortByColumn: Rang
+		summarizeBy: none
+
+	column Cible
+		dataType: string
+		isHidden
+		sourceColumn: cible
+		summarizeBy: none
+
+	column Rang
+		dataType: int64
+		isHidden
+		sourceColumn: rang
+		summarizeBy: none
+
+	partition 'Choix du mois' = m
+		mode: import
+		source =
+				let
+				    Cles = List.Buffer(List.RemoveNulls(List.Combine({Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_generation"), {"date_key"}), {{"date_key", Int64.Type}}, CultureCsv), "date_key"), Table.Column(Table.TransformColumnTypes(Table.SelectColumns(Vue("v_deliverable"), {"created_date_key"}), {{"created_date_key", Int64.Type}}, CultureCsv), "created_date_key")}))),
+				    VersDate = (k as number) as date => #date(Number.IntegerDivide(k, 10000), Number.Mod(Number.IntegerDivide(k, 100), 100), Number.Mod(k, 100)),
+				    Premier = VersDate(List.Min(Cles, 20260101)),
+				    Dernier = VersDate(List.Max(Cles, 20261231)),
+				    Jours = List.Dates(Date.StartOfMonth(Premier), Duration.Days(Date.EndOfMonth(Dernier) - Date.StartOfMonth(Premier)) + 1, #duration(1, 0, 0, 0)),
+				    NomMois = (d as date) as text => {"Janv.", "Févr.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."}{Date.Month(d) - 1} & " " & Text.From(Date.Year(d)),
+				    Paires = List.Distinct(List.Zip({List.Transform(Jours, each NomMois(_)), List.Transform(Jours, each Date.Year(_) * 100 + Date.Month(_))})),
+				    Triees = List.Sort(List.Select(Paires, each _{0} <> null), (a, b) => Value.Compare(a{1}, b{1})),
+				    Valeurs = List.Buffer(List.Transform(Triees, each _{0})),
+				    Toutes = List.Transform(Valeurs, each {"Tous les mois", _, 0}),
+				    Chacune = List.Transform(List.Positions(Valeurs), each {Valeurs{_}, Valeurs{_}, _ + 1}),
+				    Resultat = #table(type table [choix = text, cible = text, rang = Int64.Type], Toutes & Chacune)
+				in
+				    Resultat

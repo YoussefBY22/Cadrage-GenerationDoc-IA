@@ -18,10 +18,16 @@ table 'Types de livrable'
 		sortByColumn: 'Clé de type'
 		summarizeBy: none
 
+	column Type
+		dataType: string
+		sourceColumn: court
+		sortByColumn: 'Clé de type'
+		summarizeBy: none
+
 	partition 'Types de livrable' = m
 		mode: import
 		source =
 				let
-				    Resultat = #table(type table [#"type_key" = Int64.Type, #"type_code" = text, #"libelle" = text], {{1, "findings", "Constats"}, {2, "roadmap", "Feuille de route"}, {3, "tor", "Termes de référence"}, {4, "cdc", "Cahier des charges"}})
+				    Resultat = #table(type table [#"type_key" = Int64.Type, #"type_code" = text, #"libelle" = text, #"court" = text], {{1, "findings", "Constats", "Constats"}, {2, "roadmap", "Feuille de route", "Feuille de route"}, {3, "tor", "Termes de référence", "TdR"}, {4, "cdc", "Cahier des charges", "CdC"}})
 				in
 				    Resultat

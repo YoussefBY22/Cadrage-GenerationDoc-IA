@@ -1,0 +1,31 @@
+{
+  "id": "essai1",
+  "label": "Essai 1",
+  "run_date": "2026-11-23",
+  "platform": "Colab",
+  "gpu": "T4",
+  "examples": 33,
+  "test_examples": 13,
+  "duration_min": null,
+  "steps_planned": null,
+  "stop_step": 25,
+  "best_val_loss": 0.255,
+  "adopted": false,
+  "outcome": "Réponses vides 9 fois sur 13 : ordre des champs différent d'Ollama.",
+  "note": "Erreur de validation 0,297 puis 0,255 ; les pas de mesure ne sont pas consignés, aucune courbe n'est tracée.",
+  "validation": [],
+  "tests": [
+    {
+      "model": "base",
+      "task": "Réponses non vides",
+      "correct": 13,
+      "total": 13
+    },
+    {
+      "model": "essai1",
+      "task": "Réponses non vides",
+      "correct": 4,
+      "total": 13
+    }
+  ]
+}

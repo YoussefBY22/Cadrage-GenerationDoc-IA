@@ -32,7 +32,7 @@ def rows(repo, sql):
 
 
 def test_views_exist_and_are_idempotent(loaded):
-    assert len(VIEWS) == 14
+    assert len(VIEWS) == 22
     create_views(loaded.engine)
     assert set(VIEWS) <= set(inspect(loaded.engine).get_view_names())
     for v in VIEWS:

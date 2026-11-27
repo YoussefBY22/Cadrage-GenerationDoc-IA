@@ -4,8 +4,9 @@ import ModelsPage from "@/app/admin/models/page";
 import { api } from "@/lib/api";
 import type { ModelCard, ModelsOverview } from "@/lib/api-types";
 
+const stableRouter = vi.hoisted(() => ({ push: vi.fn() }));  // routeur stable
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => stableRouter,
   useParams: () => ({}),
   usePathname: () => "/admin/models",
 }));
