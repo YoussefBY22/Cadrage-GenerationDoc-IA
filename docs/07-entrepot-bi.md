@@ -6,7 +6,7 @@
 
 ## 1. Principes
 
-- Schéma `dw` dans la même base PostgreSQL que l'application (en SQLite : mêmes tables grâce à `schema_translate_map={"dw": None}`, préfixe implicite). Défini en **SQLAlchemy Core** (`app/dw/schema.py`), migration Alembic `0002_dw.py` (Postgres, demain).
+- Schéma `dw` dans la même base PostgreSQL que l'application (en SQLite : mêmes tables grâce à `schema_translate_map={"dw": None}`, préfixe implicite). Défini en **SQLAlchemy Core** (`app/dw/schema.py`), migration Alembic `0002_dw.py` (PostgreSQL, vérifiée en local avec Docker).
 - Alimenté **uniquement** par l'ETL à partir des tables opérationnelles (`06` §4.2) ; aucune écriture de l'application dans `dw`.
 - **Aucun texte client** dans l'entrepôt : pas de phrases, pas de passages ; seulement identifiants, compteurs, mesures, noms de dossiers/clients (pseudonymisables : `settings.dw_pseudonymize=True` remplace par `Client 001`).
 - Toute ligne porte `is_demo BOOLEAN` : les données de démonstration ne se mélangent jamais aux vraies (filtre par défaut dans les vues : `is_demo = settings`).
@@ -191,7 +191,7 @@ n'affichaient que des tableaux de texte. La file de validation se lit désormais
 ## 8. Connexion Power BI **sans fuite**
 
 - **Power BI Desktop** (local) → connecteur PostgreSQL vers `localhost:5432`, rôle **lecture seule** `bi_reader` limité au schéma `dw` (script `db/dw/roles.sql`). Le pilote nécessaire (Npgsql) est **à vérifier** selon la version de Power BI Desktop.
-- **Plan B sans base** : `python -m app.dw.export_csv --out bi/export/` écrit une CSV UTF-8 (séparateur `;`, décimale `,` pour Excel FR — option `--locale en`) par vue ; Power BI → « Texte/CSV ». Testable cette nuit.
+- **Plan B sans base** : `python -m app.dw.export_csv --out bi/export/` écrit une CSV UTF-8 (séparateur `;`, décimale `,` pour Excel FR — option `--locale en`) par vue ; Power BI → « Texte/CSV ». Chemin utilisé pour les captures.
 - Ne **pas** publier sur Power BI Service (cloud Microsoft) : contraire à C1. Power BI Report Server sur site : licence **à vérifier**.
 
 ### 8.1 « Temps réel » : ce qui est vrai
