@@ -80,8 +80,8 @@ def _state_text(st: dict) -> str:
     lines = [f"Dossier « {st['name']} » (client : {st['client']}).",
              f"Documents : {len(st['documents'])} — " + ", ".join(
                  f"{d['filename']} ({d['pages'] or '?'} p.)" for d in st["documents"][:6]),
-             f"Constats : {f['active']} actifs dont {f['validated']} validés et {f['high']} de gravité élevée ; "
-             f"{f['discarded']} écartés, {f['merged']} doublons fusionnés."]
+             (f"Constats : {f['active']} actifs dont {f['validated']} validés et {f['high']} de gravité élevée ; "
+             f"{f['discarded']} écartés, {f['merged']} doublons fusionnés.")]
     if st["recommendations"]:
         lines.append("Recommandations du rapport : " + " ; ".join(
             f"n° {r['number']} {r['title']}" + (f" (échéance : {r['deadline']})" if r["deadline"] else "")
@@ -102,9 +102,9 @@ def quick_answer(message: str, st: dict, page_help: str | None) -> str | None:
     if re.search(r"(combien|nombre|etat|ou en (est|suis)|avancement|resume|bilan)", m):
         if "recommand" in m:
             return _recos_text(st)
-        parts = [f"Ce dossier a {len(st['documents'])} document(s), {f['active']} constat(s) actif(s) dont "
+        parts = [(f"Ce dossier a {len(st['documents'])} document(s), {f['active']} constat(s) actif(s) dont "
                  f"{f['validated']} validé(s) ({f['high']} de gravité élevée), {f['discarded']} écarté(s) et "
-                 f"{f['merged']} doublon(s) fusionné(s)."]
+                 f"{f['merged']} doublon(s) fusionné(s).")]
         if st["recommendations"]:
             parts.append(f"{len(st['recommendations'])} recommandation(s) relevée(s) dans les rapports.")
         dl = st["deliverables"]
