@@ -4,7 +4,8 @@ import { deliverables } from "@/components/editor/client";
 import DeliverableView from "@/components/editor/DeliverableView";
 import type { Deliverable } from "@/components/editor/types";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+const router = vi.hoisted(() => ({ push: vi.fn() }));  // routeur stable entre les rendus
+vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 const d: Deliverable = {
   id: "dl1",
