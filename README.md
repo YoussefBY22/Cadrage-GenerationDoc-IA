@@ -42,6 +42,38 @@ flowchart LR
   M[Qwen3-4B + LoRA<br/>local, Ollama] -.-> C & A & F & T
 ```
 
+## Les livrables, en clair
+
+| Livrable | Ce que c'est | Quand on s'en sert |
+|---|---|---|
+| **Feuille de route** | le plan d'action : des initiatives rangées par **axes** (gouvernance, données, contrats…) et par **vagues** dans le temps (0-6, 6-12, 12-24 mois), chacune reliée aux constats qui la justifient | pour décider quoi faire, dans quel ordre |
+| **Termes de référence (TdR)** | la « fiche de mission » qu'on envoie pour **recruter un prestataire** (cabinet, expert) : contexte, objectifs, livrables attendus, profil recherché, calendrier, critères de choix | quand une initiative sera réalisée par quelqu'un d'extérieur, par exemple un audit de sécurité |
+| **Cahier des charges (CdC)** | la description de **ce qu'il faut construire ou acheter** : périmètre, exigences fonctionnelles (« le système doit… ») et non fonctionnelles, contraintes, critères de recette | quand une initiative aboutit à un système, un service ou une fourniture |
+
+**Types de cahier des charges et de TdR** : une base commune, complétée par des sections propres au type de projet
+choisi dans la fiche de contexte, cumulables :
+
+| Type de projet | Sections ajoutées (exemples) |
+|---|---|
+| Logiciel et SI | compétences techniques, architecture et intégration, sécurité et données, maintenance et niveaux de service |
+| Données et IA | données et qualité, performance du modèle, gouvernance, éthique et conformité |
+| Infrastructure et travaux | site et existant, normes techniques, réception et garanties |
+| Fournitures | spécifications, livraison et installation, garantie et service après-vente |
+| Services et externalisation | pilotage du contrat, périmètre du service, niveaux de service et pénalités, réversibilité |
+| Étude et conseil | méthodologie attendue, questions à traiter, restitution et validation |
+| Organisation et conduite du changement | parties prenantes et impacts, plan d'accompagnement, mesure de l'adoption |
+| Formation | profil des formateurs, public et besoins, programme, évaluation des acquis |
+
+**Combien de temps** (mesuré sur un portable à GPU de 4 Go, rapport de 53 pages, 74 constats) :
+
+| Étape | Durée |
+|---|---|
+| Lecture du rapport et extraction des constats | ~15 min |
+| Feuille de route par axes | ~22 min |
+| Une section de TdR ou de CdC rédigée par le modèle | 40 s à 2 min |
+| Une section qui reprend une décision humaine (profil, calendrier…) | instantané |
+| Sur un GPU de 16 Go (modèle entier sur la carte) | quelques minutes pour la feuille de route (estimation, non mesuré) |
+
 ## Ce que montre ce projet
 
 - **RAG « preuve d'abord »** : recherche hybride BM25 + vecteurs bge-m3, filtre de pertinence, refus explicite sans
@@ -54,7 +86,7 @@ flowchart LR
   en découpant le travail par axes, avec des réponses bornées et des parties ratées reprises automatiquement.
 - **Le code et le modèle à leur place** : le code range, contrôle et calcule (fiable) ; le modèle lit et rédige.
 - **Produit complet** : FastAPI, Next.js, PostgreSQL + pgvector, validation à deux, audit, exports, entrepôt de données
-  et Power BI, déploiement Docker hors ligne ; 738 tests backend, 130 tests d'entraînement, 42 tests d'interface.
+  et Power BI, déploiement Docker hors ligne ; 746 tests backend, 130 tests d'entraînement, 45 tests d'interface.
 
 ## Résultats mesurés
 
@@ -77,16 +109,29 @@ fonctionnelles proposées, toutes vérifiées.
 
 ## Tableau de bord de décision (Power BI)
 
-Un entrepôt de données (schéma en étoile, sans texte client) alimente un rapport Power BI de quatre pages et une page
-imprimable : synthèse avec trois actions à mener calculées par règles, fiche projet (logo, demande du client,
-recommandations par rapport d'audit, constats par axe, feuille de route), qualité de l'IA (erreurs par jour, par type,
-par modèle, alertes quand les recommandations extraites ne correspondent pas au rapport) et entraînements (courbes de
-validation, base contre v4 / v5 par tâche). Le projet de la Cour des comptes et les entraînements sont réels ; cinq
-projets « [DÉMO] », signalés sur chaque visuel, montrent la comparaison entre projets.
+**Pour qui, pour quoi.** L'application sert à produire ; le tableau de bord sert à **piloter** : le consultant voit
+quels rapports d'audit contrôler et quelles sections reprendre, le responsable sa file de relecture, la direction
+l'activité et un rapport d'une page, le profil technique la qualité du modèle et ses entraînements. Power BI croise
+**tous les projets sur toute la période**, avec des filtres combinables (données réelles ou de démonstration, période
+au jour, mois, projet, client, consultant, type de livrable) et un encadré **« Que faire ensuite »** : 7 règles
+explicites, dont les 3 premières qui se déclenchent s'affichent.
 
-![Synthèse du tableau de bord](docs/img/powerbi-synthese.png)
+**Lien avec l'application, honnêtement.** Le tableau de bord n'est **pas** branché en direct. L'application écrit dans
+sa base ; un chargement (ETL : `python -m app.dw.etl`) copie ce qu'il faut dans un **entrepôt de données** (schéma en
+étoile, **aucun texte du client**), puis Power BI s'actualise à partir de cet entrepôt (export CSV, chemin testé ;
+lecture directe PostgreSQL préparée, non testée). Les chiffres datent donc du **dernier chargement**, affiché en pied
+de page. Une correction faite dans l'application (par exemple une recommandation ajoutée par le consultant) apparaît
+au chargement suivant. Le projet de la Cour des comptes et les trois entraînements sont **réels** ; cinq projets
+« [DÉMO] », signalés sur chaque visuel et masquables, montrent la comparaison entre projets sur plusieurs mois.
 
-Pages, indicateurs et règles : [`bi/README.md`](bi/README.md), [`bi/pages.md`](bi/pages.md), [`bi/KPI.md`](bi/KPI.md).
+| Synthèse | Projet |
+|---|---|
+| ![Synthèse](docs/img/powerbi-synthese.png) | ![Projet](docs/img/powerbi-projet.png) |
+| **Qualité de l'IA** | **Entraînement** |
+| ![Qualité de l'IA](docs/img/powerbi-qualite.png) | ![Entraînement](docs/img/powerbi-entrainement.png) |
+
+Tout le détail (chemin des données, dimensions et faits, modèle Power BI, mesures, règles, fraîcheur, limites) :
+[`docs/22-business-intelligence.md`](docs/22-business-intelligence.md). Rapport imprimable : [`docs/img/powerbi-rapport.png`](docs/img/powerbi-rapport.png).
 
 ## Entraînement
 
@@ -168,9 +213,10 @@ llama.cpp (GGUF Q4_K_M) · Next.js 15 · TipTap · Playwright · python-docx / p
 | [`docs/20-comprendre-l-apprentissage.md`](docs/20-comprendre-l-apprentissage.md) | l'entraînement expliqué simplement |
 | [`docs/19-entrainement-et-tests-reels.md`](docs/19-entrainement-et-tests-reels.md) | mesures détaillées, vrai rapport, fenêtre de contexte |
 | [`docs/21-vision-et-prochaines-etapes.md`](docs/21-vision-et-prochaines-etapes.md) | vision cible, apprentissage par les corrections, plan |
+| [`docs/22-business-intelligence.md`](docs/22-business-intelligence.md) · [`docs/07-entrepot-bi.md`](docs/07-entrepot-bi.md) | business intelligence : entrepôt, modèle Power BI, pages, règles |
 | [`docs/01-cahier-des-charges.md`](docs/01-cahier-des-charges.md) · [`docs/06-architecture.md`](docs/06-architecture.md) | besoin, exigences, architecture |
 | [`docs/lots/AXES.md`](docs/lots/AXES.md) · [`docs/lots/`](docs/lots/) | comptes rendus techniques |
-| [`bi/README.md`](bi/README.md) | entrepôt, indicateurs, Power BI (valeurs de démonstration) |
+| [`bi/README.md`](bi/README.md) | ouvrir et régénérer le rapport Power BI |
 
 **Principes** : 100 % local · preuve d'abord · validation à deux personnes · aucune donnée client dans le dépôt
 (corpus public sous licence ouverte uniquement).

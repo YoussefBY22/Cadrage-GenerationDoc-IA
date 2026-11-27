@@ -1,6 +1,8 @@
 # 07 — Entrepôt de données et tableau de bord
 
-> Lots E1 (schéma, chargement, vues, indicateurs) et E2 (démo, export CSV, Power BI, Metabase). Testé cette nuit sur **SQLite** ; Postgres et Power BI Desktop **demain avec l'utilisateur**.
+> Référence technique (tables, colonnes, ETL, vues, formules). Version lisible et vue d'ensemble :
+> [`22-business-intelligence.md`](22-business-intelligence.md). Testé sur **SQLite** et dans **Power BI Desktop** (CSV) ;
+> la lecture directe PostgreSQL est préparée, non testée.
 
 ## 1. Principes
 
@@ -228,8 +230,8 @@ def generate_demo(op_engine: Engine, *, seed: int = 42, clients: int = 5, weeks:
 
 ## 10. Alternative libre : Metabase
 
-- Service optionnel `metabase` dans `deploy/docker-compose.bi.yml` (profil `bi`), réseau `internal`, connecté avec `bi_reader`. Image **à télécharger demain** ; licence AGPL (usage interne non modifié — **à vérifier**).
-- Livrable : une page `bi/metabase.md` (connexion, 5 questions SQL reprenant les vues). Pas de tableau construit cette nuit.
+- Service optionnel `metabase` dans `deploy/docker-compose.bi.yml` (profil `bi`), réseau `internal`, connecté avec `bi_reader`. Image non téléchargée ; licence AGPL (usage interne non modifié — **à vérifier**).
+- Livrable : une page `bi/metabase.md` (connexion, 5 questions SQL reprenant les vues). Aucun tableau Metabase n'est construit.
 
 ## 11. Tests (lot E1/E2)
 
