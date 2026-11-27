@@ -550,6 +550,9 @@ export const en: Messages = {
     modelsHelp: "The installed language models, the one in use, and the context window size.",
   },
   regen: {
+    writeTor: "Write the ToR",
+    writeCdc: "Write the specification",
+    writeHint: "Creates the deliverable for this initiative: its sections are written from its findings and their sources.",
     button: "Regenerate",
     hint: "Rebuild the roadmap from the current validated recommendations and findings; the old version stays in the deliverables list.",
     confirm: "Regenerate the roadmap?\n\nA new roadmap is built from the current validated recommendations and findings. The old one stays available (and deletable) in the case deliverables list.",

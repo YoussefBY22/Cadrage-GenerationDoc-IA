@@ -62,6 +62,7 @@ function RegeneratePanel({ dossierId }: { dossierId: string }) {
 
 export default function RoadmapView({ id }: { id: string }) {
   const viewer = useViewerOpener();
+  const router = useRouter();
   const [d, setD] = useState<Deliverable | null>(null);
   const [edits, setEdits] = useState<Record<string, Edit>>({});
   const [error, setError] = useState<string | null>(null);
@@ -379,6 +380,26 @@ export default function RoadmapView({ id }: { id: string }) {
                       <b>{c.whyHere}</b> {ini.wave_reason}
                     </div>
                   )}
+                  <div className="row ini-actions" style={{ gap: 6, marginTop: 6 }}>
+                    {(["tor", "cdc"] as const).map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        className="btn btn-sm"
+                        title={t.regen.writeHint}
+                        onClick={async () => {
+                          try {
+                            const r = await api.createDeliverable(d.dossier_id, type, ini.id);
+                            router.push(`/deliverables/${r.deliverable_id}`);
+                          } catch (e) {
+                            setError(e instanceof Error ? e.message : String(e));
+                          }
+                        }}
+                      >
+                        {type === "tor" ? t.regen.writeTor : t.regen.writeCdc}
+                      </button>
+                    ))}
+                  </div>
                   {(ini.auto_finding_ids?.length ?? 0) > 0 && (
                     <div style={{ fontWeight: 400, fontSize: 12, color: "var(--warn, #b45309)" }}
                          data-testid={`auto-${ini.id}`}>

@@ -555,6 +555,9 @@ export const fr = {
     modelsHelp: "Les modèles de langage installés, celui en service, et la taille de la fenêtre de contexte.",
   },
   regen: {
+    writeTor: "Rédiger les TdR",
+    writeCdc: "Rédiger le cahier des charges",
+    writeHint: "Crée le livrable pour cette initiative : ses sections seront rédigées à partir de ses constats et de leurs sources.",
     button: "Régénérer",
     hint: "Refaire la feuille de route à partir des recommandations et constats validés actuels ; l'ancienne version reste dans la liste des livrables.",
     confirm: "Régénérer la feuille de route ?\n\nUne nouvelle feuille de route est créée à partir des recommandations et constats validés actuels. L'ancienne reste consultable (et supprimable) dans la liste des livrables du dossier.",
