@@ -66,3 +66,15 @@ def test_numero_de_page_n_est_pas_un_paragraphe():
     from app.services.reco_details import paragraph_at
     texte = "2\n\nSynthèse\nI Chaque année\n\n30 Lorsque les DG"
     assert paragraph_at(texte, 5) is None and paragraph_at(texte, 40) == 30
+
+
+def test_regle_simple_corrigee_et_fusion_prudente():
+    assert fc.rule_rewrite("Par conséquent, nous avons observé un risque de dépendance.") == \
+        "Il a été observé un risque de dépendance."
+    assert fc.rule_rewrite("11 Au sein de la structure, les DG décident.") == "Il a été constaté qu'au sein de la structure, les DG décident."
+    assert "locaux." in fc.rule_rewrite("Les contractants travaillant dans ses locaux14. Elle précise.")
+    assert not fc.same_finding(
+        "Les lignes directrices donnaient des orientations pour le suivi et l'analyse de la contribution des travaux.",
+        "Les lignes directrices donnaient des orientations concernant la planification et la justification du recours.")
+    assert fc.same_finding("Seules certaines directions générales procédaient à des évaluations ex post une fois les contrats achevés.",
+                           "Seules certaines directions générales procédaient à des évaluations ex post une fois les contrats conclus.")

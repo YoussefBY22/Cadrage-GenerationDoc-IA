@@ -28,7 +28,7 @@ DUP_THRESHOLD = 0.93  # 0,90 fusionnait deux constats différents sur les « ori
 NEG = re.compile(r"\b(?:ne|n['’])\s?[^.]{0,80}?\b(?:pas|plus|jamais|aucun|guère|que)\b|(?:manqu|insuffis|absen|"
                  r"lacun|risqu|faibless|incohéren|erreur|limit|fragment|défaill|retard|dépendan|concentr|conflit|"
                  r"inexact|incomplet|non\s+(?:document|systémat|fiabl)|\bsans\s|aucun|défaut|problèm|écart|"
-                 r"\bseule?s?\b|réduit|\bmoins\b|bien\s+que|\bmais\b|avantage|plus\s+modestes)",
+                 r"\bseule?s?\b|réduit|échapp|\bmoins\b|bien\s+que|\bmais\b|avantage|plus\s+modestes)",
                  re.IGNORECASE)
 POS = re.compile(r"(?:conforme|respect|approprié|dûment|bien\s+géré|a\s+bien\b|correctement|bons?\s+exemples?)",
                  re.IGNORECASE)
@@ -86,15 +86,45 @@ def noise_reason(text: str) -> str | None:
 
 
 def rule_rewrite(text: str) -> str:
+    """Reformulation sûre, sans modèle : retire le numéro de paragraphe, les notes collées et le mot de liaison
+    de tête, passe « Nous avons constaté que » à la forme impersonnelle, sans toucher au reste."""
     t = " ".join(text.split())
-    for rx, repl in REWRITE_RULES:
-        if rx.search(t):
-            return rx.sub(repl, t, count=1)
     t = re.sub(r"^\d{1,3}\s+(?=[A-ZÀ-Ý])", "", t)  # numéro de paragraphe collé
+    t = re.sub(r"(?<=[a-zéèêàùûôîç»])\d{1,2}(?=[\s.,;:)]|$)", "", t)  # appel de note collé (« locaux14 »)
     t = re.sub(r"^(?:Cela étant|Par conséquent|En outre|Toutefois|Cependant|Néanmoins|De plus|Ainsi|"
                r"D['’]une manière générale|En revanche|Enfin|Par ailleurs)\s*,\s*", "", t, flags=re.IGNORECASE)
-    t = t[:1].upper() + t[1:]
-    return "Il a été constaté que " + t[0].lower() + t[1:] if t and t[0].isupper() and not t.startswith("Il a été") else t
+    m = re.match(r"(?i)^Nous\s+avons\s+(?:également\s+|aussi\s+|encore\s+)?(constaté|relevé|observé|noté)\s+(que\s+)?", t)
+    if m:
+        rest = t[m.end():]
+        if m.group(2):
+            return _que("Il a été constaté que ", rest)
+        return f"Il a été {m.group(1).lower()} " + rest
+    m = re.match(r"(?i)^Nous\s+n['’]avons\s+pas\s+trouvé\s+", t)
+    if m:
+        return "Il n'a pas été trouvé " + t[m.end():]
+    if t.startswith("Il a été"):
+        return t
+    return _que("Il a été constaté que ", t[:1].lower() + t[1:] if t[:2] != t[:2].upper() else t)
+
+
+def _que(prefix: str, rest: str) -> str:
+    """« que » + voyelle → « qu' » (« qu'au sein », « qu'en juillet »)."""
+    if prefix.endswith("que ") and rest[:1].lower() in "aeiouhéèêàâîôûy":
+        return prefix[:-2] + "'" + rest
+    return prefix + rest
+
+
+def _content_words(t: str) -> set[str]:
+    return {w for w in re.findall(r"[a-zàâçéèêëîïôûùüÿœ]{4,}", t.lower())}
+
+
+def same_finding(a: str, b: str) -> bool:
+    """Garde-fou lexical en plus du sens : deux phrases bâties sur le même modèle (« les lignes directrices
+    donnaient des orientations pour X / pour Y ») sont proches par le sens mais ne disent pas la même chose."""
+    wa, wb = _content_words(a), _content_words(b)
+    if not wa or not wb:
+        return False
+    return len(wa & wb) / min(len(wa), len(wb)) >= 0.7
 
 
 def _similar(provider, a: str, b: str) -> float | None:
@@ -190,7 +220,7 @@ def clean(repo, provider, dossier_id: str, *, rewrite: bool = True, embed_provid
             if o.id in merged:
                 continue
             sim = sum(a * b for a, b in zip(vecs[i], vecs[j], strict=False))
-            if sim >= DUP_THRESHOLD:
+            if sim >= DUP_THRESHOLD and same_finding(r.quote or r.text, o.quote or o.text):
                 merged[r.id] = o.id
                 break
     with eng.begin() as c:
