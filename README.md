@@ -107,7 +107,7 @@ fidèles 97-99 % → **100 %** ; temps par section (p95) 37 s → **24 s**.
 16 constats, 19 initiatives, aucun constat oublié ; contexte des TdR rédigé et vérifié à 100 % ; 12 exigences
 fonctionnelles proposées, toutes vérifiées.
 
-## Tableau de bord de décision (Power BI)
+## Dashboard Power BI
 
 **Pour qui, pour quoi.** L'application sert à produire ; le tableau de bord sert à **piloter** : le consultant voit
 quels rapports d'audit contrôler et quelles sections reprendre, le responsable sa file de relecture, la direction
@@ -116,9 +116,9 @@ l'activité et un rapport d'une page, le profil technique la qualité du modèle
 au jour, mois, projet, client, consultant, type de livrable) et un encadré **« Que faire ensuite »** : 7 règles
 explicites, dont les 3 premières qui se déclenchent s'affichent.
 
-**Lien avec l'application, honnêtement.** Le tableau de bord n'est **pas** branché en direct. L'application écrit dans
-sa base ; un chargement (ETL : `python -m app.dw.etl`) copie ce qu'il faut dans un **entrepôt de données** (schéma en
-étoile, **aucun texte du client**), puis Power BI s'actualise à partir de cet entrepôt (export CSV, chemin testé ;
+**Lien avec l'application** L'application écrit dans sa base ; un chargement (ETL : `python -m app.dw.etl`) copie ce qu'il faut 
+dans un **entrepôt de données** (schéma en étoile, **aucun texte du client**), puis Power BI s'actualise à partir de cet entrepôt 
+(export CSV, chemin testé ;
 lecture directe PostgreSQL préparée, non testée). Les chiffres datent donc du **dernier chargement**, affiché en pied
 de page. Une correction faite dans l'application (par exemple une recommandation ajoutée par le consultant) apparaît
 au chargement suivant. Le projet de la Cour des comptes et les trois entraînements sont **réels** ; cinq projets
