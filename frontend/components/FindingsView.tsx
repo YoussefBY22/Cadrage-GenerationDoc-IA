@@ -26,6 +26,7 @@ import { t } from "@/lib/i18n";
 import { useDossier } from "@/lib/useDossier";
 import { useGuard } from "@/lib/useGuard";
 import { useJob } from "@/lib/useJob";
+import { useViewerOpener } from "@/lib/viewerLink";
 
 const pages = (r: SourceRef) =>
   r.page_end && r.page_start && r.page_end !== r.page_start ? `${r.page_start}–${r.page_end}` : `${r.page_start ?? "?"}`;
@@ -50,6 +51,7 @@ export default function FindingsView({ dossierId }: { dossierId: string }) {
   const [openMerged, setOpenMerged] = useState<Record<string, boolean>>({});
   const [coverage, setCoverage] = useState<Coverage | null>(null);
   const dossier = useDossier(dossierId);
+  const viewer = useViewerOpener();
 
   const load = useCallback(() => {
     api
@@ -142,16 +144,15 @@ export default function FindingsView({ dossierId }: { dossierId: string }) {
             : `${t.findings.proof} ${i + 1}`}
         </button>
         {r.document_id && (
-          <a
+          <button
+            type="button"
             className="link"
-            href={`/documents/${r.document_id}?page=${r.page_start ?? 1}&finding=${f.id}`}
-            target="cadrage-document"
-            rel="noopener"
             title={t.findings.openInDoc}
+            onClick={() => void viewer.open({ docId: r.document_id, page: r.page_start, findingId: f.id })}
           >
             <ExternalLink size={13} />
             {t.findings.openInDoc}
-          </a>
+          </button>
         )}
       </span>
     ));
@@ -182,6 +183,7 @@ export default function FindingsView({ dossierId }: { dossierId: string }) {
           </button>
         </div>
       </div>
+      {viewer.modal}
       {error && <Alert>{error}</Alert>}
       {extractJob.error && <Alert>{extractJob.error}</Alert>}
       {cleanJob.error && <Alert>{cleanJob.error}</Alert>}

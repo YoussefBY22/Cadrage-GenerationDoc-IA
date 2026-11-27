@@ -9,11 +9,12 @@ import type { AuditRecommendation, RecommendationsOverview, ReportRecommendation
 import { t } from "@/lib/i18n";
 import { useDossier } from "@/lib/useDossier";
 import { useGuard } from "@/lib/useGuard";
+import { useViewerOpener } from "@/lib/viewerLink";
 
 const BADGE: Record<string, string> = { proposed: "draft", validated: "approved", deleted: "rejected", merged: "in_review" };
 const CHECK: Record<string, string> = { ok: "approved", ecart: "rejected", non_detectees: "rejected", non_lu: "draft" };
 
-function Report({ r, run, dossierId }: { r: ReportRecommendations; run: (fn: () => Promise<unknown>) => void; dossierId: string }) {
+function Report({ r, run, dossierId, onOpen }: { r: ReportRecommendations; run: (fn: () => Promise<unknown>) => void; dossierId: string; onOpen: (m: { docId: string; page?: number | null; recoId?: string }) => Promise<void> }) {
   const [title, setTitle] = useState("");
   const [num, setNum] = useState("");
   const [page, setPage] = useState("");
@@ -156,9 +157,10 @@ function Report({ r, run, dossierId }: { r: ReportRecommendations; run: (fn: () 
                     </td>
                     <td className="num">
                       {x.page ? (
-                        <a href={`/documents/${r.document_id}?page=${x.page}`} target="cadrage-document" rel="noopener" title={t.findings.openInDoc}>
+                        <button type="button" className="link" title={t.findings.openInDoc}
+                          onClick={() => void onOpen({ docId: r.document_id, page: x.page, recoId: x.id })}>
                           {x.page}
-                        </a>
+                        </button>
                       ) : (
                         "–"
                       )}
@@ -212,6 +214,7 @@ function compact(ns: number[]): string {
 export default function RecommendationsView({ dossierId }: { dossierId: string }) {
   const guard = useGuard();
   const dossier = useDossier(dossierId);
+  const viewer = useViewerOpener();
   const [data, setData] = useState<RecommendationsOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -263,6 +266,7 @@ export default function RecommendationsView({ dossierId }: { dossierId: string }
           </button>
         </div>
       </div>
+      {viewer.modal}
       {error && <Alert>{error}</Alert>}
       {data && data.alerts > 0 && (
         <div className="toast err" role="status" data-testid="recos-alerts">
@@ -271,7 +275,7 @@ export default function RecommendationsView({ dossierId }: { dossierId: string }
       )}
       {data === null && !error && <p className="muted">{t.common.loading}</p>}
       {data?.reports.length === 0 && <Empty icon={ListChecks} label={t.projet.noReports} />}
-      {data?.reports.map((r) => <Report key={r.document_id} r={r} run={run} dossierId={dossierId} />)}
+      {data?.reports.map((r) => <Report key={r.document_id} r={r} run={run} dossierId={dossierId} onOpen={viewer.open} />)}
     </>
   );
 }

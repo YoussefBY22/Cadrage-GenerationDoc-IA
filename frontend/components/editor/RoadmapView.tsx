@@ -1,5 +1,6 @@
 "use client";
 
+import { useViewerOpener } from "@/lib/viewerLink";
 import { AlertTriangle, ChevronRight, CircleCheck, Flag, Info, Route, Save } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -25,6 +26,7 @@ interface Edit {
 const errText = (e: unknown) => (e instanceof ApiError ? e.message : t.common.error);
 
 export default function RoadmapView({ id }: { id: string }) {
+  const viewer = useViewerOpener();
   const [d, setD] = useState<Deliverable | null>(null);
   const [edits, setEdits] = useState<Record<string, Edit>>({});
   const [error, setError] = useState<string | null>(null);
@@ -142,6 +144,7 @@ export default function RoadmapView({ id }: { id: string }) {
 
   return (
     <div className={`split${source ? " with-panel" : ""}`}>
+    {viewer.modal}
     <section>
       <div className="page-head">
         <div>
@@ -322,13 +325,15 @@ export default function RoadmapView({ id }: { id: string }) {
                     <div className="ini-source" data-testid={`source-${ini.id}`}>
                       {c.fromReco(ini.recommendation.number, ini.recommendation.label)}
                       {ini.recommendation.document_id && (
-                        <a
-                          href={`/documents/${ini.recommendation.document_id}?page=${ini.recommendation.page ?? 1}`}
-                          target="cadrage-document"
-                          rel="noopener"
+                        <button
+                          type="button"
+                          className="link"
+                          onClick={() =>
+                            void viewer.open({ docId: ini.recommendation!.document_id!, page: ini.recommendation!.page, recoId: ini.recommendation!.id })
+                          }
                         >
                           {c.seeInReport(ini.recommendation.page)}
-                        </a>
+                        </button>
                       )}
                     </div>
                   )}
