@@ -1,10 +1,12 @@
 # 07 — Entrepôt de données et tableau de bord
 
-> Lots E1 (schéma, chargement, vues, indicateurs) et E2 (démo, export CSV, Power BI, Metabase). Testé cette nuit sur **SQLite** ; Postgres et Power BI Desktop **demain avec l'utilisateur**.
+> Référence technique (tables, colonnes, ETL, vues, formules). Version lisible et vue d'ensemble :
+> [`22-business-intelligence.md`](22-business-intelligence.md). Testé sur **SQLite** et dans **Power BI Desktop** (CSV) ;
+> la lecture directe PostgreSQL est préparée, non testée.
 
 ## 1. Principes
 
-- Schéma `dw` dans la même base PostgreSQL que l'application (en SQLite : mêmes tables grâce à `schema_translate_map={"dw": None}`, préfixe implicite). Défini en **SQLAlchemy Core** (`app/dw/schema.py`), migration Alembic `0002_dw.py` (Postgres, demain).
+- Schéma `dw` dans la même base PostgreSQL que l'application (en SQLite : mêmes tables grâce à `schema_translate_map={"dw": None}`, préfixe implicite). Défini en **SQLAlchemy Core** (`app/dw/schema.py`), migration Alembic `0002_dw.py` (PostgreSQL, vérifiée en local avec Docker).
 - Alimenté **uniquement** par l'ETL à partir des tables opérationnelles (`06` §4.2) ; aucune écriture de l'application dans `dw`.
 - **Aucun texte client** dans l'entrepôt : pas de phrases, pas de passages ; seulement identifiants, compteurs, mesures, noms de dossiers/clients (pseudonymisables : `settings.dw_pseudonymize=True` remplace par `Client 001`).
 - Toute ligne porte `is_demo BOOLEAN` : les données de démonstration ne se mélangent jamais aux vraies (filtre par défaut dans les vues : `is_demo = settings`).
@@ -189,7 +191,7 @@ n'affichaient que des tableaux de texte. La file de validation se lit désormais
 ## 8. Connexion Power BI **sans fuite**
 
 - **Power BI Desktop** (local) → connecteur PostgreSQL vers `localhost:5432`, rôle **lecture seule** `bi_reader` limité au schéma `dw` (script `db/dw/roles.sql`). Le pilote nécessaire (Npgsql) est **à vérifier** selon la version de Power BI Desktop.
-- **Plan B sans base** : `python -m app.dw.export_csv --out bi/export/` écrit une CSV UTF-8 (séparateur `;`, décimale `,` pour Excel FR — option `--locale en`) par vue ; Power BI → « Texte/CSV ». Testable cette nuit.
+- **Plan B sans base** : `python -m app.dw.export_csv --out bi/export/` écrit une CSV UTF-8 (séparateur `;`, décimale `,` pour Excel FR — option `--locale en`) par vue ; Power BI → « Texte/CSV ». Chemin utilisé pour les captures.
 - Ne **pas** publier sur Power BI Service (cloud Microsoft) : contraire à C1. Power BI Report Server sur site : licence **à vérifier**.
 
 ### 8.1 « Temps réel » : ce qui est vrai
@@ -228,8 +230,8 @@ def generate_demo(op_engine: Engine, *, seed: int = 42, clients: int = 5, weeks:
 
 ## 10. Alternative libre : Metabase
 
-- Service optionnel `metabase` dans `deploy/docker-compose.bi.yml` (profil `bi`), réseau `internal`, connecté avec `bi_reader`. Image **à télécharger demain** ; licence AGPL (usage interne non modifié — **à vérifier**).
-- Livrable : une page `bi/metabase.md` (connexion, 5 questions SQL reprenant les vues). Pas de tableau construit cette nuit.
+- Service optionnel `metabase` dans `deploy/docker-compose.bi.yml` (profil `bi`), réseau `internal`, connecté avec `bi_reader`. Image non téléchargée ; licence AGPL (usage interne non modifié — **à vérifier**).
+- Livrable : une page `bi/metabase.md` (connexion, 5 questions SQL reprenant les vues). Aucun tableau Metabase n'est construit.
 
 ## 11. Tests (lot E1/E2)
 

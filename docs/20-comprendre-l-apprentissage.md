@@ -128,3 +128,57 @@ extraire des constats, ranger des constats en axes.
 
 **Leçon pratique (25/11)** : enregistrer une version (**Save Version**) ou télécharger les fichiers **avant** d'arrêter
 la session ; sinon les exports faits après la dernière version sont perdus.
+
+## 7. Le carnet d'entraînement, cellule par cellule (Colab et Kaggle)
+
+Les deux carnets (`training/colab/cadrage_entrainement.ipynb`, `training/kaggle/cadrage_entrainement_kaggle.ipynb`)
+sont **générés** par `make_notebook.py` / `make_notebook_kaggle.py` : mêmes étapes, seuls le stockage et quelques
+chemins changent. Chaque cellule appelle le code du dépôt, figé à une version précise (`CODE`), et un paquet de données
+vérifié par son empreinte (`DONNEES`).
+
+| Cellule | Ce qu'elle fait | Pourquoi |
+|---|---|---|
+| Étape 1 · vérifier | GPU présent, Internet, place disque ; sur Kaggle, reprend l'état d'une version enregistrée | ne pas dépenser de quota pour rien |
+| Étape 2 · code et données | télécharge le dépôt à la version `CODE` et le paquet de données, **refuse** si l'empreinte SHA-256 diffère | entraîner exactement sur les données relues |
+| Étape 3 · bibliothèques | installe PyTorch, Transformers, PEFT (LoRA), bitsandbytes (4 bits), TRL… aux versions figées | reproductibilité |
+| Étape 4 · modèle de base | télécharge Qwen3-4B à une révision précise (8 Go) | toujours le même point de départ |
+| Étape 5 · Ollama | installe Ollama et compare son gabarit de conversation avec celui de l'entraînement | sinon le modèle entraîné ne « reconnaît » pas les questions (leçon de l'essai 1) |
+| Étape 6 · llama.cpp | compile l'outil qui compresse le modèle (Q4_K_M) | fichier de 2,5 Go lisible par Ollama |
+| Étape 7 · lanceur | prépare la commande `cadrage(...)` des cellules suivantes | une ligne par cellule, lisible |
+| Partie 0 · preuve | 2 pas d'entraînement, reprise, export complet, réponse JSON vérifiée | prouver toute la chaîne **avant** l'entraînement long |
+| Parties 1 à 3 | l'entraînement, en tiers qui **reprennent** là où le précédent s'est arrêté ; mesure de validation tous les 20 pas, arrêt anticipé, meilleure version sauvée à part | survivre aux coupures de Colab / Kaggle |
+| Où j'en suis | affiche pas, pertes, meilleure validation | suivre sans rien lancer |
+| Exporter le modèle entraîné | fusion LoRA + base → GGUF f16 → Q4_K_M → empreinte | le fichier à importer dans Ollama |
+| Exporter la base | la **même** chaîne sur le modèle sans LoRA | comparer à armes égales |
+| Résumé | pas, courbes, durée, fichiers à télécharger et leurs empreintes | savoir quoi rapatrier |
+| Test avant téléchargement | base contre LoRA sur les exemples de test, par tâche | ne télécharger que si c'est mieux |
+
+**Fichiers du dépôt utilisés** : `training/profiles/colab-parties.yaml` (réglages : rang 16, taux 1e-4, lots de 4,
+3 époques au plus, patience 2), `training/parts.py` (parties, reprise, meilleure version), `training/train_lora.py`
+(boucle QLoRA), `training/export_gguf.py` (fusion et compression), `training/import_ollama.py` (import sur le PC avec
+vérification des empreintes), `training/dataset/*` (construction des exemples), `training/colab/test_avant_telechargement.py`
+(le test final), `training/registre/*.json` (le registre lu par le tableau de bord).
+
+## 8. Comment sait-on qu'une réponse est « bonne » ?
+
+**Ce n'est pas en comparant avec ce que l'assistant de code aurait répondu.** La « bonne réponse » de chaque exemple
+vient des **documents publics eux-mêmes**, découpés par des programmes :
+
+| Tâche | D'où vient la bonne réponse |
+|---|---|
+| Extraction de constats | phrases **recopiées** des paragraphes du rapport qui énoncent un constat (« nous avons constaté », « n'a pas »…) ; thème et gravité attribués par des règles écrites dans le code |
+| Position (accepte / partiellement / rejette) | la **réponse officielle de la Commission** à chaque recommandation, publiée avec le rapport |
+| Conflit | une réponse « partiellement » ou « rejette » de la Commission, dont la justification sert de contrainte ; « aligné » si elle accepte (règle simple : 2 exemples de test se sont révélés mal étiquetés) |
+| Feuille de route | les recommandations du rapport et leurs **échéances officielles** (« Quand ? »), recopiées |
+| Refus | on **retire** le passage qui contient la réponse : la bonne réponse devient « preuves insuffisantes » |
+| Axes | le **sommaire** du rapport : les grandes parties écrites par les auditeurs |
+
+Les exceptions, dites franchement : les **28 exemples du pilote v2**, rédigés par programme puis relus et corrigés
+par l'assistant (6 corrigés) ; les règles de thème et de gravité ; et, dans le test sur le vrai rapport, les **8 paires
+de conflit** construites à partir d'une fiche de stratégie fictive. Là, la bonne réponse a été fixée à la main.
+
+**Comment on note** : sans jugement subjectif. Le programme de test compare le **statut** (répondre ou refuser),
+l'**étiquette** (accepte, conflit…), et passe chaque phrase produite au **vérificateur de l'application** (la source
+citée existe-t-elle, les chiffres y figurent-ils ?). Pour les axes, il compare les **paires** de constats rangées
+ensemble ou séparées. Le banc dans l'application (31 sections) utilise un corpus fictif dont les faits et les
+sections « sans preuve » sont connus d'avance.
