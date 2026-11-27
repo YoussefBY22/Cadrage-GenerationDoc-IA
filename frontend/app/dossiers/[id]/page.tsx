@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type DragEvent } from "react";
 import JobPanel from "@/components/JobPanel";
 import ProfileCard from "@/components/ProfileCard";
+import WaitNote from "@/components/WaitNote";
 import Shell from "@/components/Shell";
 import { Alert, Empty } from "@/components/ui";
 import { ApiError, api } from "@/lib/api";
@@ -138,6 +139,7 @@ function Drop({
       </span>
       {busy ? t.dossier.uploading : label}
       <small>{t.dossier.dropFormats}</small>
+      {busy && <WaitNote label={t.wait.upload} typical={t.wait.uploadTypical} />}
       <input
         type="file"
         multiple

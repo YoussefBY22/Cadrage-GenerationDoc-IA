@@ -260,7 +260,7 @@ export const en: Messages = {
       scope: "Scope",
       constraints: "Constraints",
       stakeholders: "Stakeholders",
-      roadmap_axes: "Roadmap axes (one per line, optional: otherwise grouped by meaning)",
+      roadmap_axes: "Roadmap axes (one per line, optional: otherwise the report recommendations, or else findings grouped by meaning)",
     } as Record<string, string>,
     types: {
       software: "Software and IS",
@@ -574,6 +574,8 @@ export const en: Messages = {
 
   },
   wait: {
+    upload: "Reading the file, splitting it into passages and computing vectors for search by meaning",
+    uploadTypical: "about 1 to 3 min for 50 pages",
     section: "The model is writing this section from the sources",
     sectionTypical: "usually 40 s to 2 min on this machine",
     chat: "The model is preparing the answer",

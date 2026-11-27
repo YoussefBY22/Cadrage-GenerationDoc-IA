@@ -50,6 +50,44 @@
 
 ## 4. Revue « consultant expert » de la V4.1 et prochain entraînement
 
-> Section remplie au test complet en utilisateur (nouveau dossier, de l'import du rapport au cahier des
-> charges) : réponse par réponse, ce que le modèle a produit, ce qu'un consultant aurait écrit, l'écart, et
-> si l'écart se corrige **par le code** (V4.x) ou demande **un entraînement** (V6).
+Méthode : chaque réponse de l'IA est relue contre le rapport (RS 17/2022 de la Cour des comptes européenne,
+53 pages), comme le ferait un consultant expert : la référence est-elle juste, la formulation fidèle, le
+classement correct ? Pour chaque écart : se corrige-t-il **par le code** (V4.x) ou faut-il **entraîner** (V6) ?
+
+### 4.1 Recommandations (règles, sans modèle)
+
+| Élément | Attendu (rapport p. 42-45) | Obtenu | Verdict |
+|---|---|---|---|
+| Nombre | 4 recommandations | 4 | juste |
+| Sous-points | n° 1 a-c, n° 2 a-d, n° 3 a-c, n° 4 aucun | identiques | juste |
+| Échéances | « D'ici à décembre 2023 » ×4 | identiques | juste |
+| Paragraphes cités | 18-26 et 24, 28-32 ; 34-36 et 38-56 ; 57-71 ; 72-84 | identiques | juste |
+
+### 4.2 Nettoyage des constats (96 constats, modèle de base Qwen3-4B pour reformuler)
+
+| Mesure | Résultat |
+|---|---|
+| Phrases de méthode, figures, cellules de tableau écartées | 31, toutes à juste titre sauf 1 (« contrôles de qualité supplémentaires », un point positif) |
+| Doublons fusionnés (seuil 0,93) | 4 justes ; 2 paires restent (« les avait tous gérés… », deux phrases quasi identiques) |
+| Reformulations fidèles et plus claires | ≈ 50 sur 59 actives |
+| **Inventions** (sens ajouté ou changé) | ≈ 5 : n° 67 « ne vérifie pas correctement les données » (absent du rapport), n° 74 « n'a pas informé sur la manière dont elle évalue ses besoins » (inventé), n° 53 « la Commission a trouvé de bonnes pratiques » (ce sont les auditeurs), n° 61 « cela » mal résolu, n° 1 « informations » devenu « ne précise pas » |
+| **Nature fausse** | ≈ 8 : règles et conditions (« si… elles doivent », « ne devraient jamais être externalisées »), principe général, contexte chiffré classés « problème » |
+| Fautes de langue | 2 (« préviaient », « ne identifiaient ») |
+
+**Ce que fait l'expert à la place** : il garde la phrase du rapport quand elle est claire, remplace seulement
+le sujet implicite (« cela », « ces risques ») par ce qu'il désigne, et ne change jamais le verbe ni le sens.
+Une règle ou une condition (« doivent », « sont censées », « si… ») décrit le cadre, pas un manque.
+
+**Correction par le code (V4.2)** : contrôle de fidélité par le sens (reformulation trop éloignée de la phrase
+d'origine → reformulation par règle), règles de nature (condition, obligation, principe général → contexte),
+reformulation marquée « à relire ».
+
+**Entraînement (V6), si le code ne suffit pas** : une tâche « reformuler un constat » dont la bonne réponse vient
+du **rapport lui-même** : la synthèse (points I à IX) et la conclusion (points 85 à 91) d'un rapport de la Cour
+reprennent en termes simples les constats du corps du texte ; ces couples (phrase détaillée → phrase de synthèse)
+sont des exemples sans rédaction humaine, comme les autres tâches (doc 20 §8). Plus une tâche « nature »
+(problème, positif, contexte) étiquetée par les marques du texte et vérifiée à la main sur un échantillon.
+
+### 4.3 Extraction, feuille de route, TdR et cahier des charges
+
+> Complété à la fin du test sur le nouveau dossier « Test V4.1 ».

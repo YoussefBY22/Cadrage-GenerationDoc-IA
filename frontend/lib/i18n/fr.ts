@@ -259,7 +259,7 @@ export const fr = {
       scope: "Périmètre",
       constraints: "Contraintes",
       stakeholders: "Parties prenantes",
-      roadmap_axes: "Axes de la feuille de route (un par ligne, facultatif : sinon regroupés par le sens)",
+      roadmap_axes: "Axes de la feuille de route (un par ligne, facultatif : sinon, les recommandations du rapport, ou à défaut un regroupement des constats par le sens)",
     } as Record<string, string>,
     types: {
       software: "Logiciel et SI",
@@ -579,6 +579,8 @@ export const fr = {
 
   },
   wait: {
+    upload: "Lecture du fichier, découpage en passages et calcul des vecteurs pour la recherche par le sens",
+    uploadTypical: "environ 1 à 3 min pour 50 pages",
     section: "Le modèle rédige cette section à partir des sources",
     sectionTypical: "habituellement 40 s à 2 min sur ce poste",
     chat: "Le modèle prépare la réponse",
