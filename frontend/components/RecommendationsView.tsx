@@ -63,7 +63,7 @@ function Report({ r, run, dossierId }: { r: ReportRecommendations; run: (fn: () 
         </button>
       )}
       {r.recommendations.length > 0 && (
-        <div className="table-wrap" style={{ marginTop: 10 }}>
+        <div className="table-wrap reco-table" style={{ marginTop: 10 }}>
           <table>
             <thead>
               <tr>
@@ -71,7 +71,6 @@ function Report({ r, run, dossierId }: { r: ReportRecommendations; run: (fn: () 
                 <th>{t.projet.title}</th>
                 <th>{t.projet.page}</th>
                 <th>{t.coeur.statusField}</th>
-                <th />
               </tr>
             </thead>
             <tbody>
@@ -80,52 +79,65 @@ function Report({ r, run, dossierId }: { r: ReportRecommendations; run: (fn: () 
                 return (
                   <tr key={x.id} data-testid={`reco-${x.id}`} style={active ? undefined : { opacity: 0.55 }}>
                     <td className="num">{x.number ?? "–"}</td>
-                    <td style={{ minWidth: 260 }}>
+                    <td>
                       {x.title}
-                      <div className="muted">{t.projet.origin[x.origin]}</div>
+                      <div className="muted">
+                        {t.projet.origin[x.origin]}
+                        {x.status === "merged" && x.merged_into && (
+                          <> · {t.projet.mergedInto(label(r.recommendations.find((o) => o.id === x.merged_into) ?? x))}</>
+                        )}
+                      </div>
+                      <div className="reco-actions">
+                        {x.status === "proposed" && (
+                          <button className="btn btn-sm" onClick={() => run(() => api.patchRecommendation(x.id, { status: "validated" }))}>
+                            <Check size={13} />
+                            {t.projet.validate}
+                          </button>
+                        )}
+                        {active && actives.length > 1 && (
+                          <select
+                            className="mini-select"
+                            aria-label={`${t.projet.mergeInto} ${label(x)}`}
+                            value=""
+                            onChange={(e) => e.target.value && run(() => api.patchRecommendation(x.id, { merge_into: e.target.value }))}
+                          >
+                            <option value="">{t.projet.mergeInto}</option>
+                            {actives
+                              .filter((o) => o.id !== x.id)
+                              .map((o) => (
+                                <option key={o.id} value={o.id}>
+                                  {label(o).slice(0, 60)}
+                                </option>
+                              ))}
+                          </select>
+                        )}
+                        {active ? (
+                          <button
+                            className="btn btn-ghost btn-icon"
+                            aria-label={`${t.projet.remove} ${label(x)}`}
+                            onClick={() => run(() => api.patchRecommendation(x.id, { status: "deleted" }))}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        ) : (
+                          <button className="btn btn-ghost btn-sm" onClick={() => run(() => api.patchRecommendation(x.id, { status: "proposed" }))}>
+                            <RotateCcw size={13} />
+                            {x.status === "merged" ? t.projet.unmerge : t.projet.restore}
+                          </button>
+                        )}
+                      </div>
                     </td>
-                    <td className="num">{x.page ?? "–"}</td>
+                    <td className="num">
+                      {x.page ? (
+                        <a href={`/documents/${r.document_id}?page=${x.page}`} target="cadrage-document" rel="noopener" title={t.findings.openInDoc}>
+                          {x.page}
+                        </a>
+                      ) : (
+                        "–"
+                      )}
+                    </td>
                     <td>
                       <span className={`badge ${BADGE[x.status]}`}>{t.projet.recoStatus[x.status]}</span>
-                    </td>
-                    <td className="num" style={{ whiteSpace: "nowrap" }}>
-                      {x.status === "proposed" && (
-                        <button className="btn btn-sm" onClick={() => run(() => api.patchRecommendation(x.id, { status: "validated" }))}>
-                          <Check size={13} />
-                          {t.projet.validate}
-                        </button>
-                      )}
-                      {active && actives.length > 1 && (
-                        <select
-                          className="mini-select"
-                          aria-label={`${t.projet.mergeInto} ${label(x)}`}
-                          value=""
-                          onChange={(e) => e.target.value && run(() => api.patchRecommendation(x.id, { merge_into: e.target.value }))}
-                        >
-                          <option value="">{t.projet.mergeInto}</option>
-                          {actives
-                            .filter((o) => o.id !== x.id)
-                            .map((o) => (
-                              <option key={o.id} value={o.id}>
-                                {label(o).slice(0, 60)}
-                              </option>
-                            ))}
-                        </select>
-                      )}
-                      {active ? (
-                        <button
-                          className="btn btn-ghost btn-icon"
-                          aria-label={`${t.projet.remove} ${label(x)}`}
-                          onClick={() => run(() => api.patchRecommendation(x.id, { status: "deleted" }))}
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      ) : (
-                        <button className="btn btn-ghost btn-sm" onClick={() => run(() => api.patchRecommendation(x.id, { status: "proposed" }))}>
-                          <RotateCcw size={13} />
-                          {t.projet.restore}
-                        </button>
-                      )}
                     </td>
                   </tr>
                 );

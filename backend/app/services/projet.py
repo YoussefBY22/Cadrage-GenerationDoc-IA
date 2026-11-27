@@ -193,12 +193,14 @@ def _vue(r) -> dict:
             "status": r.status, "origin": r.origin, "merged_into": r.merged_into}
 
 
-def controle(numeros_vus: list[int], actives: list[dict], extrait: bool, sans_reco: bool) -> dict:
-    """Écart entre ce que le rapport annonce et ce qui est retenu. `status` : ok | ecart | non_detectees."""
+def controle(numeros_vus: list[int], actives: list[dict], extrait: bool, sans_reco: bool,
+             traites: list[int] | tuple = ()) -> dict:
+    """Écart entre ce que le rapport annonce et ce qui est retenu. `status` : ok | ecart | non_detectees.
+    `traites` : numéros fusionnés ou supprimés par le consultant ; c'est un choix, pas un manque."""
     nums = [r["number"] for r in actives if r["number"] is not None]
     compte = Counter(nums)
     attendu = max(numeros_vus + nums, default=0)
-    manquants = [n for n in range(1, attendu + 1) if n not in compte]
+    manquants = [n for n in range(1, attendu + 1) if n not in compte and n not in set(traites)]
     doublons = sorted(n for n, k in compte.items() if k > 1)
     if not actives and not numeros_vus:
         statut = "ok" if sans_reco else ("non_detectees" if extrait else "non_lu")
@@ -226,8 +228,10 @@ def overview(engine: Engine, dossier_id: str) -> dict:
         toutes = [_vue(r) for r in recs if r.document_id == d.id]
         actives = [r for r in toutes if r["status"] in ACTIFS]
         ch = checks.get(d.id)
+        traites = [r["number"] for r in toutes
+                   if r["status"] in ("merged", "deleted") and r["number"] is not None]
         ctl = controle(list(ch.numbers_seen) if ch else [], actives, ch is not None,
-                       bool(ch and ch.no_recommendation))
+                       bool(ch and ch.no_recommendation), traites)
         rapports.append({"document_id": d.id, "filename": d.filename, "pages": d.pages,
                          "recommendations": toutes, "check": ctl})
     alertes = sum(1 for r in rapports if r["check"]["status"] in ("ecart", "non_detectees"))

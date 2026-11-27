@@ -2,10 +2,10 @@
 
 from typing import Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
-from app.services import Repo, User, error_response
+from app.services import Repo, User, error_response, suppression
 
 router = APIRouter(tags=["dossiers"])
 
@@ -46,3 +46,22 @@ def get_dossier(dossier_id: str, repo: Repo,
     if repo.member_role(dossier_id, user.id) is None:
         return not_found("Dossier")
     return _view(repo.get_dossier(dossier_id))
+
+
+@router.get("/dossiers/{dossier_id}/delete-preview")
+def dossier_delete_preview(dossier_id: str, repo: Repo, user: User):
+    if repo.member_role(dossier_id, user.id) is None:
+        return not_found("Dossier")
+    return suppression.dossier_counts(repo.engine, dossier_id)
+
+
+@router.delete("/dossiers/{dossier_id}")
+def delete_dossier(dossier_id: str, request: Request, repo: Repo, user: User):
+    """Supprime le dossier et tout son contenu (documents, constats, livrables...). Irréversible."""
+    if repo.member_role(dossier_id, user.id) is None:
+        return not_found("Dossier")
+    out = suppression.delete_dossier(repo.engine, dossier_id)
+    from app.services.search import get_search_service
+    get_search_service(request).invalidate(dossier_id)
+    repo.audit(user.id, "dossier.delete", "dossier", dossier_id, out)
+    return out

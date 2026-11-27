@@ -4,6 +4,14 @@ export const en: Messages = {
   appName: "Cadrage",
   footer: "Final-year project — 2026",
   nav: {
+    context: "Project sheet",
+    recommendations: "Recommendations",
+    cdc: "Specification",
+    inputs: "Inputs",
+    decisions: "Decisions",
+    priorities: "Priorities",
+    projects: "Existing projects",
+
     dashboard: "Dashboard",
     dossiers: "Cases",
     logout: "Sign out",
@@ -75,6 +83,8 @@ export const en: Messages = {
     forbidden: "Administrators only.",
   },
   common: {
+    delete: "Delete",
+
     loading: "Loading…",
     error: "Something went wrong",
     close: "Close",
@@ -101,6 +111,24 @@ export const en: Messages = {
     kpi: { dossiers: "Cases", documents: "Documents", findings: "Findings", validated: "Validated" },
   },
   dossier: {
+    hint: "Drop the client's audit reports and diagnostics here, then follow the steps: findings, roadmap, ToR and specification.",
+    read: "Read",
+    deleteDossier: "Delete case",
+    confirmDeleteDossier: (name: string, p: { documents: number; findings: number; deliverables: number; recommendations: number; decisions: number }) =>
+      `Permanently delete the case "${name}"?\n\nThis also deletes: ${p.documents} document(s), ${p.findings} finding(s), ${p.recommendations} recommendation(s), ${p.deliverables} deliverable(s), ${p.decisions} decision(s).\n\nThis cannot be undone.`,
+    confirmDeleteDocument: (name: string, p: { passages: number; findings: number; findings_partial: number; recommendations: number }) =>
+      `Delete the document "${name}"?\n\nThis also deletes its ${p.passages} passage(s), ${p.recommendations} recommendation(s) and ${p.findings} finding(s) that relied only on it.` +
+      (p.findings_partial ? ` ${p.findings_partial} other finding(s) will only lose their proof from this document.` : "") +
+      "\n\nDeliverables already written are not changed. This cannot be undone.",
+    confirmDeleteDeliverable: (type: string) => `Delete this deliverable (${type}) and all its versions? This cannot be undone.`,
+    deliverables: "Deliverables",
+    deliverablesHint: "Roadmaps, ToR and specifications produced for this case, newest first.",
+    noDeliverables: "No deliverables yet",
+    deliverableCol: "Deliverable",
+    updated: "Updated",
+    versionCol: "Version",
+    deliverableType: { roadmap: "Roadmap", tor: "Terms of reference (ToR)", cdc: "Specification" } as Record<string, string>,
+
     documents: "Documents",
     noDocuments: "No documents",
     dropHere: "Drop files here",
@@ -125,12 +153,23 @@ export const en: Messages = {
   search: {
     title: "Search",
     placeholder: "Question or keywords",
+    hint: "Find in the case documents the passages about a topic, even worded differently. Useful to check a claim or find a proof.",
     submit: "Search",
     none: "No passage",
   },
   findings: {
+    hint: "Facts found in the reports, each with its proof. Check and validate them: only validated findings feed the roadmap.",
+    proof: "Proof",
+    page: "p.",
+    showPassage: "Show the passage on the right",
+    openInDoc: "View in document",
+    sortLabel: "Display order",
+    sort: { document: "Document order", severity: "By severity" },
+    docFilter: "Document",
+    allDocs: "All documents",
+
     title: "Findings",
-    extract: "Extract",
+    extract: "Extract findings (AI)",
     none: "No findings",
     validate: "Validate",
     unvalidate: "Remove validation",
@@ -177,7 +216,7 @@ export const en: Messages = {
   },
   context: {
     title: "Sheet and chat",
-    hint: "Fill in the sheet; the chat proposes, you confirm.",
+    hint: "The project context (sector, scope, constraints, project type), filled in by you with help from the chat, which proposes values. Once confirmed, it is sent to the AI to write the ToR and specifications; project types add their sections; axes impose those of the roadmap.",
     fields: {
       sector: "Sector",
       size: "Size",
@@ -218,7 +257,7 @@ export const en: Messages = {
   },
   decisions: {
     title: "Decisions",
-    hint: "Budget, profiles, schedule: human choices, never guessed. Only confirmed decisions are used.",
+    hint: "Choices that belong to the client or consultant (budget, provider profile, schedule…), never guessed by the AI. Once confirmed, they fill the matching ToR and specification sections as is.",
     category: "Category",
     text: "Decision",
     categories: {
@@ -262,7 +301,9 @@ export const en: Messages = {
     noRequest: "Client request not filled in",
     counts: (docs: number, reports: number) => `${docs} document${docs > 1 ? "s" : ""} · ${reports} audit report${reports > 1 ? "s" : ""}`,
     recos: "Report recommendations",
-    recosHint: "Read from numbered headings; validate, merge, add or delete",
+    recosHint: "The official recommendations of the audit reports, read automatically from their numbered headings. Check them: they are the basis of the roadmap. You can validate, merge, add or delete.",
+    mergedInto: (target: string) => `merged into ${target}`,
+    unmerge: "Unmerge",
     extract: "Read the reports",
     extracting: "Reading…",
     noReports: "No audit report: import a document as “Diagnostic”",
@@ -307,9 +348,9 @@ export const en: Messages = {
     importAs: "Import as",
     templateNote: "A template is never a source of facts",
     priorities: "Institutional priorities",
-    prioritiesHint: "Only validated priorities are used for generation",
+    prioritiesHint: "The client's strategic orientations. Validated priorities are given to the AI to rank the roadmap initiatives.",
     projects: "Existing projects",
-    projectsHint: "Projects in place that an initiative may depend on",
+    projectsHint: "Projects already running at the client. They are given to the AI to avoid proposing the same thing twice and to flag dependencies.",
     noPriorities: "No priority",
     noProjects: "No project",
     add: "Add",
@@ -444,5 +485,9 @@ export const en: Messages = {
     proposeHint: "The model derives the section from findings and recommendations; each sentence is a cited proposal to validate",
     legend: { verified: "Verified", warning: "To check", failed: "Unsupported" },
     origin: { generated: "Generated", edited: "Edited", restored: "Restored" },
+  },
+  viewer: {
+    finding: "Finding whose proof is shown",
+
   },
 };

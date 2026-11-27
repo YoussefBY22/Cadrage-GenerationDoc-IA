@@ -166,3 +166,36 @@ def list_comments(deliverable_id: str, repo: Repo, user: User):
     if load_deliverable(repo, deliverable_id, user) is None:
         return _not_found()
     return vs.list_comments(repo, deliverable_id)
+
+
+@router.get("/dossiers/{dossier_id}/deliverables")
+def list_dossier_deliverables(dossier_id: str, repo: Repo, user: User):
+    """Livrables du dossier, du plus récent au plus ancien (feuilles de route, TdR, CdC)."""
+    from sqlalchemy import select
+
+    from app.storage import schema as s
+    if repo.member_role(dossier_id, user.id) is None:
+        return error_response(404, "NOT_FOUND", "Dossier introuvable")
+    with repo.engine.connect() as c:
+        rows = c.execute(select(s.deliverables).where(s.deliverables.c.dossier_id == dossier_id)
+                         .order_by(s.deliverables.c.updated_at.desc())).all()
+    return [{"id": r.id, "type": r.type, "state": r.state, "version": r.current_version,
+             "created_at": r.created_at.isoformat() if r.created_at else None,
+             "updated_at": r.updated_at.isoformat() if r.updated_at else None} for r in rows]
+
+
+@router.delete("/deliverables/{deliverable_id}")
+def delete_deliverable(deliverable_id: str, repo: Repo, user: User):
+    """Supprime un livrable et toutes ses versions. Irréversible."""
+    from sqlalchemy import delete
+
+    from app.storage import schema as s
+    d = load_deliverable(repo, deliverable_id, user)
+    if d is None:
+        return _not_found()
+    with repo.engine.begin() as c:
+        for t in (s.deliverable_versions, s.section_comments, s.state_transitions, s.exports):
+            c.execute(delete(t).where(t.c.deliverable_id == deliverable_id))
+        c.execute(delete(s.deliverables).where(s.deliverables.c.id == deliverable_id))
+    repo.audit(user.id, "deliverable.delete", "deliverable", deliverable_id, {"type": d["type"]})
+    return {"deleted": deliverable_id}

@@ -134,12 +134,12 @@ export default function ProfileCard({ dossierId, onChange }: { dossierId: string
               <dd>{t.projet.counts(p.documents, p.audit_reports)}</dd>
             </dl>
           ) : (
-            <form onSubmit={save} className="stack" data-testid="profile-form">
-              <label>
+            <form onSubmit={save} className="form-stack" data-testid="profile-form">
+              <label className="field grow">
                 <span>{t.projet.client}</span>
                 <input value={form.client_name} maxLength={255} onChange={(e) => setForm({ ...form, client_name: e.target.value })} />
               </label>
-              <label>
+              <label className="field grow">
                 <span>{t.projet.request}</span>
                 <textarea
                   rows={4}
@@ -148,17 +148,17 @@ export default function ProfileCard({ dossierId, onChange }: { dossierId: string
                   onChange={(e) => setForm({ ...form, client_request: e.target.value })}
                 />
               </label>
-              <label>
+              <label className="field grow">
                 <span>{t.projet.summary}</span>
                 <input value={form.request_summary} maxLength={200} onChange={(e) => setForm({ ...form, request_summary: e.target.value })} />
                 <small className="muted">{t.projet.summaryHint}</small>
               </label>
               <div className="row" style={{ gap: 12 }}>
-                <label>
+                <label className="field grow">
                   <span>{t.projet.start}</span>
                   <input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
                 </label>
-                <label>
+                <label className="field grow">
                   <span>{t.projet.end}</span>
                   <input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
                 </label>

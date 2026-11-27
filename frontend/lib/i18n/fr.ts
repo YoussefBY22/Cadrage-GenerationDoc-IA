@@ -3,6 +3,14 @@ export const fr = {
   appName: "Cadrage",
   footer: "Projet de fin d'études — 2026",
   nav: {
+    context: "Fiche du projet",
+    recommendations: "Recommandations",
+    cdc: "Cahier des charges",
+    inputs: "Compléments",
+    decisions: "Décisions",
+    priorities: "Priorités",
+    projects: "Projets existants",
+
     dashboard: "Tableau de bord",
     dossiers: "Dossiers",
     logout: "Quitter",
@@ -74,6 +82,8 @@ export const fr = {
     forbidden: "Réservé aux administrateurs.",
   },
   common: {
+    delete: "Supprimer",
+
     loading: "Chargement…",
     error: "Une erreur est survenue",
     close: "Fermer",
@@ -100,6 +110,24 @@ export const fr = {
     kpi: { dossiers: "Dossiers", documents: "Documents", findings: "Constats", validated: "Validés" },
   },
   dossier: {
+    hint: "Déposez ici les rapports d'audit et diagnostics du client, puis suivez les étapes : constats, feuille de route, TdR et cahier des charges.",
+    read: "Lire",
+    deleteDossier: "Supprimer le dossier",
+    confirmDeleteDossier: (name: string, p: { documents: number; findings: number; deliverables: number; recommendations: number; decisions: number }) =>
+      `Supprimer définitivement le dossier « ${name} » ?\n\nCela supprime aussi : ${p.documents} document(s), ${p.findings} constat(s), ${p.recommendations} recommandation(s), ${p.deliverables} livrable(s), ${p.decisions} décision(s).\n\nAction irréversible.`,
+    confirmDeleteDocument: (name: string, p: { passages: number; findings: number; findings_partial: number; recommendations: number }) =>
+      `Supprimer le document « ${name} » ?\n\nCela supprime aussi ses ${p.passages} passage(s), ${p.recommendations} recommandation(s) relevée(s) et ${p.findings} constat(s) qui ne reposaient que sur lui.` +
+      (p.findings_partial ? ` ${p.findings_partial} autre(s) constat(s) perdront seulement leur preuve tirée de ce document.` : "") +
+      "\n\nLes livrables déjà rédigés ne sont pas modifiés. Action irréversible.",
+    confirmDeleteDeliverable: (type: string) => `Supprimer ce livrable (${type}) et toutes ses versions ? Action irréversible.`,
+    deliverables: "Livrables",
+    deliverablesHint: "Feuilles de route, TdR et cahiers des charges produits pour ce dossier, du plus récent au plus ancien.",
+    noDeliverables: "Aucun livrable pour l'instant",
+    deliverableCol: "Livrable",
+    updated: "Mis à jour",
+    versionCol: "Version",
+    deliverableType: { roadmap: "Feuille de route", tor: "Termes de référence (TdR)", cdc: "Cahier des charges (CdC)" } as Record<string, string>,
+
     documents: "Documents",
     noDocuments: "Aucun document",
     dropHere: "Déposer des fichiers",
@@ -124,12 +152,23 @@ export const fr = {
   search: {
     title: "Recherche",
     placeholder: "Question ou mots-clés",
+    hint: "Retrouvez dans les documents du dossier les passages qui parlent d’un sujet, même formulé autrement (ex. « dépendance aux prestataires »). Utile pour vérifier une affirmation ou retrouver une preuve.",
     submit: "Rechercher",
     none: "Aucun passage",
   },
   findings: {
+    hint: "Les faits relevés dans les rapports, chacun avec sa preuve. Vérifiez-les et validez-les : seuls les constats validés servent à la feuille de route.",
+    proof: "Preuve",
+    page: "p.",
+    showPassage: "Afficher le passage à droite",
+    openInDoc: "Voir dans le document",
+    sortLabel: "Ordre d'affichage",
+    sort: { document: "Ordre du document", severity: "Par gravité" },
+    docFilter: "Document",
+    allDocs: "Tous les documents",
+
     title: "Constats",
-    extract: "Extraire",
+    extract: "Extraire les constats (IA)",
     none: "Aucun constat",
     validate: "Valider",
     unvalidate: "Retirer la validation",
@@ -142,7 +181,7 @@ export const fr = {
   },
   source: {
     title: "Source",
-    empty: "Choisir une source [n]",
+    empty: "Choisir une preuve",
     page: "page",
     section: "Section",
     alert: "Contenu suspect détecté",
@@ -176,7 +215,7 @@ export const fr = {
   } as Record<string, string>,
   context: {
     title: "Fiche et chat",
-    hint: "Renseignez la fiche ; le chat propose, vous confirmez.",
+    hint: "Le contexte du projet (secteur, périmètre, contraintes, type de projet), remplie par vous, avec l’aide du chat qui propose des valeurs. Une fois confirmée, elle est envoyée à l’IA pour rédiger les TdR et cahiers des charges ; les types de projet ajoutent leurs sections ; les axes imposent ceux de la feuille de route.",
     fields: {
       sector: "Secteur",
       size: "Taille",
@@ -217,7 +256,7 @@ export const fr = {
   },
   decisions: {
     title: "Décisions",
-    hint: "Budget, profils, calendrier : choix humains, jamais devinés. Seules les décisions confirmées sont utilisées.",
+    hint: "Les choix qui reviennent au client ou au consultant (budget, profil du prestataire, calendrier…), jamais devinés par l’IA. Une fois confirmés, ils remplissent tels quels les sections correspondantes des TdR et cahiers des charges.",
     category: "Catégorie",
     text: "Décision",
     categories: {
@@ -261,7 +300,9 @@ export const fr = {
     noRequest: "Demande du client non renseignée",
     counts: (docs: number, reports: number) => `${docs} document${docs > 1 ? "s" : ""} · ${reports} rapport${reports > 1 ? "s" : ""} d'audit`,
     recos: "Recommandations des rapports",
-    recosHint: "Relevées sur les titres numérotés ; à valider, fusionner, ajouter ou supprimer",
+    recosHint: "Les recommandations officielles des rapports d’audit, relevées automatiquement sur leurs titres numérotés (« Recommandation n° 1… »). Vérifiez-les : ce sont elles qui fondent la feuille de route. Vous pouvez valider, fusionner, ajouter ou supprimer.",
+    mergedInto: (target: string) => `fusionnée dans ${target}`,
+    unmerge: "Défusionner",
     extract: "Relever dans les rapports",
     extracting: "Lecture…",
     noReports: "Aucun rapport d'audit : importez un document comme « Diagnostic »",
@@ -306,9 +347,9 @@ export const fr = {
     importAs: "Importer comme",
     templateNote: "Une trame n'est jamais une source",
     priorities: "Priorités institutionnelles",
-    prioritiesHint: "Seules les priorités validées servent à la génération",
+    prioritiesHint: "Les orientations stratégiques du client (ex. « réduire la dépendance aux prestataires »). Les priorités validées sont données à l’IA pour classer les initiatives de la feuille de route.",
     projects: "Projets existants",
-    projectsHint: "Projets en place dont une initiative peut dépendre",
+    projectsHint: "Les projets déjà en cours chez le client. Ils sont donnés à l’IA pour éviter de proposer deux fois la même chose et pour signaler les dépendances.",
     noPriorities: "Aucune priorité",
     noProjects: "Aucun projet",
     add: "Ajouter",
@@ -449,6 +490,10 @@ export const fr = {
     proposeHint: "Le modèle déduit la section des constats et recommandations ; chaque phrase est une proposition citée, à valider",
     legend: { verified: "Vérifiée", warning: "À vérifier", failed: "Non étayée" },
     origin: { generated: "Généré", edited: "Modifié", restored: "Restauré" } as Record<string, string>,
+  },
+  viewer: {
+    finding: "Constat dont on cherche la preuve",
+
   },
 };
 

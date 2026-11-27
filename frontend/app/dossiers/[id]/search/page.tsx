@@ -39,6 +39,7 @@ export default function SearchPage() {
             <ChevronRight size={14} />
           </div>
           <h1>{t.search.title}</h1>
+          <p className="page-hint">{t.search.hint}</p>
         </div>
       </div>
       <form onSubmit={submit} className="search-bar">

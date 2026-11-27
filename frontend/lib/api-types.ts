@@ -180,6 +180,18 @@ export interface Finding {
   severity: Severity;
   source_ids: string[];
   validated: boolean;
+  /** Document, page et rang de chaque source (liste uniquement). */
+  sources?: SourceRef[];
+}
+
+export interface SourceRef {
+  chunk_id: string;
+  document_id: string;
+  filename: string;
+  page_start: number | null;
+  page_end: number | null;
+  ordinal: number;
+  document_rank: number;
 }
 
 export interface FindingPatch {
@@ -332,4 +344,28 @@ export interface RecommendationsOverview {
   alerts: number;
   validated: number;
   active: number;
+}
+
+export interface DocumentDeletePreview {
+  passages: number;
+  findings: number;
+  findings_partial: number;
+  recommendations: number;
+}
+
+export interface DossierDeletePreview {
+  documents: number;
+  findings: number;
+  deliverables: number;
+  recommendations: number;
+  decisions: number;
+}
+
+export interface DeliverableSummary {
+  id: string;
+  type: "roadmap" | "tor" | "cdc";
+  state: string;
+  version: number;
+  created_at: string | null;
+  updated_at: string | null;
 }

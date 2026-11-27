@@ -1,6 +1,21 @@
 "use client";
 
-import { Cpu, FileText, FolderOpen, LayoutDashboard, ListChecks, LogOut, Route, Search } from "lucide-react";
+import {
+    Cpu,
+  FileCheck2,
+  FileText,
+  FolderKanban,
+  FolderOpen,
+  Gavel,
+  LayoutDashboard,
+  ListChecks,
+  ListOrdered,
+  LogOut,
+  MessageSquare,
+  Route,
+  Scale,
+  Search,
+} from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -44,7 +59,18 @@ export default function Shell({ children }: { children: ReactNode }) {
   }, [path]);
 
   useEffect(() => {
-    if (dossierId) setRefs(getRefs(dossierId));
+    if (!dossierId) return;
+    setRefs(getRefs(dossierId));
+    // Le serveur fait foi : le livrable le plus récent de chaque type.
+    api
+      .listDeliverables(dossierId)
+      .then((list) => {
+        const latest = (type: string) => list.find((d) => d.type === type)?.id;
+        setRefs((cur) => ({ ...cur, roadmap: latest("roadmap"), tor: latest("tor"), cdc: latest("cdc") }));
+      })
+      .catch(() => {
+        /* hors ligne : on garde la mémoire locale */
+      });
   }, [dossierId, path]);
 
   const logout = async () => {
@@ -69,10 +95,17 @@ export default function Shell({ children }: { children: ReactNode }) {
             <>
               <div className="nav-title">{t.nav.dossiers}</div>
               <NavLink href={`/dossiers/${dossierId}`} icon={FolderOpen} label={t.nav.documents} exact />
-              <NavLink href={`/dossiers/${dossierId}/search`} icon={Search} label={t.nav.search} />
+              <NavLink href={`/dossiers/${dossierId}/context`} icon={MessageSquare} label={t.nav.context} />
               <NavLink href={`/dossiers/${dossierId}/findings`} icon={ListChecks} label={t.nav.findings} />
+              <NavLink href={`/dossiers/${dossierId}/recommendations`} icon={ListOrdered} label={t.nav.recommendations} />
               {refs.roadmap && <NavLink href={`/deliverables/${refs.roadmap}/roadmap`} icon={Route} label={t.nav.roadmap} />}
               {refs.tor && <NavLink href={`/deliverables/${refs.tor}`} icon={FileText} label={t.nav.tor} />}
+              {refs.cdc && <NavLink href={`/deliverables/${refs.cdc}`} icon={FileCheck2} label={t.nav.cdc} />}
+              <div className="nav-title">{t.nav.inputs}</div>
+              <NavLink href={`/dossiers/${dossierId}/decisions`} icon={Gavel} label={t.nav.decisions} />
+              <NavLink href={`/dossiers/${dossierId}/priorities`} icon={Scale} label={t.nav.priorities} />
+              <NavLink href={`/dossiers/${dossierId}/projects`} icon={FolderKanban} label={t.nav.projects} />
+              <NavLink href={`/dossiers/${dossierId}/search`} icon={Search} label={t.nav.search} />
             </>
           )}
         </nav>

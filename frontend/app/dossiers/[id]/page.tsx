@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronRight, FileSpreadsheet, ListChecks, FileText, FileType2, FolderKanban, Gavel, MessageSquare, Presentation, Scale, Search, TriangleAlert, Upload } from "lucide-react";
+import { BookOpen, Check, ChevronRight, FileSpreadsheet, FileText, FileType2, Presentation, Trash2, TriangleAlert, Upload } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type DragEvent } from "react";
@@ -8,7 +8,7 @@ import ProfileCard from "@/components/ProfileCard";
 import Shell from "@/components/Shell";
 import { Alert, Empty } from "@/components/ui";
 import { ApiError, api } from "@/lib/api";
-import type { DocumentInfo, DocumentRole, Dossier, Finding } from "@/lib/api-types";
+import type { DeliverableSummary, DocumentInfo, DocumentRole, Dossier, Finding } from "@/lib/api-types";
 import { t } from "@/lib/i18n";
 import { getRefs, setRefs, type DossierRefs } from "@/lib/refs";
 import { useGuard } from "@/lib/useGuard";
@@ -35,10 +35,12 @@ function DocTable({
   docs,
   alerts,
   onRole,
+  onDelete,
 }: {
   docs: DocumentInfo[];
   alerts: Record<string, number>;
   onRole: (d: DocumentInfo, r: DocumentRole) => void;
+  onDelete: (d: DocumentInfo) => void;
 }) {
   return (
     <div className="table-wrap">
@@ -76,13 +78,21 @@ function DocTable({
                 {d.role === "template" && <small className="muted"> {t.coeur.templateNote}</small>}
               </td>
               <td className="num">{d.pages ?? "–"}</td>
-              <td className="num">
+              <td className="actions">
                 {(alerts[d.id] ?? 0) > 0 && (
                   <span className="badge warn plain">
                     <TriangleAlert size={13} />
                     {t.alerts(alerts[d.id])}
                   </span>
                 )}
+                <a className="btn btn-sm" href={`/documents/${d.id}`} target="cadrage-document" rel="noopener" data-testid={`read-${d.id}`}>
+                  <BookOpen size={14} />
+                  {t.dossier.read}
+                </a>
+                <button type="button" className="btn btn-ghost btn-sm danger" onClick={() => onDelete(d)} data-testid={`delete-${d.id}`}>
+                  <Trash2 size={14} />
+                  {t.common.delete}
+                </button>
               </td>
             </tr>
           ))}
@@ -155,6 +165,7 @@ export default function DossierPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [importRole, setImportRole] = useState<DocumentRole>("other");
   const [recoAlerts, setRecoAlerts] = useState(0);
+  const [deliverables, setDeliverables] = useState<DeliverableSummary[]>([]);
 
   const reload = useCallback(() => {
     api
@@ -168,6 +179,14 @@ export default function DossierPage() {
     api
       .listRecommendations(id)
       .then((r) => setRecoAlerts(r.alerts))
+      .catch(() => {});
+    api
+      .listDeliverables(id)
+      .then((list) => {
+        setDeliverables(list);
+        const latest = (type: string) => list.find((d) => d.type === type)?.id;
+        setRefsState((cur) => ({ ...cur, roadmap: latest("roadmap"), tor: latest("tor"), cdc: latest("cdc") }));
+      })
       .catch(() => {});
   }, [id, guard]);
 
@@ -206,6 +225,38 @@ export default function DossierPage() {
   };
 
   const validated = findings.filter((f) => f.validated).length;
+
+  const deleteDocument = async (d: DocumentInfo) => {
+    try {
+      const p = await api.documentDeletePreview(d.id);
+      if (!window.confirm(t.dossier.confirmDeleteDocument(d.title || d.filename, p))) return;
+      await api.deleteDocument(d.id);
+      reload();
+    } catch (e) {
+      setError(guard(e));
+    }
+  };
+
+  const deleteDossier = async () => {
+    try {
+      const p = await api.dossierDeletePreview(id);
+      if (!window.confirm(t.dossier.confirmDeleteDossier(dossier?.name ?? "", p))) return;
+      await api.deleteDossier(id);
+      router.push("/dossiers");
+    } catch (e) {
+      setError(guard(e));
+    }
+  };
+
+  const deleteDeliverable = async (d: DeliverableSummary) => {
+    if (!window.confirm(t.dossier.confirmDeleteDeliverable(t.dossier.deliverableType[d.type]))) return;
+    try {
+      await api.deleteDeliverable(d.id);
+      reload();
+    } catch (e) {
+      setError(guard(e));
+    }
+  };
 
   const roadmap = async () => {
     if (refs.roadmap) return router.push(`/deliverables/${refs.roadmap}/roadmap`);
@@ -261,38 +312,18 @@ export default function DossierPage() {
           <h1>{dossier ? dossier.name : t.common.loading}</h1>
         </div>
         <div className="actions">
-          <Link href={`/dossiers/${id}/recommendations`} className="btn" data-testid="link-recommendations">
-            <ListChecks size={16} />
-            {t.projet.recos}
-            {recoAlerts > 0 && (
-              <span className="badge rejected plain" title={t.projet.alertsBanner(recoAlerts)}>
-                <TriangleAlert size={12} />
-                {recoAlerts}
-              </span>
-            )}
-          </Link>
-          <Link href={`/dossiers/${id}/priorities`} className="btn" data-testid="link-priorities">
-            <Scale size={16} />
-            {t.coeur.priorities}
-          </Link>
-          <Link href={`/dossiers/${id}/context`} className="btn" data-testid="link-context">
-            <MessageSquare size={16} />
-            {t.context.title}
-          </Link>
-          <Link href={`/dossiers/${id}/decisions`} className="btn" data-testid="link-decisions">
-            <Gavel size={16} />
-            {t.decisions.title}
-          </Link>
-          <Link href={`/dossiers/${id}/projects`} className="btn" data-testid="link-projects">
-            <FolderKanban size={16} />
-            {t.coeur.projects}
-          </Link>
-          <Link href={`/dossiers/${id}/search`} className="btn">
-            <Search size={16} />
-            {t.dossier.search}
-          </Link>
+          <button type="button" className="btn btn-ghost danger" onClick={deleteDossier} data-testid="delete-dossier">
+            <Trash2 size={16} />
+            {t.dossier.deleteDossier}
+          </button>
         </div>
       </div>
+      <p className="page-hint" style={{ marginTop: -8, marginBottom: 16 }}>{t.dossier.hint}</p>
+      {recoAlerts > 0 && (
+        <Alert>
+          <Link href={`/dossiers/${id}/recommendations`}>{t.projet.alertsBanner(recoAlerts)}</Link>
+        </Alert>
+      )}
       {error && <Alert>{error}</Alert>}
 
       <ProfileCard dossierId={id} />
@@ -333,7 +364,7 @@ export default function DossierPage() {
         {docs && diagnostics.length === 0 ? (
           <Empty icon={FileText} label={t.coeur.noDiagnostics} flat />
         ) : (
-          docs && <DocTable docs={diagnostics} alerts={alerts} onRole={changeRole} />
+          docs && <DocTable docs={diagnostics} alerts={alerts} onRole={changeRole} onDelete={(d) => void deleteDocument(d)} />
         )}
       </div>
 
@@ -373,9 +404,51 @@ export default function DossierPage() {
         {docs && others.length === 0 ? (
           <Empty icon={FileText} label={t.dossier.noDocuments} flat />
         ) : (
-          docs && <DocTable docs={others} alerts={alerts} onRole={changeRole} />
+          docs && <DocTable docs={others} alerts={alerts} onRole={changeRole} onDelete={(d) => void deleteDocument(d)} />
         )}
       </div>
+
+      <div className="section-title" style={{ marginTop: 28 }}>
+        <div>
+          <h2>{t.dossier.deliverables}</h2>
+          <small className="muted">{t.dossier.deliverablesHint}</small>
+        </div>
+      </div>
+      {deliverables.length === 0 ? (
+        <Empty icon={FileText} label={t.dossier.noDeliverables} flat />
+      ) : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>{t.dossier.deliverableCol}</th>
+                <th>{t.dossier.updated}</th>
+                <th>{t.dossier.versionCol}</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {deliverables.map((d) => (
+                <tr key={d.id}>
+                  <td>
+                    <Link href={d.type === "roadmap" ? `/deliverables/${d.id}/roadmap` : `/deliverables/${d.id}`}>
+                      {t.dossier.deliverableType[d.type]}
+                    </Link>
+                  </td>
+                  <td>{d.updated_at ? new Date(d.updated_at).toLocaleString() : "–"}</td>
+                  <td className="num">{d.version}</td>
+                  <td className="actions">
+                    <button type="button" className="btn btn-ghost btn-sm danger" onClick={() => void deleteDeliverable(d)}>
+                      <Trash2 size={14} />
+                      {t.common.delete}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </Shell>
   );
 }

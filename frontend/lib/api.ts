@@ -1,4 +1,7 @@
 import type {
+  DeliverableSummary,
+  DocumentDeletePreview,
+  DossierDeletePreview,
   ChunkDetail,
   DocumentInfo,
   DocumentRole,
@@ -143,6 +146,21 @@ export const api = {
       body: form,
     });
   },
+  async documentFile(id: string): Promise<Blob> {
+    const headers = new Headers();
+    const token = getToken();
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+    const res = await fetch(`${API_URL}${PREFIX}/documents/${id}/file`, { headers });
+    if (!res.ok) throw await toError(res);
+    return res.blob();
+  },
+  getDocument: (id: string) => request<DocumentInfo>(`/documents/${id}`),
+  documentDeletePreview: (id: string) => request<DocumentDeletePreview>(`/documents/${id}/delete-preview`),
+  deleteDocument: (id: string) => request<DocumentDeletePreview>(`/documents/${id}`, { method: "DELETE" }),
+  dossierDeletePreview: (id: string) => request<DossierDeletePreview>(`/dossiers/${id}/delete-preview`),
+  deleteDossier: (id: string) => request<DossierDeletePreview>(`/dossiers/${id}`, { method: "DELETE" }),
+  listDeliverables: (dossierId: string) => request<DeliverableSummary[]>(`/dossiers/${dossierId}/deliverables`),
+  deleteDeliverable: (id: string) => request<void>(`/deliverables/${id}`, { method: "DELETE" }),
   setDocumentRole: (id: string, role: DocumentRole) =>
     request<DocumentInfo>(`/documents/${id}`, json("PATCH", { role })),
   getContext: (dossierId: string) => request<ContextSheet>(`/dossiers/${dossierId}/context`),
