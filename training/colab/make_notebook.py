@@ -75,8 +75,8 @@ if libre < 8:
 
 code('''
 #@title Étape 2 sur 7 : récupérer le code et les données publiques, avec vérification (2 min) {display-mode: "form"}
-GITHUB = "https://github.com/YoussefBY22/PRV-PR8-PFE-IA-Cadrage"
-RAW = "https://raw.githubusercontent.com/YoussefBY22/PRV-PR8-PFE-IA-Cadrage"
+GITHUB = "https://github.com/YoussefBY22/Cadrage-GenerationDoc-IA"
+RAW = "https://raw.githubusercontent.com/YoussefBY22/Cadrage-GenerationDoc-IA"
 
 contenu = urllib.request.urlopen(f"{RAW}/{CODE}/training/colab/cadrage-donnees-publiques.zip", timeout=120).read()
 if hashlib.sha256(contenu).hexdigest() != DONNEES:
