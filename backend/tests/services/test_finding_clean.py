@@ -54,3 +54,15 @@ def test_bruit_et_reformulation_par_regle():
 
 def test_garde_fou_chiffres():
     assert fc._numbers("22 % de 600,1 millions") == {"22", "600,1"}
+
+
+def test_regle_ou_condition_n_est_pas_un_manque():
+    assert fc.kind_check("probleme", "Si elles considèrent ces risques critiques, elles sont censées les signaler.")[0] == "contexte"
+    assert fc.kind_check("probleme", "Nous avons constaté que les DG ne documentaient pas leurs besoins.")[0] == "probleme"
+    assert fc.kind_check("probleme", "Cette concentration crée un risque de dépendance excessive.")[0] == "probleme"
+
+
+def test_numero_de_page_n_est_pas_un_paragraphe():
+    from app.services.reco_details import paragraph_at
+    texte = "2\n\nSynthèse\nI Chaque année\n\n30 Lorsque les DG"
+    assert paragraph_at(texte, 5) is None and paragraph_at(texte, 40) == 30

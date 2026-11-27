@@ -28,14 +28,24 @@ DUP_THRESHOLD = 0.93  # 0,90 fusionnait deux constats différents sur les « ori
 NEG = re.compile(r"\b(?:ne|n['’])\s?[^.]{0,80}?\b(?:pas|plus|jamais|aucun|guère|que)\b|(?:manqu|insuffis|absen|"
                  r"lacun|risqu|faibless|incohéren|erreur|limit|fragment|défaill|retard|dépendan|concentr|conflit|"
                  r"inexact|incomplet|non\s+(?:document|systémat|fiabl)|\bsans\s|aucun|défaut|problèm|écart|"
-                 r"\bseule?s?\b|réduit|\bmoins\b|bien\s+que|\bmais\b|avantage|plus\s+modestes|largement\s+recours)",
+                 r"\bseule?s?\b|réduit|\bmoins\b|bien\s+que|\bmais\b|avantage|plus\s+modestes)",
                  re.IGNORECASE)
 POS = re.compile(r"(?:conforme|respect|approprié|dûment|bien\s+géré|a\s+bien\b|correctement|bons?\s+exemples?)",
                  re.IGNORECASE)
 
 
+# Règle, condition, principe général : la phrase décrit le cadre, elle ne constate pas un manque.
+RULE = re.compile(r"^\s*(?:\d{1,3}\s+)?(?:Si\b|Lorsqu|Quand\b)|\b(?:doivent|doit|devraient|devrait|sont\s+censée?s|"
+                  r"est\s+censée?|peuvent\s+(?:également\s+)?naître)\b", re.IGNORECASE)
+SEEN = re.compile(r"\b(?:constat|relev|observ|n['’]a\s+pas|n['’]ont\s+pas|ne\s+\w+\s+pas)", re.IGNORECASE)
+FIDELITY_MIN = 0.84  # sous ce seuil (vecteurs bge-m3), la reformulation s'éloigne trop : règle simple à la place
+
+
 def kind_check(kind: str, quote: str) -> tuple[str, str | None]:
     """Garde-fou par règle sur la nature donnée par le modèle (il classe presque tout en « problème »)."""
+    if kind == "probleme" and RULE.search(quote) and not SEEN.search(quote):
+        return "contexte", ("Règle, condition ou principe général : décrit le cadre, pas un manque constaté "
+                            "— à rétablir si c'est un constat")
     if kind == "probleme" and not NEG.search(quote):
         if POS.search(quote):
             return "positif", None
@@ -85,6 +95,17 @@ def rule_rewrite(text: str) -> str:
                r"D['’]une manière générale|En revanche|Enfin|Par ailleurs)\s*,\s*", "", t, flags=re.IGNORECASE)
     t = t[:1].upper() + t[1:]
     return "Il a été constaté que " + t[0].lower() + t[1:] if t and t[0].isupper() and not t.startswith("Il a été") else t
+
+
+def _similar(provider, a: str, b: str) -> float | None:
+    """Proximité de sens entre deux phrases (cosinus des vecteurs) ; None si les vecteurs manquent."""
+    try:
+        va, vb = provider.embed([a, b])
+    except Exception:  # noqa: BLE001 — sans vecteurs, pas de contrôle de fidélité (signalé par l'appelant)
+        return None
+    na = sum(x * x for x in va) ** 0.5
+    nb = sum(y * y for y in vb) ** 0.5
+    return sum(x * y for x, y in zip(va, vb, strict=False)) / (na * nb) if na and nb else None
 
 
 def _numbers(t: str) -> set[str]:
@@ -192,7 +213,12 @@ def clean(repo, provider, dossier_id: str, *, rewrite: bool = True, embed_provid
             llm, *_ = call_model(provider, _prompt(quote, context), LLMRewrite)
             if llm and llm.texte.strip():
                 new = " ".join(llm.texte.split())
-                if _numbers(new) <= _numbers(quote) | _numbers(context) and len(new) <= 500:
+                close = _similar(emb, new, quote)
+                if close is not None and close < FIDELITY_MIN:
+                    kind = llm.nature
+                    job.step(f"Reformulation {n} trop éloignée de la phrase du rapport (sens {close:.2f}) : "
+                             "règle simple à la place")
+                elif _numbers(new) <= _numbers(quote) | _numbers(context) and len(new) <= 500:
                     kind, text, by_model = llm.nature, new, True
                 else:
                     kind = llm.nature
