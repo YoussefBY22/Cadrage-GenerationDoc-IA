@@ -40,6 +40,7 @@ class Job:
     result: dict | None = None
     error: str | None = None
     cancel_requested: bool = False
+    phase_started: float | None = None
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     # ---- appelé par le code métier -------------------------------------------------------------
@@ -59,6 +60,12 @@ class Job:
         with self._lock:
             self.done_units += n
 
+    def phase(self, n: int, unit: str = "") -> None:
+        """Nouvelle phase : l'avancement repart de zéro (le temps restant aussi)."""
+        with self._lock:
+            self.done_units, self.total_units, self.unit = 0, max(n, 0), unit or self.unit
+            self.phase_started = time.time()
+
     def check(self) -> None:
         if self.cancel_requested:
             raise JobCancelled
@@ -70,7 +77,8 @@ class Job:
             elapsed = now - self.started
             remaining = None
             if self.status == "running" and self.total_units and self.done_units:
-                remaining = elapsed / self.done_units * max(self.total_units - self.done_units, 0)
+                spent = now - (self.phase_started or self.started)
+                remaining = spent / self.done_units * max(self.total_units - self.done_units, 0)
             out = {"id": self.id, "kind": self.kind, "dossier_id": self.dossier_id, "label": self.label,
                    "status": self.status, "current": self.current, "elapsed_s": round(elapsed, 1),
                    "remaining_s": round(remaining, 1) if remaining is not None else None,
@@ -87,10 +95,12 @@ class _Silent:
     def step(self, text: str) -> None: ...
     def total(self, n: int, unit: str = "") -> None: ...
     def advance(self, n: int = 1) -> None: ...
+    def phase(self, n: int, unit: str = "") -> None: ...
     def check(self) -> None: ...
 
 
-_current: contextvars.ContextVar = contextvars.ContextVar("cadrage_job", default=_Silent())
+_SILENT = _Silent()
+_current: contextvars.ContextVar = contextvars.ContextVar("cadrage_job", default=_SILENT)
 _jobs: dict[str, Job] = {}
 _registry_lock = threading.Lock()
 

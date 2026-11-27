@@ -1,8 +1,7 @@
 """Documents et passages : import (multipart), liste, détail. Objet d'un autre dossier -> 404."""
 
-from typing import Annotated
-
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import APIRouter, Form, Request, UploadFile
 from fastapi.responses import FileResponse

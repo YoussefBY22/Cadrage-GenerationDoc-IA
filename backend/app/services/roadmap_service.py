@@ -161,7 +161,7 @@ def _attach_orphans(provider, initiatives: list, groups: list, dups: dict, fmap:
 
 def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
              criteria: list[Criterion] | None = None, waves: int = 3,
-             language: str = "fr") -> dict:
+             language: str = "fr", mode: str = "auto") -> dict:
     """Feuille de route par axes.
 
     Peu de constats : un seul appel, comme avant. Sinon, comme un cabinet de conseil : (1) doublons fusionnés,
@@ -176,6 +176,15 @@ def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
     criteria = criteria or scoring.DEFAULT_CRITERIA
     priorities = repo.list_priorities(dossier_id, "validated")  # seules les validées servent
     projects = repo.list_projects(dossier_id)
+    if mode in ("auto", "recommendations"):
+        out = _from_recommendations(repo, provider, dossier_id, user, findings, criteria, waves, priorities,
+                                    language)
+        if out is not None:
+            return out
+        if mode == "recommendations":
+            raise GenerationError(409, "NO_RECOMMENDATIONS",
+                                  "Aucune recommandation retenue dans les rapports : relevez-les d'abord, "
+                                  "ou générez la feuille de route par le sens des constats.")
     ctx_tokens = getattr(provider, "context_tokens", None)
     nonce = new_nonce()
 
@@ -462,3 +471,44 @@ def patch(repo, deliverable_id: str, user: CurrentUser, changes: list[dict], *,
                {"version": version, "initiatives": [c["id"] for c in changes]})
     return {"version": version, "warnings": warnings, "roadmap": result.model_dump(mode="json"),
             "coherence": coherence_of(repo, row["dossier_id"], result).model_dump(mode="json")}
+
+
+def _from_recommendations(repo, provider, dossier_id, user, findings, criteria, waves, priorities, language):
+    """Mode « recommandations » : axes = recommandations, initiatives = sous-points, vague = échéance.
+    Rend None s'il n'y a aucune recommandation retenue (on passe alors au regroupement par le sens)."""
+    from sqlalchemy import select
+
+    from ..storage import schema as sch
+    from . import jobs, roadmap_recos
+    from .reco_details import dossier_links
+    rc = sch.audit_recommendations.c
+    with repo.engine.connect() as c:
+        recs = [dict(r._mapping) for r in c.execute(select(sch.audit_recommendations).where(
+            rc.dossier_id == dossier_id, rc.status.in_(("proposed", "validated"))))]
+    if not recs:
+        return None
+    job = jobs.current()
+    job.step(f"{len(recs)} recommandation(s) retenue(s) : chacune devient un axe, ses sous-points des initiatives")
+    links, rows = dossier_links(repo, dossier_id)
+    problems = [f for f in findings if (rows.get(f.id) and rows[f.id].kind) != "positif"]
+    job.step(f"{len(problems)} constat(s) validé(s) à répartir (les points positifs ne justifient pas d'action)")
+    initiatives, warns, stats = roadmap_recos.build(recs, problems, links, provider)
+    job.step(f"{len(initiatives)} initiative(s) ; vagues fixées par les échéances du rapport, sinon la gravité")
+    result, warnings = compute(initiatives, criteria, waves, problems, priorities)
+    by_id = {i.id: i for i in initiatives}
+    items = [it.model_copy(update={"wave": (by_id[it.initiative.id].recommendation or {}).get("wave", it.wave)})
+             for it in result.items]
+    items.sort(key=lambda it: (it.wave, it.rank))
+    result = result.model_copy(update={"items": items})
+    template = load_template("roadmap", language)
+    did = repo.create_deliverable(dossier_id, "roadmap", template.id, user.id)
+    version = repo.add_version(did, DeliverableContent(
+        type="roadmap", language=language, template_id=template.id,
+        template_version=template.version, sections=[], roadmap=result), user.id, "generated")
+    repo.audit(user.id, "roadmap.generate", "deliverable", did,
+               {"mode": "recommendations", "initiatives": len(initiatives), "recommendations": len(recs),
+                "orphans": len(stats.get("orphans", [])), "model_calls": 0})
+    return {"deliverable_id": did, "version": version, "mode": "recommendations",
+            "warnings": [w for w in warnings if "vague" not in w.lower()] + warns,
+            "roadmap": result.model_dump(mode="json"),
+            "coherence": coherence_of(repo, dossier_id, result).model_dump(mode="json")}

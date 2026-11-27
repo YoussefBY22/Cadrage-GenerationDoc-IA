@@ -318,6 +318,25 @@ export default function RoadmapView({ id }: { id: string }) {
                       {c.axis} : {ini.axis}
                     </div>
                   )}
+                  {ini.recommendation && (
+                    <div className="ini-source" data-testid={`source-${ini.id}`}>
+                      {c.fromReco(ini.recommendation.number, ini.recommendation.label)}
+                      {ini.recommendation.document_id && (
+                        <a
+                          href={`/documents/${ini.recommendation.document_id}?page=${ini.recommendation.page ?? 1}`}
+                          target="cadrage-document"
+                          rel="noopener"
+                        >
+                          {c.seeInReport(ini.recommendation.page)}
+                        </a>
+                      )}
+                    </div>
+                  )}
+                  {ini.wave_reason && (
+                    <div className="ini-why" data-testid={`why-${ini.id}`}>
+                      <b>{c.whyHere}</b> {ini.wave_reason}
+                    </div>
+                  )}
                   {(ini.auto_finding_ids?.length ?? 0) > 0 && (
                     <div style={{ fontWeight: 400, fontSize: 12, color: "var(--warn, #b45309)" }}
                          data-testid={`auto-${ini.id}`}>

@@ -124,6 +124,13 @@ findings = Table(
     Column("validated", Boolean, nullable=False, default=False),
     Column("validated_by", ID),
     Column("created_run_id", ID),
+    # Lot 3 (colonnes ajoutées au démarrage sur une base existante, voir engine.add_missing_columns)
+    Column("quote", Text),  # phrase exacte du document ; `text` peut être reformulé
+    Column("kind", String(12)),  # probleme | positif | contexte (contexte = écarté, réversible)
+    Column("status", String(12)),  # NULL/active | discarded
+    Column("discard_reason", String(200)),
+    Column("merged_into", ID),  # doublon fusionné dans ce constat ; défusion = remettre à NULL
+    Column("rewritten", Boolean),  # texte reformulé par l'IA (la citation reste la preuve)
 )
 
 deliverables = Table(
@@ -333,6 +340,12 @@ audit_recommendations = Table(
     Column("merged_into", ID),
     Column("chunk_id", ID),
     Column("updated_by", ID),
+    # Lot 3 : contenu complet repris du rapport
+    Column("intro", Text),  # phrase qui suit le titre (« La Commission devrait… »)
+    Column("sub_points", JsonType()),  # [{"label": "a", "text": "…"}]
+    Column("deadline", String(200)),  # « D'ici à décembre 2023 », tel qu'écrit
+    Column("points", JsonType()),  # paragraphes du rapport cités à l'appui : [18, 19, …]
+    Column("quote", Text),  # bloc exact du document (preuve)
     _dt("created_at", nullable=False, default=utcnow),
     _dt("updated_at", nullable=False, default=utcnow),
     Index("ix_audit_recommendations_dossier", "dossier_id"),

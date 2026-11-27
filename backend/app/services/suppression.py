@@ -24,7 +24,7 @@ def dossier_counts(engine: Engine, dossier_id: str) -> dict:
     with engine.connect() as c:
         def n(table, col=None):
             col = col if col is not None else table.c.dossier_id
-            return len(c.execute(select(table.c[list(table.c.keys())[0]]).where(col == dossier_id)).all())
+            return len(c.execute(select(next(iter(table.c))).where(col == dossier_id)).all())
         return {"documents": n(s.documents), "findings": n(s.findings),
                 "deliverables": n(s.deliverables), "recommendations": n(s.audit_recommendations),
                 "decisions": n(s.decisions)}

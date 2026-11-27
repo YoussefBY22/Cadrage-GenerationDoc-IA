@@ -378,3 +378,21 @@ details > summary { cursor: pointer; color: var(--grey); font-size: 12.5px; marg
 @keyframes spin { to { transform: rotate(360deg); } }
 .wait-note { display: flex; gap: 8px; align-items: flex-start; padding: 8px 12px; margin: 8px 0; background: #fffbe0; border-radius: 6px; font-size: 13px; }
 .wait-busy { display: block; color: var(--bad); margin-top: 2px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 14px; }
+.finding.discarded { opacity: 0.75; }
+.tag-link { text-decoration: none; background: #fff7c2; border-color: #e8d870; }
+.small { font-size: 12px; }
+.quote-box { margin: 4px 0 8px; }
+.quote-box .link, .merged-box .link { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; }
+.quote-box blockquote { margin: 6px 0; padding: 6px 10px; border-left: 3px solid var(--yellow); background: #fafaf3; font-size: 13px; }
+.merged-box { margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 6px; }
+.merged-box ul { list-style: none; padding: 0; margin: 6px 0 0; }
+.merged-box li { padding: 6px 8px; background: #f7f7fa; border-radius: 6px; margin-bottom: 6px; font-size: 13px; }
+.merged-box li p { margin: 0 0 4px; }
+.reco-intro { margin: 6px 0 4px; font-size: 13px; }
+.reco-subs { margin: 4px 0 6px; padding-left: 4px; list-style: none; font-size: 13px; }
+.reco-subs li { margin: 2px 0; }
+.reco-facts { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 12.5px; margin: 6px 0 2px; }
+.ini-source { font-weight: 400; font-size: 12px; margin-top: 4px; }
+.ini-source a { margin-left: 4px; }
+.ini-why { font-weight: 400; font-size: 12px; margin-top: 4px; padding: 4px 8px; background: #fffbe0; border-radius: 4px; }

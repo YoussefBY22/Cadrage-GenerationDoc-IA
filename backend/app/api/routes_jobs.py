@@ -10,11 +10,11 @@ from app.services import Provider, Repo, User, findings, jobs, roadmap_service
 
 router = APIRouter(tags=["jobs"])
 
-LABELS = {"findings": "Extraction des constats", "roadmap": "Feuille de route"}
+LABELS = {"findings": "Extraction des constats", "roadmap": "Feuille de route", "clean": "Nettoyage des constats"}
 
 
 class JobStart(BaseModel):
-    kind: Literal["findings", "roadmap"]
+    kind: Literal["findings", "roadmap", "clean"]
 
 
 @router.post("/dossiers/{dossier_id}/jobs", status_code=202)
@@ -26,12 +26,27 @@ def start_job(dossier_id: str, body: JobStart, repo: Repo, provider: Provider, u
     same = [j for j in jobs.running(dossier_id) if j.kind == body.kind]
     if same:
         return same[0].view()
+    from app.config import get_settings
+    from app.llm import build_proposal_provider
+    from app.services import finding_clean
+    writer = build_proposal_provider(get_settings(), provider)  # modèle de base : reformuler, pas recopier
+
     if body.kind == "findings":
         def fn():
             r = findings.extract(repo, provider, dossier_id, user)
-            r["summary"] = (f"Terminé : {len(r['findings'])} nouveau(x) constat(s) ajouté(s), "
-                            f"{len(r['rejected'])} écarté(s) faute de preuve retrouvée dans le texte")
+            jobs.current().step("Lecture terminée ; nettoyage des nouveaux constats")
+            c = finding_clean.clean(repo, writer, dossier_id)
+            r["clean"] = c
+            r["summary"] = (f"Terminé : {len(r['findings'])} nouveau(x) constat(s) ; {c['merged']} doublon(s) "
+                            f"fusionné(s), {c['discarded']} écarté(s) (contexte ou méthode), "
+                            f"{c['rewritten'] + c['rule_rewritten']} reformulé(s)")
             return r
+    elif body.kind == "clean":
+        def fn():
+            c = finding_clean.clean(repo, writer, dossier_id)
+            c["summary"] = (f"Terminé : {c['merged']} doublon(s) fusionné(s), {c['discarded']} écarté(s), "
+                            f"{c['rewritten']} reformulé(s) par l'IA, {c['rule_rewritten']} par règle")
+            return c
     else:
         lang = repo.get_dossier(dossier_id)["language"]
 

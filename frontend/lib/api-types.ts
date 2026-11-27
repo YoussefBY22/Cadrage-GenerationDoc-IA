@@ -182,6 +182,14 @@ export interface Finding {
   validated: boolean;
   /** Document, page et rang de chaque source (liste uniquement). */
   sources?: SourceRef[];
+  quote?: string | null;
+  kind?: "probleme" | "positif" | "contexte" | null;
+  status?: "active" | "discarded";
+  discard_reason?: string | null;
+  merged_into?: string | null;
+  rewritten?: boolean;
+  paragraph?: number | null;
+  recommendations?: { id: string; number: number | null }[];
 }
 
 export interface SourceRef {
@@ -325,8 +333,13 @@ export interface AuditRecommendation {
   page: number | null;
   title: string;
   status: RecommendationStatus;
-  origin: "rules" | "consultant";
+  origin: "rules" | "consultant" | "ai";
   merged_into: string | null;
+  intro?: string | null;
+  sub_points?: { label: string; text: string }[];
+  deadline?: string | null;
+  points?: number[];
+  quote?: string | null;
 }
 
 export type ReportCheckStatus = "ok" | "ecart" | "non_detectees" | "non_lu";
@@ -377,7 +390,7 @@ export interface JobStep {
 
 export interface Job {
   id: string;
-  kind: "findings" | "roadmap";
+  kind: "findings" | "roadmap" | "clean";
   dossier_id: string;
   label: string;
   status: "running" | "done" | "failed" | "cancelled";

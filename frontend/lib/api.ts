@@ -160,6 +160,8 @@ export const api = {
   deleteDocument: (id: string) => request<DocumentDeletePreview>(`/documents/${id}`, { method: "DELETE" }),
   dossierDeletePreview: (id: string) => request<DossierDeletePreview>(`/dossiers/${id}/delete-preview`),
   deleteDossier: (id: string) => request<DossierDeletePreview>(`/dossiers/${id}`, { method: "DELETE" }),
+  findingAction: (id: string, action: "unmerge" | "merge" | "restore" | "discard" | "original", body: { target_id?: string; reason?: string } = {}) =>
+    request<{ ok: boolean }>(`/findings/${id}:${action}`, json("POST", body)),
   startJob: (dossierId: string, kind: Job["kind"]) => request<Job>(`/dossiers/${dossierId}/jobs`, json("POST", { kind })),
   listJobs: (dossierId: string) => request<Job[]>(`/dossiers/${dossierId}/jobs`),
   getJob: (id: string) => request<Job>(`/jobs/${id}`),

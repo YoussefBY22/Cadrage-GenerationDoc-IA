@@ -79,8 +79,35 @@ function Report({ r, run, dossierId }: { r: ReportRecommendations; run: (fn: () 
                 return (
                   <tr key={x.id} data-testid={`reco-${x.id}`} style={active ? undefined : { opacity: 0.55 }}>
                     <td className="num">{x.number ?? "–"}</td>
-                    <td>
-                      {x.title}
+                    <td id={x.id}>
+                      <b>{x.title}</b>
+                      {x.intro && <p className="reco-intro">{x.intro}</p>}
+                      {(x.sub_points?.length ?? 0) > 0 && (
+                        <ol className="reco-subs">
+                          {x.sub_points!.map((sp) => (
+                            <li key={sp.label}>
+                              <b>{sp.label})</b> {sp.text}
+                            </li>
+                          ))}
+                        </ol>
+                      )}
+                      {(x.deadline || (x.points?.length ?? 0) > 0) && (
+                        <div className="reco-facts">
+                          {x.deadline && (
+                            <span className="tag" title={t.projet.deadlineHint}>
+                              {t.projet.deadline} {x.deadline}
+                            </span>
+                          )}
+                          {(x.points?.length ?? 0) > 0 && (
+                            <span className="muted" title={t.projet.pointsHint}>
+                              {t.projet.points(compact(x.points!))}
+                            </span>
+                          )}
+                          <Link href={`/dossiers/${dossierId}/findings?reco=${x.id}`} className="link">
+                            {t.projet.seeFindings}
+                          </Link>
+                        </div>
+                      )}
                       <div className="muted">
                         {t.projet.origin[x.origin]}
                         {x.status === "merged" && x.merged_into && (
@@ -169,6 +196,19 @@ function Report({ r, run, dossierId }: { r: ReportRecommendations; run: (fn: () 
 }
 
 /** Recommandations des rapports d'audit : relevé par règles, corrections du consultant, contrôle de cohérence. */
+/** [18,19,20,24] → « 18-20, 24 » */
+function compact(ns: number[]): string {
+  const out: string[] = [];
+  let i = 0;
+  while (i < ns.length) {
+    let j = i;
+    while (j + 1 < ns.length && ns[j + 1] === ns[j] + 1) j++;
+    out.push(j > i ? `${ns[i]}-${ns[j]}` : `${ns[i]}`);
+    i = j + 1;
+  }
+  return out.join(", ");
+}
+
 export default function RecommendationsView({ dossierId }: { dossierId: string }) {
   const guard = useGuard();
   const dossier = useDossier(dossierId);
