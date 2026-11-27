@@ -19,6 +19,7 @@ import {
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import Assistant from "@/components/Assistant";
 import { LangSwitch, Logo } from "@/components/ui";
 import { api, getRole } from "@/lib/api";
 import { t } from "@/lib/i18n";
@@ -121,6 +122,7 @@ export default function Shell({ children }: { children: ReactNode }) {
       <main className="content">
         <div className="page">{children}</div>
       </main>
+      <Assistant dossierId={dossierId} />
     </div>
   );
 }

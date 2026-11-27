@@ -172,6 +172,11 @@ export interface Passage {
   ranks: Record<string, number>;
 }
 
+export interface SearchHit extends Passage {
+  filename?: string;
+  elapsed_ms?: number;
+}
+
 export interface Finding {
   id: string;
   dossier_id: string;
@@ -404,4 +409,11 @@ export interface Job {
   result: Record<string, unknown> | null;
   error: string | null;
   steps?: JobStep[];
+}
+
+export interface AssistantAnswer {
+  answer: string;
+  model: boolean;
+  busy: string[];
+  sources: { label: string; chunk_id: string; document_id: string; page: number | null; excerpt: string }[];
 }

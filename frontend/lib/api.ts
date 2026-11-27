@@ -1,4 +1,6 @@
 import type {
+  AssistantAnswer,
+  SearchHit,
   Job,
   DeliverableSummary,
   DocumentDeletePreview,
@@ -162,6 +164,8 @@ export const api = {
   deleteDossier: (id: string) => request<DossierDeletePreview>(`/dossiers/${id}`, { method: "DELETE" }),
   findingAction: (id: string, action: "unmerge" | "merge" | "restore" | "discard" | "original", body: { target_id?: string; reason?: string } = {}) =>
     request<{ ok: boolean }>(`/findings/${id}:${action}`, json("POST", body)),
+  assistant: (dossierId: string | null, body: { message: string; history: { role: string; text: string }[]; page_help?: string }, signal?: AbortSignal) =>
+    request<AssistantAnswer>(dossierId ? `/dossiers/${dossierId}/assistant` : "/assistant", { ...json("POST", body), signal }),
   startJob: (dossierId: string, kind: Job["kind"]) => request<Job>(`/dossiers/${dossierId}/jobs`, json("POST", { kind })),
   listJobs: (dossierId: string) => request<Job[]>(`/dossiers/${dossierId}/jobs`),
   getJob: (id: string) => request<Job>(`/jobs/${id}`),
@@ -203,8 +207,8 @@ export const api = {
   ) => request<ExistingProject>(`/projects/${id}`, json("PATCH", body)),
   deleteProject: (id: string) => request<void>(`/projects/${id}`, { method: "DELETE" }),
   getChunk: (id: string) => request<ChunkDetail>(`/chunks/${id}`),
-  search: (dossierId: string, texts: string[], k = 10) =>
-    request<Passage[]>(`/dossiers/${dossierId}/search`, json("POST", { texts, k })),
+  search: (dossierId: string, texts: string[], k = 10, mode: "meaning" | "words" = "meaning") =>
+    request<SearchHit[]>(`/dossiers/${dossierId}/search`, json("POST", { texts, k, mode })),
   listFindings: (dossierId: string) => request<Finding[]>(`/dossiers/${dossierId}/findings`),
   extractFindings: (dossierId: string) =>
     request<{ coverage?: Coverage }>(`/dossiers/${dossierId}/findings:extract`, { method: "POST" }),

@@ -213,6 +213,7 @@ llama.cpp (GGUF Q4_K_M) · Next.js 15 · TipTap · Playwright · python-docx / p
 | [`docs/20-comprendre-l-apprentissage.md`](docs/20-comprendre-l-apprentissage.md) | l'entraînement expliqué simplement |
 | [`docs/19-entrainement-et-tests-reels.md`](docs/19-entrainement-et-tests-reels.md) | mesures détaillées, vrai rapport, fenêtre de contexte |
 | [`docs/21-vision-et-prochaines-etapes.md`](docs/21-vision-et-prochaines-etapes.md) | vision cible, apprentissage par les corrections, plan |
+| [`docs/23-versions-de-l-application.md`](docs/23-versions-de-l-application.md) | ce que fait chaque version (V4.0, V4.1…), opération par opération |
 | [`docs/22-business-intelligence.md`](docs/22-business-intelligence.md) · [`docs/07-entrepot-bi.md`](docs/07-entrepot-bi.md) | business intelligence : entrepôt, modèle Power BI, pages, règles |
 | [`docs/01-cahier-des-charges.md`](docs/01-cahier-des-charges.md) · [`docs/06-architecture.md`](docs/06-architecture.md) | besoin, exigences, architecture |
 | [`docs/lots/AXES.md`](docs/lots/AXES.md) · [`docs/lots/`](docs/lots/) | comptes rendus techniques |

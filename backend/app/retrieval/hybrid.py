@@ -86,11 +86,13 @@ class HybridRetriever:
 
         rankings: list[list[str]] = []
         sources: list[str] = []
-        vectors = self.provider.embed(texts)
+        vectors = [None] * len(texts) if q.lexical_only else self.provider.embed(texts)
         for text, vec in zip(texts, vectors, strict=True):
             hits = index.search(tokenize(text), len(chunks))
             rankings.append([cid for cid, _ in hits if ok(cid)][: self.pool])
             sources.append("bm25")
+            if vec is None:
+                continue
             vhits = self.repo.vector_search(q.dossier_id, vec, self.pool, q.document_ids)
             rankings.append([cid for cid, _ in vhits if ok(cid)])
             sources.append("vector")
