@@ -111,7 +111,7 @@ def parse(full: str, spans: list[Span]) -> dict[int, dict]:
     return found
 
 
-PARA = re.compile(r"(?:^|\n)[ \t]*(\d{1,3})[ \t]+(?=[A-ZÀ-ÝÉÈ«\"“(])")  # même ligne : un numéro de page seul ne compte pas
+PARA = re.compile(r"(?:^|\n|(?<=[.;:)»]) )[ \t]*(\d{1,3})[ \t]+(?=[A-ZÀ-ÝÉÈ«\"“(])")  # début de ligne ou après une fin de phrase ; un numéro de page seul (ligne isolée) ne compte pas
 
 
 def paragraph_at(full: str, pos: int) -> int | None:
