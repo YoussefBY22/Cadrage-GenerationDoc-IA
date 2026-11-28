@@ -64,6 +64,16 @@ sur 11, échéances et paragraphes exacts.
 correspond le passage. On peut surligner jusqu'à 8 éléments à la fois.
 **Relecture** : le surlignage suit les lignes du PDF, il déborde parfois un peu sur la phrase voisine.
 
+![Constat reformulé et sa preuve](img/parcours/06b-constat-reformule-et-sa-preuve.jpg)
+
+**Le plus utile** : ici trois constats **reformulés par l'IA** sont surlignés à leur place dans le rapport (points V
+et VI de la synthèse). L'expert voit d'un coup d'œil que chaque constat existe et que la reformulation garde le sens.
+
+![Le document testé](img/parcours/06c-document-teste.jpg)
+
+Le document testé, dans la visionneuse : rapport spécial 17/2022 de la Cour des comptes européenne
+(© Union européenne, licence CC BY 4.0 ; le logo de la Cour, exclu de cette licence, n'est pas reproduit).
+
 ## 7. La feuille de route
 ![Feuille de route](img/parcours/07-feuille-de-route.jpg)
 

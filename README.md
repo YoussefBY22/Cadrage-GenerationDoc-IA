@@ -52,6 +52,14 @@ Comparé au rapport : **4 sur 4, aucune erreur**.
 Chaque constat et chaque recommandation s'ouvre dans le PDF, à la bonne page, surligné. Au survol, une bulle dit à
 quoi correspond le passage.
 
+![Constat reformulé et sa preuve](docs/img/parcours/06b-constat-reformule-et-sa-preuve.jpg)
+Un constat **reformulé par l'IA** : un clic ouvre le rapport à la phrase d'origine, surlignée. L'expert vérifie en
+quelques secondes que le constat existe bien et que la reformulation est fidèle.
+
+![Le document testé](docs/img/parcours/06c-document-teste.jpg)
+Le document testé, affiché dans l'application : rapport spécial 17/2022 de la Cour des comptes européenne
+(© Union européenne, CC BY 4.0 ; logo de la Cour non reproduit).
+
 ### Étape 7 — La feuille de route
 ![Feuille de route](docs/img/parcours/07-feuille-de-route.jpg)
 Chaque recommandation devient un **axe**, chaque sous-point une **initiative**, rangée en **vague** : 0-6 mois,
