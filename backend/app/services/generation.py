@@ -194,6 +194,31 @@ def _sorted_sections(template: Template, sections: Sequence[SectionDraft]) -> li
 
 
 # --- génération d'une section ------------------------------------------------------------------
+def _recommendation_passages(repo, dossier_id: str, content) -> list[Passage]:
+    """Passages du rapport qui portent la recommandation d'origine de l'initiative (et la suite, où sont
+    souvent les sous-points et l'échéance). Vide si l'initiative ne vient pas d'une recommandation."""
+    if not content.roadmap or len(content.roadmap.items) != 1:
+        return []
+    reco = content.roadmap.items[0].initiative.recommendation or {}
+    if not reco.get("id"):
+        return []
+    from sqlalchemy import select
+
+    from ..storage import schema as s
+    with repo.engine.connect() as c:
+        row = c.execute(select(s.audit_recommendations.c.chunk_id).where(
+            s.audit_recommendations.c.id == reco["id"])).first()
+        if not row or not row.chunk_id:
+            return []
+        first = c.execute(select(s.chunks.c.document_id, s.chunks.c.ordinal).where(
+            s.chunks.c.id == row.chunk_id)).first()
+        ids = list(c.execute(select(s.chunks.c.id).where(
+            s.chunks.c.document_id == first.document_id,
+            s.chunks.c.ordinal.in_((first.ordinal, first.ordinal + 1))).order_by(s.chunks.c.ordinal)).scalars())
+    chunks = repo.get_chunks(dossier_id, ids)
+    return [Passage(label="", chunk=chunks[i], score=1.0, ranks={"recommendation": 1}) for i in ids if i in chunks]
+
+
 def generate_section(repo, provider: LLMProvider, search, deliverable_id: str, section_key: str,
                      user: CurrentUser, *, settings: Settings | None = None, proposal: bool = False) -> dict:
     """Flux 06 §7. Renvoie {version, section, report, status, attempts}."""
@@ -269,6 +294,11 @@ def generate_section(repo, provider: LLMProvider, search, deliverable_id: str, s
             sent_decisions.append(d)
             used += cost
         passages = search.search(dossier_id, queries, settings.retrieval_k)
+        pinned = _recommendation_passages(repo, dossier_id, content)
+        if pinned:  # la recommandation d'origine passe en tête : c'est l'objectif écrit dans le rapport
+            ids = {p.chunk.id for p in pinned}
+            passages = [*pinned, *[p for p in passages if p.chunk.id not in ids]][: settings.retrieval_k]
+            passages = [p.model_copy(update={"label": f"P{i}"}) for i, p in enumerate(passages, 1)]
         gated = False
         if len(passages) >= spec.min_sources:
             gated, relevance = below_threshold(search, dossier_id, queries,
