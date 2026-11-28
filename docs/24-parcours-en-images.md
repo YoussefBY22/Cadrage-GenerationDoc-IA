@@ -1,6 +1,6 @@
 # 24 — Le parcours en images, relu par un expert
 
-Ce document montre l'application **pour de vrai**, du rapport d'audit au cahier des charges. Sous chaque capture :
+Ce document montre l'application **pour de vrai**, du rapport d'audit à la feuille de route et cahier des charges. Sous chaque capture :
 **ce que fait l'application**, puis **la relecture d'un consultant** qui a tout vérifié contre le rapport : ce qui
 est juste, ce qui est faux. Les erreurs sont gardées : elles servent à corriger le code et à préparer le prochain
 entraînement du modèle ([doc 23 §4](23-versions-de-l-application.md)).
