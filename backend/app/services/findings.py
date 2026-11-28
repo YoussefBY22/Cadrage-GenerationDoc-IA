@@ -81,8 +81,15 @@ def extract(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
     runs = 0
     docs, excluded = _documents(repo, dossier_id)
     read_chunks = failed_chunks = total_chunks = 0
+    from . import jobs
+    job = jobs.current()
+    per_doc = {d: list(repo.iter_chunks(dossier_id, [d])) for d in docs}
+    job.total(sum(len(v) for v in per_doc.values()), "passages")
+    job.step(f"{len(docs)} document(s) à lire, {sum(len(v) for v in per_doc.values())} passages au total")
     for doc_id in docs:
-        chunks = list(repo.iter_chunks(dossier_id, [doc_id]))
+        chunks = per_doc[doc_id]
+        from .ingestion import get_document
+        doc_name = (get_document(repo, doc_id) or {}).get("filename", doc_id)
         total_chunks += len(chunks)
         nonce = new_nonce()
         fixed = system_prompt(lang) + build_findings_prompt([], nonce=nonce, lang=lang)
@@ -93,6 +100,10 @@ def extract(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
             passages = [Passage(label=f"P{n}", chunk=ch, score=0.0, ranks={})
                         for n, ch in enumerate(batch, 1)]
             prompt = build_findings_prompt(passages, nonce=nonce, budget=budget, lang=lang)
+            pages = sorted({p for ch in batch for p in (ch.page_start, ch.page_end) if p})
+            where = f"p. {pages[0]}–{pages[-1]}" if pages else ""
+            job.step(f"Le modèle lit {len(batch)} passage(s) de {doc_name} {where}")
+            before = len(kept)
             llm, attempts, latency, _err = call_model(provider, prompt, LLMFindings, lang=lang)
             runs += 1
             run_id = record_run(repo, provider, dossier_id=dossier_id, kind="findings",
@@ -102,8 +113,10 @@ def extract(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
             repo.record_retrieval(run_id, passages)
             # Les petits modèles (qwen3:4b) renvoient parfois « insufficient_evidence » tout en listant
             # des constats sourcés : on les garde, le vérificateur ci-dessous tranche phrase par phrase.
+            job.advance(len(batch))
             if llm is None:  # l'appel a échoué : ces passages n'ont PAS été lus
                 failed_chunks += len(batch)
+                job.step(f"Réponse illisible du modèle : {len(batch)} passage(s) non lus ({where})")
                 continue
             read_chunks += len(batch)
             if llm.status != "ok" and not llm.findings:
@@ -138,6 +151,12 @@ def extract(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
                             severity=lf.severity, source_ids=sentences[idx].source_ids)
                 kept.append(f)
                 reports[f.id] = sub.model_dump(mode="json")
+            new = kept[before:]
+            if new:
+                repo.save_findings(dossier_id, new)  # au fil de l'eau : un arrêt garde ce qui est trouvé
+            job.step(f"{len(new)} nouveau(x) constat(s) retenu(s)"
+                     + (f", {len(built) - len(new)} écarté(s) (doublon ou preuve introuvable)" if len(built) > len(new) else "")
+                     + f" — total {len(kept)}")
     repo.save_findings(dossier_id, kept)
     repo.audit(user.id, "findings.extract", "dossier", dossier_id,
                {"saved": len(kept), "rejected": len(rejected), "runs": runs, "model": provider.served_model,

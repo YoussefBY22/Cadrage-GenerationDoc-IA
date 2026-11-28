@@ -1,5 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { RefreshCw } from "lucide-react";
+import JobPanel from "@/components/JobPanel";
+import { useJob } from "@/lib/useJob";
+import { useViewerOpener } from "@/lib/viewerLink";
 import { AlertTriangle, ChevronRight, CircleCheck, Flag, Info, Route, Save } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -24,7 +29,40 @@ interface Edit {
 
 const errText = (e: unknown) => (e instanceof ApiError ? e.message : t.common.error);
 
+/** Régénérer : nouvelle feuille de route (l'ancienne reste dans la liste des livrables du dossier). */
+function useRegen(dossierId: string) {
+  const router = useRouter();
+  return useJob(dossierId, "roadmap", (j) => {
+    const did = j.result?.deliverable_id as string | undefined;
+    if (j.status === "done" && did) router.push(`/deliverables/${did}/roadmap`);
+  });
+}
+
+function Regenerate({ dossierId }: { dossierId: string }) {
+  const job = useRegen(dossierId);
+  return (
+    <button
+      className="btn"
+      disabled={job.running}
+      title={t.regen.hint}
+      onClick={() => {
+        if (window.confirm(t.regen.confirm)) void job.start();
+      }}
+    >
+      <RefreshCw size={16} />
+      {t.regen.button}
+    </button>
+  );
+}
+
+function RegeneratePanel({ dossierId }: { dossierId: string }) {
+  const job = useRegen(dossierId);
+  return job.job ? <JobPanel job={job.job} onCancel={() => void job.cancel()} onClose={job.dismiss} /> : null;
+}
+
 export default function RoadmapView({ id }: { id: string }) {
+  const viewer = useViewerOpener();
+  const router = useRouter();
   const [d, setD] = useState<Deliverable | null>(null);
   const [edits, setEdits] = useState<Record<string, Edit>>({});
   const [error, setError] = useState<string | null>(null);
@@ -142,6 +180,7 @@ export default function RoadmapView({ id }: { id: string }) {
 
   return (
     <div className={`split${source ? " with-panel" : ""}`}>
+    {viewer.modal}
     <section>
       <div className="page-head">
         <div>
@@ -153,15 +192,17 @@ export default function RoadmapView({ id }: { id: string }) {
           </div>
           <h1>{m.roadmap}</h1>
         </div>
-        {editable && (
-          <div className="actions">
-            <button className="btn btn-dark" disabled={Object.keys(edits).length === 0} onClick={save}>
+        <div className="actions">
+          <Regenerate dossierId={d.dossier_id} />
+          {editable && (
+            <button className="btn btn-dark" disabled={Object.keys(edits).length === 0} onClick={save} title={t.regen.saveHint}>
               <Save size={16} />
               {m.saveRoadmap}
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+      <RegeneratePanel dossierId={d.dossier_id} />
       {roadmap.cycles.map((cycle, i) => (
         <div key={i} className="toast err" role="alert" data-testid="cycle-alert">
           <AlertTriangle size={16} />
@@ -318,6 +359,47 @@ export default function RoadmapView({ id }: { id: string }) {
                       {c.axis} : {ini.axis}
                     </div>
                   )}
+                  {ini.recommendation && (
+                    <div className="ini-source" data-testid={`source-${ini.id}`}>
+                      {c.fromReco(ini.recommendation.number, ini.recommendation.label)}
+                      {ini.recommendation.document_id && (
+                        <button
+                          type="button"
+                          className="link"
+                          onClick={() =>
+                            void viewer.open({ docId: ini.recommendation!.document_id!, page: ini.recommendation!.page, recoId: ini.recommendation!.id })
+                          }
+                        >
+                          {c.seeInReport(ini.recommendation.page)}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {ini.wave_reason && (
+                    <div className="ini-why" data-testid={`why-${ini.id}`}>
+                      <b>{c.whyHere}</b> {ini.wave_reason}
+                    </div>
+                  )}
+                  <div className="row ini-actions" style={{ gap: 6, marginTop: 6 }}>
+                    {(["tor", "cdc"] as const).map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        className="btn btn-sm"
+                        title={t.regen.writeHint}
+                        onClick={async () => {
+                          try {
+                            const r = await api.createDeliverable(d.dossier_id, type, ini.id);
+                            router.push(`/deliverables/${r.deliverable_id}`);
+                          } catch (e) {
+                            setError(e instanceof Error ? e.message : String(e));
+                          }
+                        }}
+                      >
+                        {type === "tor" ? t.regen.writeTor : t.regen.writeCdc}
+                      </button>
+                    ))}
+                  </div>
                   {(ini.auto_finding_ids?.length ?? 0) > 0 && (
                     <div style={{ fontWeight: 400, fontSize: 12, color: "var(--warn, #b45309)" }}
                          data-testid={`auto-${ini.id}`}>

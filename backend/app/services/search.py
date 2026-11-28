@@ -17,7 +17,7 @@ class SearchService:
         return reader(dossier_id) if reader else {}
 
     def search(self, dossier_id: str, texts: list[str], k: int = 10,
-               document_ids: list[str] | None = None) -> list[Passage]:
+               document_ids: list[str] | None = None, lexical_only: bool = False) -> list[Passage]:
         """Une trame n'est jamais une source ; les diagnostics ont des places réservées.
 
         Un filtre `document_ids` explicite est respecté tel quel.
@@ -33,9 +33,9 @@ class SearchService:
         diag = {d for d, r in roles.items() if r == "diagnostic"}
         if not diag:
             return self.retriever.search(SearchQuery(
-                dossier_id=dossier_id, texts=texts, k=k, document_ids=allowed))
+                dossier_id=dossier_id, texts=texts, k=k, document_ids=allowed, lexical_only=lexical_only))
         wide = self.retriever.search(SearchQuery(
-            dossier_id=dossier_id, texts=texts, k=2 * k, document_ids=allowed))
+            dossier_id=dossier_id, texts=texts, k=2 * k, document_ids=allowed, lexical_only=lexical_only))
         return reserve_diagnostic_places(wide, k, diag)
 
     def invalidate(self, dossier_id: str) -> None:

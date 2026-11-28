@@ -52,6 +52,9 @@ export interface Initiative {
   proposal_flags?: string[];
   axis?: string | null;
   auto_finding_ids?: string[];
+  recommendation?: { id: string; number: number | null; label: string | null; title: string; document_id?: string; page?: number | null } | null;
+  wave_reason?: string;
+  deadline?: string | null;
 }
 
 export interface RejectedLink {

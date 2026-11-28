@@ -115,6 +115,8 @@ def _group_by_meaning(repo, provider, dossier_id, reps, language) -> tuple[list,
         group = [reps[i] for i in members]
         sample = [reps[i] for i in axes_mod.central(vectors, members, 10)]
         prompt = build_axis_name_prompt(sample, names, nonce=nonce, lang=language)
+        from . import jobs
+        jobs.current().step(f"Le modèle nomme l'axe n° {len(names) + 1} ({len(group)} constats)")
         llm, attempts, latency, error = call_model(provider, prompt, LLMAxisName, lang=language)
         calls += 1
         record_run(repo, provider, dossier_id=dossier_id, kind="axes", prompt=prompt,
@@ -159,7 +161,7 @@ def _attach_orphans(provider, initiatives: list, groups: list, dups: dict, fmap:
 
 def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
              criteria: list[Criterion] | None = None, waves: int = 3,
-             language: str = "fr") -> dict:
+             language: str = "fr", mode: str = "auto") -> dict:
     """Feuille de route par axes.
 
     Peu de constats : un seul appel, comme avant. Sinon, comme un cabinet de conseil : (1) doublons fusionnés,
@@ -174,10 +176,22 @@ def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
     criteria = criteria or scoring.DEFAULT_CRITERIA
     priorities = repo.list_priorities(dossier_id, "validated")  # seules les validées servent
     projects = repo.list_projects(dossier_id)
+    if mode in ("auto", "recommendations"):
+        out = _from_recommendations(repo, provider, dossier_id, user, findings, criteria, waves, priorities,
+                                    language)
+        if out is not None:
+            return out
+        if mode == "recommendations":
+            raise GenerationError(409, "NO_RECOMMENDATIONS",
+                                  "Aucune recommandation retenue dans les rapports : relevez-les d'abord, "
+                                  "ou générez la feuille de route par le sens des constats.")
     ctx_tokens = getattr(provider, "context_tokens", None)
     nonce = new_nonce()
 
+    from . import jobs
+    job = jobs.current()
     reps, dups = axes_mod.dedupe(findings)
+    job.step(f"{len(findings)} constats validés ; {len(findings) - len(reps)} doublon(s) fusionné(s) → {len(reps)} à traiter")
     fixed1 = _fixed_prompt(reps[:1], criteria, priorities, projects, nonce, language, "x" * 40)
     if ctx_tokens and safe_tokens(fixed1) + ROADMAP_REPLY_TOKENS + 64 > ctx_tokens:
         raise GenerationError(
@@ -195,6 +209,7 @@ def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
     if direct:
         groups: list[tuple[str | None, list]] = [(None, reps)]
     else:
+        job.step("Regroupement des constats par le sens, puis le modèle nomme chaque axe")
         groups, axis_errors, axis_calls, axis_mode = _group_by_meaning(repo, provider, dossier_id, reps,
                                                                       language)
 
@@ -205,11 +220,19 @@ def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
     failed_findings: list[str] = []
     drafts: list[tuple[Initiative, list[str]]] = []
     fmap = {f.id: f for f in findings}
+    planned = []
     for axis, group in groups:
         def fits(part, axis=axis):
             return _fits(ctx_tokens, part, criteria, priorities, projects, nonce, language, axis)
 
-        for part in _split_to_fit(group, fits):
+        planned += [(axis, part) for part in _split_to_fit(group, fits)]
+    if not direct:
+        job.step(f"{len(groups)} axe(s) : " + " ; ".join(f"{a} ({len(g)})" for a, g in groups))
+    job.total(len(planned), "lots de constats")
+    for n_part, (axis, part) in enumerate(planned, 1):
+        job.step(f"Lot {n_part}/{len(planned)} — axe « {axis or 'unique'} » : le modèle propose des initiatives "
+                 f"pour {len(part)} constat(s)")
+        if True:
             # une partie ratée est coupée en deux et reprise une fois ; sinon signalée, sans effacer les autres
             pending = [(part, 0)]
             while pending:
@@ -229,7 +252,10 @@ def generate(repo, provider: LLMProvider, dossier_id: str, user: CurrentUser, *,
                 rejected += rj
                 not_sent += ns
                 run_ids.append(rid)
+                job.step(f"Lot {n_part} : {len(d)} initiative(s) proposée(s)")
+        job.advance()
 
+    job.step("Classement des initiatives, chemin critique et répartition en vagues (calcul, sans modèle)")
     # Doublons : ils suivent leur représentant. Même titre (deux axes ou deux parties) : une seule initiative.
     merged: dict[str, tuple[Initiative, list[str]]] = {}
     for ini, deps in drafts:
@@ -445,3 +471,44 @@ def patch(repo, deliverable_id: str, user: CurrentUser, changes: list[dict], *,
                {"version": version, "initiatives": [c["id"] for c in changes]})
     return {"version": version, "warnings": warnings, "roadmap": result.model_dump(mode="json"),
             "coherence": coherence_of(repo, row["dossier_id"], result).model_dump(mode="json")}
+
+
+def _from_recommendations(repo, provider, dossier_id, user, findings, criteria, waves, priorities, language):
+    """Mode « recommandations » : axes = recommandations, initiatives = sous-points, vague = échéance.
+    Rend None s'il n'y a aucune recommandation retenue (on passe alors au regroupement par le sens)."""
+    from sqlalchemy import select
+
+    from ..storage import schema as sch
+    from . import jobs, roadmap_recos
+    from .reco_details import dossier_links
+    rc = sch.audit_recommendations.c
+    with repo.engine.connect() as c:
+        recs = [dict(r._mapping) for r in c.execute(select(sch.audit_recommendations).where(
+            rc.dossier_id == dossier_id, rc.status.in_(("proposed", "validated"))))]
+    if not recs:
+        return None
+    job = jobs.current()
+    job.step(f"{len(recs)} recommandation(s) retenue(s) : chacune devient un axe, ses sous-points des initiatives")
+    links, rows = dossier_links(repo, dossier_id)
+    problems = [f for f in findings if (rows.get(f.id) and rows[f.id].kind) != "positif"]
+    job.step(f"{len(problems)} constat(s) validé(s) à répartir (les points positifs ne justifient pas d'action)")
+    initiatives, warns, stats = roadmap_recos.build(recs, problems, links, provider)
+    job.step(f"{len(initiatives)} initiative(s) ; vagues fixées par les échéances du rapport, sinon la gravité")
+    result, warnings = compute(initiatives, criteria, waves, problems, priorities)
+    by_id = {i.id: i for i in initiatives}
+    items = [it.model_copy(update={"wave": (by_id[it.initiative.id].recommendation or {}).get("wave", it.wave)})
+             for it in result.items]
+    items.sort(key=lambda it: (it.wave, it.rank))
+    result = result.model_copy(update={"items": items})
+    template = load_template("roadmap", language)
+    did = repo.create_deliverable(dossier_id, "roadmap", template.id, user.id)
+    version = repo.add_version(did, DeliverableContent(
+        type="roadmap", language=language, template_id=template.id,
+        template_version=template.version, sections=[], roadmap=result), user.id, "generated")
+    repo.audit(user.id, "roadmap.generate", "deliverable", did,
+               {"mode": "recommendations", "initiatives": len(initiatives), "recommendations": len(recs),
+                "orphans": len(stats.get("orphans", [])), "model_calls": 0})
+    return {"deliverable_id": did, "version": version, "mode": "recommendations",
+            "warnings": [w for w in warnings if "vague" not in w.lower()] + warns,
+            "roadmap": result.model_dump(mode="json"),
+            "coherence": coherence_of(repo, dossier_id, result).model_dump(mode="json")}

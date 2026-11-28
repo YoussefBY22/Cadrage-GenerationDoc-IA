@@ -36,7 +36,29 @@ def build_repository(settings):
     engine = make_engine(settings.storage_url)
     if engine.dialect.name == "sqlite":
         metadata.create_all(engine)
+        add_missing_columns(engine, metadata)
     repo = SqlRepository(engine)
     if settings.auth_mode == "dev":
         repo.ensure_user(DEV_USER_ID, "dev@local", "Utilisateur local", "!", "admin")
     return repo
+
+
+def add_missing_columns(engine, metadata) -> list[str]:
+    """Base SQLite créée par une version plus ancienne : ajoute les colonnes **facultatives** apparues depuis
+    (ALTER TABLE ADD COLUMN), sans toucher aux données. `create_all` ne crée que les tables manquantes."""
+    from sqlalchemy import inspect, text
+
+    added = []
+    insp = inspect(engine)
+    with engine.begin() as c:
+        for table in metadata.sorted_tables:
+            if not insp.has_table(table.name):
+                continue
+            have = {col["name"] for col in insp.get_columns(table.name)}
+            for col in table.columns:
+                if col.name in have or not col.nullable:
+                    continue
+                kind = col.type.compile(dialect=engine.dialect)
+                c.execute(text(f'ALTER TABLE "{table.name}" ADD COLUMN "{col.name}" {kind}'))
+                added.append(f"{table.name}.{col.name}")
+    return added

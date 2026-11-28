@@ -180,6 +180,20 @@ def extract(engine: Engine, dossier_id: str, user_id: str) -> dict:
                 c.execute(insert(s.audit_recommendations).values(
                     id=new_id("rec"), dossier_id=dossier_id, document_id=doc_id, status="proposed",
                     origin="rules", updated_by=user_id, **t))
+            # Contenu complet (sous-points, échéance, paragraphes cités) : complété sans toucher aux décisions
+            from .reco_details import assemble, parse
+            full, spans = assemble([(r.id, r.page_start, r.page_end, r.text) for r in c.execute(
+                select(s.chunks.c.id, s.chunks.c.page_start, s.chunks.c.page_end, s.chunks.c.text)
+                .where(s.chunks.c.document_id == doc_id).order_by(s.chunks.c.ordinal))])
+            details = parse(full, spans)
+            for r in c.execute(select(s.audit_recommendations.c.id, s.audit_recommendations.c.number,
+                                      s.audit_recommendations.c.origin)
+                               .where(s.audit_recommendations.c.document_id == doc_id)).all():
+                d = details.get(r.number) if r.origin == "rules" else None
+                if d:
+                    c.execute(update(s.audit_recommendations).where(s.audit_recommendations.c.id == r.id).values(
+                        intro=d["intro"], sub_points=d["sub_points"], deadline=d["deadline"],
+                        points=d["points"], quote=d["quote"]))
             ligne = {"numbers_seen": cites, "checked_at": _now()}
             if c.execute(select(s.report_checks.c.document_id).where(s.report_checks.c.document_id == doc_id)).first():
                 c.execute(update(s.report_checks).where(s.report_checks.c.document_id == doc_id).values(**ligne))
@@ -190,15 +204,19 @@ def extract(engine: Engine, dossier_id: str, user_id: str) -> dict:
 
 def _vue(r) -> dict:
     return {"id": r.id, "document_id": r.document_id, "number": r.number, "page": r.page, "title": r.title,
-            "status": r.status, "origin": r.origin, "merged_into": r.merged_into}
+            "status": r.status, "origin": r.origin, "merged_into": r.merged_into,
+            "intro": r.intro, "sub_points": r.sub_points or [], "deadline": r.deadline, "points": r.points or [],
+            "quote": r.quote, "chunk_id": r.chunk_id}
 
 
-def controle(numeros_vus: list[int], actives: list[dict], extrait: bool, sans_reco: bool) -> dict:
-    """Écart entre ce que le rapport annonce et ce qui est retenu. `status` : ok | ecart | non_detectees."""
+def controle(numeros_vus: list[int], actives: list[dict], extrait: bool, sans_reco: bool,
+             traites: list[int] | tuple = ()) -> dict:
+    """Écart entre ce que le rapport annonce et ce qui est retenu. `status` : ok | ecart | non_detectees.
+    `traites` : numéros fusionnés ou supprimés par le consultant ; c'est un choix, pas un manque."""
     nums = [r["number"] for r in actives if r["number"] is not None]
     compte = Counter(nums)
     attendu = max(numeros_vus + nums, default=0)
-    manquants = [n for n in range(1, attendu + 1) if n not in compte]
+    manquants = [n for n in range(1, attendu + 1) if n not in compte and n not in set(traites)]
     doublons = sorted(n for n, k in compte.items() if k > 1)
     if not actives and not numeros_vus:
         statut = "ok" if sans_reco else ("non_detectees" if extrait else "non_lu")
@@ -226,8 +244,10 @@ def overview(engine: Engine, dossier_id: str) -> dict:
         toutes = [_vue(r) for r in recs if r.document_id == d.id]
         actives = [r for r in toutes if r["status"] in ACTIFS]
         ch = checks.get(d.id)
+        traites = [r["number"] for r in toutes
+                   if r["status"] in ("merged", "deleted") and r["number"] is not None]
         ctl = controle(list(ch.numbers_seen) if ch else [], actives, ch is not None,
-                       bool(ch and ch.no_recommendation))
+                       bool(ch and ch.no_recommendation), traites)
         rapports.append({"document_id": d.id, "filename": d.filename, "pages": d.pages,
                          "recommendations": toutes, "check": ctl})
     alertes = sum(1 for r in rapports if r["check"]["status"] in ("ecart", "non_detectees"))

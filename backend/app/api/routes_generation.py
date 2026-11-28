@@ -20,6 +20,8 @@ class RoadmapBody(BaseModel):
     language: Literal["fr", "en"] | None = None  # défaut : langue du dossier
     criteria: list[Criterion] | None = None
     waves: int = Field(default=3, ge=1, le=6)
+    # auto : à partir des recommandations des rapports s'il y en a, sinon par le sens des constats
+    mode: Literal["auto", "recommendations", "meaning"] = "auto"
 
 
 class ScorePatch(BaseModel):
@@ -70,7 +72,7 @@ def generate_roadmap(dossier_id: str, body: RoadmapBody, repo: Repo, provider: P
         return not_found("Dossier")
     try:
         return roadmap_service.generate(
-            repo, provider, dossier_id, user, criteria=body.criteria, waves=body.waves,
+            repo, provider, dossier_id, user, criteria=body.criteria, waves=body.waves, mode=body.mode,
             language=body.language or repo.get_dossier(dossier_id)["language"])
     except GenerationError as exc:
         return error_response(exc.status, exc.code, exc.message)

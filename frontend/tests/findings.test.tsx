@@ -69,7 +69,7 @@ describe("page constats", () => {
     vi.spyOn(api, "listFindings").mockResolvedValue([finding]);
     vi.spyOn(api, "getChunk").mockResolvedValue(chunk);
     render(<FindingsView dossierId="d" />);
-    fireEvent.click(await screen.findByText("[1]"));
+    fireEvent.click(await screen.findByText(/^Preuve 1/));
     expect(await screen.findByText("diag.pdf")).toBeInTheDocument();
   });
 });

@@ -7,6 +7,10 @@ import RoadmapView from "./RoadmapView";
 import SectionEditor from "./SectionEditor";
 import type { Deliverable, SectionDraft, SectionReport } from "./types";
 
+// routeur stable (le bouton « Régénérer » de la feuille de route en a besoin)
+const { router } = vi.hoisted(() => ({ router: { push: vi.fn() } }));
+vi.mock("next/navigation", () => ({ useRouter: () => router, usePathname: () => "/", useParams: () => ({}) }));
+
 const section: SectionDraft = {
   section_key: "contexte",
   status: "ok",

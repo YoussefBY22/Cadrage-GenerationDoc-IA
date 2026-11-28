@@ -13,33 +13,40 @@ par un vérificateur. Tout tourne sur un serveur local.**
 Projet de fin d'études, 2026. Testé sur un vrai rapport public : rapport spécial 17/2022 de la Cour des comptes
 européenne (53 pages, CC BY 4.0).
 
-| Feuille de route par axes et par vagues | Cahier des charges : exigences citées et vérifiées |
+**Le parcours en images**, du rapport au cahier des charges, avec la relecture d'un expert sous chaque étape (ce
+qui est juste, ce qui est faux) : [`docs/24-parcours-en-images.md`](docs/24-parcours-en-images.md).
+
+| Recommandations relevées en entier (sous-points, échéance) | L'IA lit le rapport, suivie en direct |
 |---|---|
-| ![Feuille de route](docs/img/app-feuille-de-route.png) | ![Cahier des charges](docs/img/app-cahier-des-charges.png) |
-| **Dossier : rapports d'audit lus en premier** | **Fiche de contexte et chat (axes imposés possibles)** |
-| ![Dossier](docs/img/app-dossier.png) | ![Fiche et chat](docs/img/app-fiche-et-chat.png) |
+| ![Recommandations](docs/img/parcours/03-recommandations.jpg) | ![Extraction](docs/img/parcours/05-extraction-en-direct.jpg) |
+| **Preuves surlignées dans le PDF** | **Feuille de route : une recommandation = un axe, raison de chaque vague** |
+| ![Preuves](docs/img/parcours/10-preuves-surlignees.jpg) | ![Feuille de route](docs/img/parcours/11-feuille-de-route.jpg) |
 
 ## Ce que fait l'outil
 
-1. **Lit** les documents du dossier (PDF, DOCX, PPTX, texte ; français et anglais) et repère les consignes cachées.
-2. **Extrait les constats**, avec gravité et source (74 constats en 15 min sur le rapport de 53 pages).
-3. **Range les constats en axes** (gouvernance, données, contrats…), comme un cabinet de conseil : le code regroupe
-   par le sens, le modèle nomme chaque axe ; le consultant peut aussi imposer ses axes.
-4. **Propose les initiatives axe par axe**, les classe (impact, urgence, faisabilité, coût, risque) et les répartit en
-   vagues : 0-6 mois (gains rapides), 6-12 mois (fondations), 12-24 mois (transformation).
-5. **Rédige TdR et cahier des charges section par section**, uniquement à partir des passages retrouvés ; les sections
-   qui exigent une décision humaine (budget, profil, calendrier) attendent cette décision. Sur demande, il **propose
-   quand même** une section en citant constats et recommandations.
-6. **Vérifie chaque phrase** (la source existe ? le chiffre y figure ?) et la colore dans l'éditeur ; **validation à
-   deux** (consultant, puis responsable), versions, audit, exports Word / PowerPoint / PDF, tableau de bord Power BI de décision.
+1. **Lit** les documents du dossier (PDF, DOCX, PPTX, texte ; français et anglais), repère les consignes cachées, et
+   les affiche dans l'application, **preuves surlignées**.
+2. **Relève les recommandations** du rapport, en entier et par règles : sous-points, échéance, paragraphes cités.
+3. **Extrait les constats** (phrases exactes du rapport, vérifiées), les **nettoie** (phrases de méthode écartées,
+   doublons fusionnés, reformulation « Il a été constaté que… » à relire) et relie chacun à sa recommandation.
+4. **Construit la feuille de route** : une recommandation = un axe, un sous-point = une initiative, la vague fixée
+   par l'échéance du rapport ou la gravité, **raison écrite** ; sans recommandation, les constats sont regroupés
+   par le sens.
+5. **Rédige TdR et cahier des charges section par section**, uniquement à partir des sources ; les sections qui
+   exigent une décision humaine (budget, profil, calendrier) la reprennent telle quelle ; sinon il refuse, ou
+   **propose** un premier jet à relire.
+6. **Vérifie chaque phrase** (la source existe ? le chiffre y figure ?) ; tâches longues suivies en direct
+   (arrêt possible), assistant sur toutes les pages, validation à deux, versions, exports Word / PowerPoint / PDF,
+   tableau de bord Power BI.
 
 ```mermaid
 flowchart LR
-  D[Rapports du client] --> I[Lecture, découpage] --> R[Recherche mixte<br/>mots-clés + sens]
-  R --> C[Constats] --> A[Axes<br/>regroupés par le sens] --> F[Feuille de route<br/>axes × vagues]
-  F --> T[TdR / CdC<br/>section par section]
-  T --> V[Vérificateur<br/>citations, chiffres] --> E[Éditeur, validation à deux] --> X[Export]
-  M[Qwen3-4B + LoRA<br/>local, Ollama] -.-> C & A & F & T
+  D[Rapports du client] --> I[Lecture, découpage] --> RC[Recommandations<br/>règles]
+  I --> C[Constats<br/>copiés, vérifiés, nettoyés]
+  RC --> F[Feuille de route<br/>recommandations × vagues]
+  C --> F --> T[TdR / CdC<br/>section par section]
+  T --> V[Vérificateur<br/>citations, chiffres] --> E[Relecture, validation à deux] --> X[Export]
+  M[Qwen3-4B + LoRA<br/>local, Ollama] -.-> C & T
 ```
 
 ## Les livrables, en clair
@@ -64,15 +71,19 @@ choisi dans la fiche de contexte, cumulables :
 | Organisation et conduite du changement | parties prenantes et impacts, plan d'accompagnement, mesure de l'adoption |
 | Formation | profil des formateurs, public et besoins, programme, évaluation des acquis |
 
-**Combien de temps** (mesuré sur un portable à GPU de 4 Go, rapport de 53 pages, 74 constats) :
+**Combien de temps** (mesuré sur un portable à GPU de 4 Go, rapport de 53 pages, test du 27-28/11/2026) :
 
 | Étape | Durée |
 |---|---|
-| Lecture du rapport et extraction des constats | ~15 min |
-| Feuille de route par axes | ~22 min |
-| Une section de TdR ou de CdC rédigée par le modèle | 40 s à 2 min |
+| Import du rapport (découpage en 103 passages, vecteurs) | ~3 min |
+| Relevé complet des recommandations (règles) | ~1 s |
+| Lecture du rapport et extraction des constats | ~36 min (64 phrases) |
+| Nettoyage des constats (reformulation, doublons, bruit) | ~25 min pour 53 constats |
+| Feuille de route à partir des recommandations (sans modèle) | ~20 s |
+| Feuille de route par le sens (rapport sans recommandations) | ~22 min (mesure V4.0, 74 constats) |
+| Une section de TdR ou de CdC rédigée par le modèle | 40 s à 3 min |
 | Une section qui reprend une décision humaine (profil, calendrier…) | instantané |
-| Sur un GPU de 16 Go (modèle entier sur la carte) | quelques minutes pour la feuille de route (estimation, non mesuré) |
+| Sur un GPU de 16 Go (modèle entier sur la carte) | quelques minutes pour tout le parcours (estimation, non mesuré) |
 
 ## Ce que montre ce projet
 
@@ -103,9 +114,11 @@ choisi dans la fiche de contexte, cumulables :
 **Dans l'application** (31 sections) : sections sans preuve rédigées quand même 40 % → **10 %** ; citations et chiffres
 fidèles 97-99 % → **100 %** ; temps par section (p95) 37 s → **24 s**.
 
-**Sur le vrai rapport** (portable, GTX 1650 4 Go) : 74 constats en 15 min ; feuille de route en 22 min, 6 axes de 9 à
-16 constats, 19 initiatives, aucun constat oublié ; contexte des TdR rédigé et vérifié à 100 % ; 12 exigences
-fonctionnelles proposées, toutes vérifiées.
+**Sur le vrai rapport** (portable, GTX 1650 4 Go), V4.0 : 74 constats en 15 min ; feuille de route par le sens en
+22 min, 6 axes, 19 initiatives. V4.1-4.2, relu en consultant expert : recommandations relevées **sans erreur**
+(4/4, 11 sous-points, échéances, paragraphes) ; constats clés de la conclusion tous extraits ; reformulation ≈ 1
+erreur de sens sur 20 ; TdR et cahier des charges encore faibles (voir Limites et
+[`docs/24`](docs/24-parcours-en-images.md)).
 
 ## Dashboard Power BI
 
@@ -148,15 +161,21 @@ CC BY 4.0), découpés **par rapport** entre entraînement, validation et test. 
 
 ## Limites (mesurées)
 
-- **Matériel** : sur un GPU de 4 Go, un tiers du modèle tourne sur le processeur ; une feuille de route de 74 constats
-  prend ~22 min et le GPU chauffe (85-91 °C).
-- **Conflits** recommandation / stratégie mal détectés (11 sur 24) : trop peu d'exemples à l'entraînement.
-- **Axes** : bien rangés par le code, mais noms parfois longs ou génériques ; certains titres d'initiative maladroits.
-- **Cahier des charges** : un rapport d'audit ne contient pas d'exigences ; sans exigences du consultant, l'outil
-  refuse ou propose un premier jet inégal (exigences fonctionnelles utilisables, le reste à reformuler).
-- **Horizons** indicatifs (vagues), pas encore de dates réelles ni de sprints.
-- Le taux de phrases vérifiées mesure l'**ancrage** dans les sources, pas la vérité : la relecture humaine reste
-  obligatoire.
+Relevées en refaisant tout le parcours en consultant expert (détail : [`docs/24`](docs/24-parcours-en-images.md),
+[`docs/23` §4](docs/23-versions-de-l-application.md)) :
+
+- **Gravité des constats peu fiable** : un même manque est « élevé » dans la synthèse, « faible » dans le corps du
+  rapport ; elle fausse l'ordre des vagues (la recommandation de base peut partir en dernière vague).
+- **Reformulation à relire** : avec garde-fous, ≈ 1 erreur de sens sur 20 (glissement, sens inversé) ; la phrase
+  exacte du rapport reste affichée et sert de preuve.
+- **TdR et cahier des charges** : le modèle entraîné refuse souvent les objectifs, livrables et exigences, même quand
+  la recommandation les contient ; la proposition du modèle de base est inégale (répétitions, hors périmètre,
+  sources mal attribuées), le vérificateur en marque la majorité « non étayée ».
+- « Vérifiée » veut dire **copiée de la source**, pas lisible ni pertinente : une phrase abîmée par le PDF peut passer.
+- **Matériel** : sur un GPU de 4 Go, la lecture d'un rapport de 53 pages prend ≈ 36 min, le nettoyage ≈ 25 min ;
+  deux tâches du modèle en même temps se ralentissent.
+- **Horizons** indicatifs (vagues), pas encore de dates réelles ni de sprints ; pas de dépendances entre
+  recommandations.
 
 ## Matériel conseillé
 
@@ -213,6 +232,8 @@ llama.cpp (GGUF Q4_K_M) · Next.js 15 · TipTap · Playwright · python-docx / p
 | [`docs/20-comprendre-l-apprentissage.md`](docs/20-comprendre-l-apprentissage.md) | l'entraînement expliqué simplement |
 | [`docs/19-entrainement-et-tests-reels.md`](docs/19-entrainement-et-tests-reels.md) | mesures détaillées, vrai rapport, fenêtre de contexte |
 | [`docs/21-vision-et-prochaines-etapes.md`](docs/21-vision-et-prochaines-etapes.md) | vision cible, apprentissage par les corrections, plan |
+| [`docs/23-versions-de-l-application.md`](docs/23-versions-de-l-application.md) | ce que fait chaque version (V4.0, V4.1, V4.2), revue experte, prochain entraînement |
+| [`docs/24-parcours-en-images.md`](docs/24-parcours-en-images.md) | le parcours complet en captures, relu par un expert |
 | [`docs/22-business-intelligence.md`](docs/22-business-intelligence.md) · [`docs/07-entrepot-bi.md`](docs/07-entrepot-bi.md) | business intelligence : entrepôt, modèle Power BI, pages, règles |
 | [`docs/01-cahier-des-charges.md`](docs/01-cahier-des-charges.md) · [`docs/06-architecture.md`](docs/06-architecture.md) | besoin, exigences, architecture |
 | [`docs/lots/AXES.md`](docs/lots/AXES.md) · [`docs/lots/`](docs/lots/) | comptes rendus techniques |

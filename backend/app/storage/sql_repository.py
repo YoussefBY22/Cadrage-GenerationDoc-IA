@@ -4,7 +4,7 @@ import hashlib
 import json
 from collections.abc import Iterator
 
-from sqlalchemy import Engine, delete, func, insert, select, update
+from sqlalchemy import Engine, delete, func, insert, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from ..domain.coeur import ExistingProject, Priority
@@ -205,8 +205,9 @@ class SqlRepository:
 
     def list_findings(self, dossier_id, validated_only=False) -> list[Finding]:
         stmt = select(s.findings).where(s.findings.c.dossier_id == dossier_id)
-        if validated_only:
-            stmt = stmt.where(s.findings.c.validated.is_(True))
+        if validated_only:  # ce qui sert à générer : validé, ni écarté ni fusionné dans un autre
+            stmt = stmt.where(s.findings.c.validated.is_(True), s.findings.c.merged_into.is_(None),
+                              or_(s.findings.c.status.is_(None), s.findings.c.status != "discarded"))
         with self.engine.connect() as c:
             return [Finding(id=r.id, dossier_id=r.dossier_id, text=r.text, theme=r.theme,
                             severity=r.severity, source_ids=list(r.source_ids),

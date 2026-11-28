@@ -172,6 +172,11 @@ export interface Passage {
   ranks: Record<string, number>;
 }
 
+export interface SearchHit extends Passage {
+  filename?: string;
+  elapsed_ms?: number;
+}
+
 export interface Finding {
   id: string;
   dossier_id: string;
@@ -180,6 +185,26 @@ export interface Finding {
   severity: Severity;
   source_ids: string[];
   validated: boolean;
+  /** Document, page et rang de chaque source (liste uniquement). */
+  sources?: SourceRef[];
+  quote?: string | null;
+  kind?: "probleme" | "positif" | "contexte" | null;
+  status?: "active" | "discarded";
+  discard_reason?: string | null;
+  merged_into?: string | null;
+  rewritten?: boolean;
+  paragraph?: number | null;
+  recommendations?: { id: string; number: number | null }[];
+}
+
+export interface SourceRef {
+  chunk_id: string;
+  document_id: string;
+  filename: string;
+  page_start: number | null;
+  page_end: number | null;
+  ordinal: number;
+  document_rank: number;
 }
 
 export interface FindingPatch {
@@ -313,8 +338,13 @@ export interface AuditRecommendation {
   page: number | null;
   title: string;
   status: RecommendationStatus;
-  origin: "rules" | "consultant";
+  origin: "rules" | "consultant" | "ai";
   merged_into: string | null;
+  intro?: string | null;
+  sub_points?: { label: string; text: string }[];
+  deadline?: string | null;
+  points?: number[];
+  quote?: string | null;
 }
 
 export type ReportCheckStatus = "ok" | "ecart" | "non_detectees" | "non_lu";
@@ -332,4 +362,58 @@ export interface RecommendationsOverview {
   alerts: number;
   validated: number;
   active: number;
+}
+
+export interface DocumentDeletePreview {
+  passages: number;
+  findings: number;
+  findings_partial: number;
+  recommendations: number;
+}
+
+export interface DossierDeletePreview {
+  documents: number;
+  findings: number;
+  deliverables: number;
+  recommendations: number;
+  decisions: number;
+}
+
+export interface DeliverableSummary {
+  id: string;
+  type: "roadmap" | "tor" | "cdc";
+  state: string;
+  version: number;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface JobStep {
+  t: number;
+  text: string;
+}
+
+export interface Job {
+  id: string;
+  kind: "findings" | "roadmap" | "clean";
+  dossier_id: string;
+  label: string;
+  status: "running" | "done" | "failed" | "cancelled";
+  current: string;
+  elapsed_s: number;
+  remaining_s: number | null;
+  done: number;
+  total: number | null;
+  unit: string;
+  cancel_requested: boolean;
+  result: Record<string, unknown> | null;
+  error: string | null;
+  steps?: JobStep[];
+}
+
+export interface AssistantAnswer {
+  answer: string;
+  model: boolean;
+  busy: string[];
+  sources: { label: string; chunk_id: string; document_id: string; page: number | null; excerpt: string }[];
 }

@@ -2,6 +2,7 @@
 
 import { ArrowUpRight, Building2, CheckCheck, FileText, FolderOpen, ListChecks, Plus } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import Shell from "@/components/Shell";
 import { Alert, Empty } from "@/components/ui";
@@ -19,6 +20,7 @@ interface Stats {
 
 export default function DossiersPage() {
   const guard = useGuard();
+  const router = useRouter();
   const [dossiers, setDossiers] = useState<Dossier[] | null>(null);
   const [stats, setStats] = useState<Record<string, Stats>>({});
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +36,9 @@ export default function DossiersPage() {
         // chiffres par dossier : un appel léger par dossier, en parallèle
         list.forEach((d) =>
           Promise.all([api.listDocuments(d.id), api.listFindings(d.id)])
-            .then(([docs, findings]) =>
+            .then(([docs, all]) => {
+              // constats actifs : ni écartés ni fusionnés dans un autre (comme la page Constats)
+              const findings = all.filter((f) => f.status !== "discarded" && !f.merged_into);
               setStats((s) => ({
                 ...s,
                 [d.id]: { documents: docs.length, findings: findings.length, validated: findings.filter((f) => f.validated).length,
@@ -44,8 +48,8 @@ export default function DossiersPage() {
                     low: findings.filter((f) => f.severity === "low").length,
                   },
                 },
-              })),
-            )
+              }));
+            })
             .catch(() => {}),
         );
       })
@@ -58,9 +62,7 @@ export default function DossiersPage() {
     try {
       const d = await api.createDossier(name, client);
       setDossiers((cur) => [...(cur ?? []), d]);
-      setName("");
-      setClient("");
-      setCreating(false);
+      router.push(`/dossiers/${d.id}`); // le dossier créé s'ouvre : l'étape suivante est d'y déposer les rapports
     } catch (err) {
       setError(guard(err));
     }

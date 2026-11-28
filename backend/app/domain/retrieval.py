@@ -21,3 +21,4 @@ class SearchQuery(BaseModel):
     texts: list[str]
     k: int = 10
     document_ids: list[str] | None = None
+    lexical_only: bool = False  # mots exacts seulement (BM25) : instantané, sans appel au modèle de vecteurs

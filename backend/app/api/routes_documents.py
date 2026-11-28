@@ -1,12 +1,14 @@
 """Documents et passages : import (multipart), liste, détail. Objet d'un autre dossier -> 404."""
 
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Form, Request, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from app.api.routes_dossiers import not_found
-from app.services import Provider, Repo, User, error_response, ingestion
+from app.services import Provider, Repo, User, error_response, ingestion, suppression
 from app.services.search import get_search_service
 
 router = APIRouter(tags=["documents"])
@@ -67,3 +69,41 @@ def get_chunk(chunk_id: str, repo: Repo,
     if chunk is None or repo.member_role(chunk["dossier_id"], user.id) is None:
         return not_found("Passage")
     return chunk
+
+
+@router.get("/documents/{document_id}/file")
+def document_file(document_id: str, repo: Repo, user: User):
+    """Le fichier d'origine, affiché dans le navigateur (inline), jamais forcé en téléchargement."""
+    doc = ingestion.get_document(repo, document_id)
+    if doc is None or repo.member_role(doc["dossier_id"], user.id) is None:
+        return not_found("Document")
+    with repo.engine.connect() as c:
+        from sqlalchemy import select
+
+        from app.storage import schema as s
+        row = c.execute(select(s.documents.c.stored_path, s.documents.c.mime, s.documents.c.filename)
+                        .where(s.documents.c.id == document_id)).first()
+    if not row or not row.stored_path or not Path(row.stored_path).is_file():
+        return not_found("Fichier")
+    return FileResponse(row.stored_path, media_type=row.mime or "application/pdf",
+                        filename=row.filename, content_disposition_type="inline")
+
+
+@router.get("/documents/{document_id}/delete-preview")
+def document_delete_preview(document_id: str, repo: Repo, user: User):
+    doc = ingestion.get_document(repo, document_id)
+    if doc is None or repo.member_role(doc["dossier_id"], user.id) is None:
+        return not_found("Document")
+    return suppression.document_counts(repo.engine, document_id)
+
+
+@router.delete("/documents/{document_id}")
+def delete_document(document_id: str, request: Request, repo: Repo, user: User):
+    doc = ingestion.get_document(repo, document_id)
+    if doc is None or repo.member_role(doc["dossier_id"], user.id) is None:
+        return not_found("Document")
+    out = suppression.delete_document(repo.engine, document_id)
+    get_search_service(request).invalidate(doc["dossier_id"])
+    repo.audit(user.id, "document.delete", "document", document_id,
+               {k: v for k, v in out.items() if k != "dossier_id"})
+    return out

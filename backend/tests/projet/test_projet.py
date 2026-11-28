@@ -70,7 +70,7 @@ def test_extraction_puis_corrections_du_consultant(client):
     assert m["status"] == "merged" and m["merged_into"] == recs[2]["id"]
     assert client.patch(f"{V1}/recommendations/{recs[4]['id']}", json={"status": "deleted"}).status_code == 200
     vue = client.get(f"{V1}/dossiers/{did}/recommendations").json()["reports"][0]["check"]
-    assert vue["missing"] == [4] and vue["duplicates"] == []
+    assert vue["missing"] == [] and vue["duplicates"] == []  # supprimer ou fusionner est un choix, pas un manque
     # une nouvelle extraction ne défait pas les corrections
     vue = client.post(f"{V1}/dossiers/{did}/recommendations:extract").json()["reports"][0]
     assert {r["number"]: r["status"] for r in vue["recommendations"] if r["origin"] == "rules"}[4] == "deleted"

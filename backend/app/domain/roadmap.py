@@ -45,6 +45,10 @@ class Initiative(BaseModel):
     axis: str | None = None  # axe de transformation (gouvernance, processus…) trouvé par le modèle
     # constats rattachés par le code (sens le plus proche dans le même axe), pas par le modèle : à vérifier
     auto_finding_ids: list[str] = []
+    # Mode « recommandations » : d'où vient l'initiative et pourquoi elle est dans sa vague (texte lisible)
+    recommendation: dict | None = None  # {"id", "number", "label", "title", "document_id", "page"}
+    wave_reason: str = ""
+    deadline: str | None = None  # telle qu'écrite dans le rapport
 
 
 class ScoredInitiative(BaseModel):

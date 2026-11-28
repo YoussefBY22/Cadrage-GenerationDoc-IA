@@ -2,6 +2,7 @@
 export interface DossierRefs {
   roadmap?: string;
   tor?: string;
+  cdc?: string;
   initiative?: string;
 }
 

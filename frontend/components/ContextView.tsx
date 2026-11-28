@@ -114,7 +114,7 @@ export default function ContextView({ dossierId }: { dossierId: string }) {
             {SHORT.map((k) => (
               <label key={k} className="grow">
                 <span>{t.context.fields[k]}</span>
-                <input value={form[k] as string} maxLength={200} onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
+                <input aria-label={t.context.fields[k]} value={form[k] as string} maxLength={200} onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
               </label>
             ))}
           </div>
@@ -132,7 +132,7 @@ export default function ContextView({ dossierId }: { dossierId: string }) {
           {LONG.map((k) => (
             <label key={k} style={{ display: "grid", gap: 4, marginTop: 12, fontSize: 12.5, fontWeight: 600 }} className="muted">
               <span>{t.context.fields[k]}</span>
-              <textarea rows={2} value={form[k] as string} maxLength={2000} onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
+              <textarea aria-label={t.context.fields[k]} rows={2} value={form[k] as string} maxLength={2000} onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
             </label>
           ))}
           <div className="actions" style={{ marginTop: 16 }}>

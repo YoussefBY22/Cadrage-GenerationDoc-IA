@@ -9,11 +9,12 @@ import type { AuditRecommendation, RecommendationsOverview, ReportRecommendation
 import { t } from "@/lib/i18n";
 import { useDossier } from "@/lib/useDossier";
 import { useGuard } from "@/lib/useGuard";
+import { useViewerOpener } from "@/lib/viewerLink";
 
 const BADGE: Record<string, string> = { proposed: "draft", validated: "approved", deleted: "rejected", merged: "in_review" };
 const CHECK: Record<string, string> = { ok: "approved", ecart: "rejected", non_detectees: "rejected", non_lu: "draft" };
 
-function Report({ r, run, dossierId }: { r: ReportRecommendations; run: (fn: () => Promise<unknown>) => void; dossierId: string }) {
+function Report({ r, run, dossierId, onOpen }: { r: ReportRecommendations; run: (fn: () => Promise<unknown>) => void; dossierId: string; onOpen: (m: { docId: string; page?: number | null; recoId?: string }) => Promise<void> }) {
   const [title, setTitle] = useState("");
   const [num, setNum] = useState("");
   const [page, setPage] = useState("");
@@ -63,7 +64,7 @@ function Report({ r, run, dossierId }: { r: ReportRecommendations; run: (fn: () 
         </button>
       )}
       {r.recommendations.length > 0 && (
-        <div className="table-wrap" style={{ marginTop: 10 }}>
+        <div className="table-wrap reco-table" style={{ marginTop: 10 }}>
           <table>
             <thead>
               <tr>
@@ -71,7 +72,6 @@ function Report({ r, run, dossierId }: { r: ReportRecommendations; run: (fn: () 
                 <th>{t.projet.title}</th>
                 <th>{t.projet.page}</th>
                 <th>{t.coeur.statusField}</th>
-                <th />
               </tr>
             </thead>
             <tbody>
@@ -80,52 +80,93 @@ function Report({ r, run, dossierId }: { r: ReportRecommendations; run: (fn: () 
                 return (
                   <tr key={x.id} data-testid={`reco-${x.id}`} style={active ? undefined : { opacity: 0.55 }}>
                     <td className="num">{x.number ?? "–"}</td>
-                    <td style={{ minWidth: 260 }}>
-                      {x.title}
-                      <div className="muted">{t.projet.origin[x.origin]}</div>
-                    </td>
-                    <td className="num">{x.page ?? "–"}</td>
-                    <td>
-                      <span className={`badge ${BADGE[x.status]}`}>{t.projet.recoStatus[x.status]}</span>
-                    </td>
-                    <td className="num" style={{ whiteSpace: "nowrap" }}>
-                      {x.status === "proposed" && (
-                        <button className="btn btn-sm" onClick={() => run(() => api.patchRecommendation(x.id, { status: "validated" }))}>
-                          <Check size={13} />
-                          {t.projet.validate}
-                        </button>
+                    <td id={x.id}>
+                      <b>{x.title}</b>
+                      {x.intro && <p className="reco-intro">{x.intro}</p>}
+                      {(x.sub_points?.length ?? 0) > 0 && (
+                        <ol className="reco-subs">
+                          {x.sub_points!.map((sp) => (
+                            <li key={sp.label}>
+                              <b>{sp.label})</b> {sp.text}
+                            </li>
+                          ))}
+                        </ol>
                       )}
-                      {active && actives.length > 1 && (
-                        <select
-                          className="mini-select"
-                          aria-label={`${t.projet.mergeInto} ${label(x)}`}
-                          value=""
-                          onChange={(e) => e.target.value && run(() => api.patchRecommendation(x.id, { merge_into: e.target.value }))}
-                        >
-                          <option value="">{t.projet.mergeInto}</option>
-                          {actives
-                            .filter((o) => o.id !== x.id)
-                            .map((o) => (
-                              <option key={o.id} value={o.id}>
-                                {label(o).slice(0, 60)}
-                              </option>
-                            ))}
-                        </select>
+                      {(x.deadline || (x.points?.length ?? 0) > 0) && (
+                        <div className="reco-facts">
+                          {x.deadline && (
+                            <span className="tag" title={t.projet.deadlineHint}>
+                              {t.projet.deadline} {x.deadline}
+                            </span>
+                          )}
+                          {(x.points?.length ?? 0) > 0 && (
+                            <span className="muted" title={t.projet.pointsHint}>
+                              {t.projet.points(compact(x.points!))}
+                            </span>
+                          )}
+                          <Link href={`/dossiers/${dossierId}/findings?reco=${x.id}`} className="link">
+                            {t.projet.seeFindings}
+                          </Link>
+                        </div>
                       )}
-                      {active ? (
-                        <button
-                          className="btn btn-ghost btn-icon"
-                          aria-label={`${t.projet.remove} ${label(x)}`}
-                          onClick={() => run(() => api.patchRecommendation(x.id, { status: "deleted" }))}
-                        >
-                          <Trash2 size={15} />
+                      <div className="muted">
+                        {t.projet.origin[x.origin]}
+                        {x.status === "merged" && x.merged_into && (
+                          <> · {t.projet.mergedInto(label(r.recommendations.find((o) => o.id === x.merged_into) ?? x))}</>
+                        )}
+                      </div>
+                      <div className="reco-actions">
+                        {x.status === "proposed" && (
+                          <button className="btn btn-sm" onClick={() => run(() => api.patchRecommendation(x.id, { status: "validated" }))}>
+                            <Check size={13} />
+                            {t.projet.validate}
+                          </button>
+                        )}
+                        {active && actives.length > 1 && (
+                          <select
+                            className="mini-select"
+                            aria-label={`${t.projet.mergeInto} ${label(x)}`}
+                            value=""
+                            onChange={(e) => e.target.value && run(() => api.patchRecommendation(x.id, { merge_into: e.target.value }))}
+                          >
+                            <option value="">{t.projet.mergeInto}</option>
+                            {actives
+                              .filter((o) => o.id !== x.id)
+                              .map((o) => (
+                                <option key={o.id} value={o.id}>
+                                  {label(o).slice(0, 60)}
+                                </option>
+                              ))}
+                          </select>
+                        )}
+                        {active ? (
+                          <button
+                            className="btn btn-ghost btn-icon"
+                            aria-label={`${t.projet.remove} ${label(x)}`}
+                            onClick={() => run(() => api.patchRecommendation(x.id, { status: "deleted" }))}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        ) : (
+                          <button className="btn btn-ghost btn-sm" onClick={() => run(() => api.patchRecommendation(x.id, { status: "proposed" }))}>
+                            <RotateCcw size={13} />
+                            {x.status === "merged" ? t.projet.unmerge : t.projet.restore}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                    <td className="num">
+                      {x.page ? (
+                        <button type="button" className="link" title={t.findings.openInDoc}
+                          onClick={() => void onOpen({ docId: r.document_id, page: x.page, recoId: x.id })}>
+                          {x.page}
                         </button>
                       ) : (
-                        <button className="btn btn-ghost btn-sm" onClick={() => run(() => api.patchRecommendation(x.id, { status: "proposed" }))}>
-                          <RotateCcw size={13} />
-                          {t.projet.restore}
-                        </button>
+                        "–"
                       )}
+                    </td>
+                    <td>
+                      <span className={`badge ${BADGE[x.status]}`}>{t.projet.recoStatus[x.status]}</span>
                     </td>
                   </tr>
                 );
@@ -157,9 +198,23 @@ function Report({ r, run, dossierId }: { r: ReportRecommendations; run: (fn: () 
 }
 
 /** Recommandations des rapports d'audit : relevé par règles, corrections du consultant, contrôle de cohérence. */
+/** [18,19,20,24] → « 18-20, 24 » */
+function compact(ns: number[]): string {
+  const out: string[] = [];
+  let i = 0;
+  while (i < ns.length) {
+    let j = i;
+    while (j + 1 < ns.length && ns[j + 1] === ns[j] + 1) j++;
+    out.push(j > i ? `${ns[i]}-${ns[j]}` : `${ns[i]}`);
+    i = j + 1;
+  }
+  return out.join(", ");
+}
+
 export default function RecommendationsView({ dossierId }: { dossierId: string }) {
   const guard = useGuard();
   const dossier = useDossier(dossierId);
+  const viewer = useViewerOpener();
   const [data, setData] = useState<RecommendationsOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -211,6 +266,7 @@ export default function RecommendationsView({ dossierId }: { dossierId: string }
           </button>
         </div>
       </div>
+      {viewer.modal}
       {error && <Alert>{error}</Alert>}
       {data && data.alerts > 0 && (
         <div className="toast err" role="status" data-testid="recos-alerts">
@@ -219,7 +275,7 @@ export default function RecommendationsView({ dossierId }: { dossierId: string }
       )}
       {data === null && !error && <p className="muted">{t.common.loading}</p>}
       {data?.reports.length === 0 && <Empty icon={ListChecks} label={t.projet.noReports} />}
-      {data?.reports.map((r) => <Report key={r.document_id} r={r} run={run} dossierId={dossierId} />)}
+      {data?.reports.map((r) => <Report key={r.document_id} r={r} run={run} dossierId={dossierId} onOpen={viewer.open} />)}
     </>
   );
 }
