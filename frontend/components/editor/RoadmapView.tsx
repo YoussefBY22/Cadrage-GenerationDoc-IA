@@ -330,7 +330,7 @@ export default function RoadmapView({ id }: { id: string }) {
         )}
       </div>
 
-      <div className="table-wrap">
+      <div className="table-wrap roadmap-table">
         <table>
           <thead>
             <tr>

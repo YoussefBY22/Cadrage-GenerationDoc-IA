@@ -53,7 +53,18 @@ export default function Shell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (onDossier && params.id) setLastDossier(params.id);
     setLast(getLastDossier());
-  }, [onDossier, params.id]);
+    // Page d'un livrable : le dossier vient du livrable lui-même (pas de la mémoire du navigateur,
+    // vide dans un nouveau navigateur ou un lien ouvert directement : la barre perdait ses liens).
+    if (path.startsWith("/deliverables/") && params.id) {
+      api
+        .getDeliverableDossier(params.id)
+        .then((d) => {
+          setLastDossier(d);
+          setLast(d);
+        })
+        .catch(() => {});
+    }
+  }, [onDossier, params.id, path]);
 
   useEffect(() => {
     setAdmin(getRole() === "admin");

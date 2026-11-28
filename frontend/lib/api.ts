@@ -171,6 +171,7 @@ export const api = {
   getJob: (id: string) => request<Job>(`/jobs/${id}`),
   cancelJob: (id: string) => request<Job>(`/jobs/${id}:cancel`, { method: "POST" }),
   busy: () => request<{ label: string; dossier_id: string; done: number; total: number | null }[]>("/jobs/busy"),
+  getDeliverableDossier: async (id: string) => (await request<{ dossier_id: string }>(`/deliverables/${id}`)).dossier_id,
   listDeliverables: (dossierId: string) => request<DeliverableSummary[]>(`/dossiers/${dossierId}/deliverables`),
   deleteDeliverable: (id: string) => request<void>(`/deliverables/${id}`, { method: "DELETE" }),
   setDocumentRole: (id: string, role: DocumentRole) =>
