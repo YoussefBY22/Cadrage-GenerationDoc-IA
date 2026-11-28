@@ -1,186 +1,121 @@
-# 24 — Le parcours en images : d'un rapport d'audit au cahier des charges
+# 24 — Le parcours en images, relu par un expert
 
-> Test complet de la **V4.1** fait le 27-28/11/2026 comme un utilisateur, dans l'application réelle, sur un
-> **nouveau dossier** et le rapport public **RS 17/2022 de la Cour des comptes européenne** (53 pages,
-> « Recours aux consultants externes »). Sous chaque capture : ce que fait l'application, puis la **relecture
-> d'un expert** (ce qui est juste, ce qui est faux). Les erreurs trouvées sont gardées : elles décident des
-> corrections du code (V4.2) et du prochain entraînement (doc 23 §4).
+Ce document montre l'application **pour de vrai**, du rapport d'audit au cahier des charges. Sous chaque capture :
+**ce que fait l'application**, puis **la relecture d'un consultant** qui a tout vérifié contre le rapport : ce qui
+est juste, ce qui est faux. Les erreurs sont gardées : elles servent à corriger le code et à préparer le prochain
+entraînement du modèle ([doc 23 §4](23-versions-de-l-application.md)).
 
-```mermaid
-flowchart LR
-  A[1. Dossier] --> B[2. Rapport importé] --> C[3. Recommandations relevées] --> D[4. Fiche du projet]
-  D --> E[5-7. Constats extraits puis nettoyés] --> F[8-10. Relecture et preuves]
-  F --> G[11. Feuille de route] --> H[12-14. TdR] --> I[15. Cahier des charges]
-```
+**Le document testé** : le rapport spécial 17/2022 de la Cour des comptes européenne, « Le recours de la Commission
+européenne à des consultants externes ». C'est un document public (53 pages, licence CC BY 4.0). Il contient 4
+recommandations officielles et une centaine de paragraphes numérotés.
+
+**Le matériel** : un ordinateur portable avec un petit GPU de 4 Go. Le modèle tourne sur place, rien ne sort.
 
 ---
 
-### 1. Le tableau de bord
+## 1. Le tableau de bord
 ![Tableau de bord](img/parcours/01-tableau-de-bord.jpg)
 
-Les dossiers du cabinet ; « + Nouveau » crée un dossier (client, nom).
-**Relecture** : le compteur « constats » comptait aussi les constats écartés et fusionnés (96 au lieu de 62
-actifs) ; corrigé pendant le test. Après « Créer », l'application restait sur le tableau de bord : elle ouvre
-maintenant le dossier créé.
+**Ce qu'on fait** : on crée un dossier, ici « Test V4.1 », pour tester la dernière version.
+**Relecture** : le compteur comptait d'abord aussi les phrases écartées ; corrigé pendant le test.
 
-⬇
+## 2. Le dossier et son rapport
+![Dossier](img/parcours/02-dossier.jpg)
 
-### 2. Le rapport est importé
-![Import](img/parcours/02-import-du-rapport.jpg)
+**Ce qu'on fait** : on dépose le PDF. L'application le découpe en 103 passages et le prépare pour la recherche
+(environ 3 min). Les étapes en haut montrent l'avancement.
 
-Le PDF est déposé dans « Rapports d'audit et diagnostics » : il est découpé en 103 passages et indexé pour la
-recherche par le sens (≈ 3 min sur ce poste).
-**Relecture** : la capture montre l'état d'avant correction (« Import… » sans rien d'autre) ; l'import affiche
-maintenant ce qu'il fait et le temps écoulé.
+## 3. L'IA lit le rapport, en direct
+![Extraction en direct](img/parcours/03-extraction-en-direct.jpg)
 
-⬇
+**Ce qu'on voit** : ce que fait le modèle, le nombre de passages lus, le temps écoulé et restant, un bouton Arrêter.
+La lecture complète prend environ **36 minutes**. Les constats apparaissent au fur et à mesure.
+*(Capture plus ancienne, prise dans une fenêtre plus petite.)*
 
-### 3. Les recommandations du rapport, relevées en entier
-![Recommandations](img/parcours/03-recommandations.jpg)
+## 4. Les constats : 35 gardés sur 64
+![Constats](img/parcours/04-constats.jpg)
 
-Par règles, sans modèle, en une seconde : titre, phrase d'introduction, sous-points a), b), c), échéance et
-paragraphes cités. Le consultant valide.
-**Relecture** : comparé au rapport (p. 42-45) : 4 recommandations sur 4, 11 sous-points sur 11, 4 échéances,
-paragraphes cités exacts (18-26 et 24, 28-32 ; 34-36 et 38-56 ; 57-71 ; 72-84). **Aucune erreur.**
+**Ce qui s'est passé** :
+- l'IA a relevé **64 phrases**, toutes copiées mot pour mot du rapport (c'est vérifié) ;
+- **29 n'étaient pas des constats** : 8 phrases de méthode (« Nous avons examiné si… »), 2 descriptions de figure,
+  17 phrases de contexte ou de règle, écartées automatiquement ; 2 écartées par le consultant ;
+- les constats gardés sont **reformulés** en « Il a été constaté que… », la phrase exacte restant affichée ;
+- le consultant a fait **6 corrections** : 2 reformulations remises à la phrase du rapport, 1 constat écarté à
+  tort rétabli, 2 phrases écartées, 1 fusion de doublons annulée ;
+- résultat : **35 constats validés**.
 
-⬇
+**Relecture** : tous les constats importants de la conclusion du rapport sont là, sauf un (« la diffusion des
+résultats est fragmentée »). Environ **45 %** des phrases relevées n'étaient pas des constats : le nettoyage les
+écarte. Environ **1 reformulation sur 20** change le sens : c'est pourquoi elles sont marquées « à relire ».
+La **gravité** (élevée, moyenne, faible) est peu fiable : un même manque est « élevé » à un endroit, « faible » à un autre.
 
-### 4. La fiche du projet
-![Fiche](img/parcours/04-fiche-du-projet.jpg)
+## 5. Les recommandations du rapport
+![Recommandations](img/parcours/05-recommandations.jpg)
 
-Secteur, périmètre, contraintes, parties prenantes et types de projet (ici « Services et externalisation » et
-« Étude et conseil », qui ajoutent leurs sections aux TdR et au cahier des charges). Confirmée par le consultant.
+**Ce qu'on voit** : les 4 recommandations, en entier : sous-points a), b), c), échéance (« D'ici à décembre 2023 »)
+et paragraphes du rapport qui les justifient. Relevées par des règles, sans IA, en une seconde.
+**Relecture** : comparé au rapport (pages 42 à 45), **tout est juste** : 4 recommandations sur 4, 11 sous-points
+sur 11, échéances et paragraphes exacts.
 
-⬇
+## 6. Chaque preuve, surlignée dans le document
+![Preuve surlignée](img/parcours/06-preuve-surlignee.jpg)
 
-### 5. L'IA lit le rapport, et on la suit en direct
-![Extraction en direct](img/parcours/05-extraction-en-direct.jpg)
+**Ce qu'on voit** : la recommandation n° 1 surlignée dans le PDF, à la bonne page. Au survol, une bulle dit à quoi
+correspond le passage. On peut surligner jusqu'à 8 éléments à la fois.
+**Relecture** : le surlignage suit les lignes du PDF, il déborde parfois un peu sur la phrase voisine.
 
-Étape en cours (« Le modèle lit 7 passages… p. 13–17 »), avancement (20/103), temps écoulé et restant, bouton
-Arrêter. Les constats apparaissent **au fil de l'eau**, avant la fin : chaque lot lu est enregistré.
+## 7. La feuille de route
+![Feuille de route](img/parcours/07-feuille-de-route.jpg)
 
-⬇
+**Ce qu'on voit** : chaque recommandation devient un **axe** (R1 à R4), chaque sous-point une **initiative**,
+rangée dans une **vague** : 0-6 mois, 6-12 mois, 12-24 mois. Calcul en 20 secondes, sans IA.
+**Relecture** : la structure suit exactement le rapport (11 initiatives pour 11 sous-points).
 
-### 6. L'historique de la lecture
-![Historique](img/parcours/06-extraction-historique.jpg)
+## 8. Pourquoi cette vague
+![Pourquoi cette vague](img/parcours/08-pourquoi-cette-vague.jpg)
 
-Chaque lot : pages lues, constats retenus, phrases écartées (doublon ou preuve introuvable). 103 passages en
-≈ 36 min sur un GPU de 4 Go.
-**Relecture** : 64 phrases relevées, toutes **copiées mot pour mot** du rapport (vérifié). Les constats clés de
-la conclusion (§ 86 à 91) sont tous là. Manque : « la diffusion des résultats est fragmentée » (§ 90). La
-**gravité** est incohérente : le même manque est « élevé » dans la synthèse et « faible » dans le corps du texte.
+**Ce qu'on voit** : chaque initiative dit d'où elle vient (« recommandation n° 2, point a), p. 43 ») et **pourquoi**
+elle est dans sa vague. Boutons pour rédiger ses TdR ou son cahier des charges.
+**Relecture** : **erreur de priorité** : la recommandation n° 1 (« compléter le cadre », la base de tout le reste)
+part en vague 3, parce que l'IA a jugé « faibles » les constats qui la justifient. Un consultant la mettrait en vague 1.
 
-⬇
+## 9. Les termes de référence (TdR)
+![TdR](img/parcours/09-tdr.jpg)
 
-### 7. Le nettoyage : bruit écarté, doublons, reformulation
-![Nettoyage](img/parcours/07-nettoyage.jpg)
+**Ce qu'on voit** : le calendrier, le profil et les critères, décidés par le consultant, sont repris **tels quels**.
+Pour les autres sections, sans preuve, l'IA **refuse** au lieu d'inventer.
+**Relecture** : refuser la **méthode** est juste (le rapport n'en parle pas). Refuser les **objectifs** et les
+**livrables** est une erreur : la recommandation, donnée à l'IA, les contenait. Le « contexte » rédigé était aussi
+hors sujet, avec une phrase abîmée par le PDF pourtant marquée « vérifiée ».
 
-Phrases de méthode (« Nous avons examiné si… ») et de figure écartées ; doublons fusionnés ; chaque constat
-reformulé en « Il a été constaté que… » avec garde-fous (fidélité par le sens, chiffres, nature).
-**Relecture (53 constats)** : 36 reformulés par l'IA, 17 par une règle simple (garde-fous), 18 écartés.
-Aucune invention de fait cette fois (le premier essai, sans garde-fous, en avait ≈ 5 sur 59). Erreurs restantes :
-un glissement de sens (« manque d'informations » → « ne précise pas »), un **sens inversé** (n° 150, la
-source du financement), une fusion fausse (deux phrases « lignes directrices… » bâties sur le même modèle), un
-vrai constat écarté (« elles tendent à échapper à une supervision rigoureuse »), « cela » non résolu, une faute
-de langue. Les défauts de règle (« Il a été constaté que nous avons observé… », « que au ») ont été corrigés.
+## 10. Le cahier des charges
+![Cahier des charges](img/parcours/10-cahier-des-charges.jpg)
 
-⬇
+**Ce qu'on voit** : les exigences proposées par l'IA, colorées selon leur preuve : vert vérifiée, orange à vérifier,
+rouge non étayée.
+**Relecture** : 5 exigences sur 11 sont justes ; 1 doublon, 1 qui n'est pas une exigence, 1 incohérente, et 2 qui
+citent à tort une décision du consultant (« D »). C'est un **premier jet à reprendre**, et les couleurs le montrent.
 
-### 8. La relecture par le consultant
-![Constats à relire](img/parcours/08-constats-a-relire.jpg)
+## 11. L'assistant, sur toutes les pages
+![Assistant](img/parcours/11-assistant.jpg)
 
-Chaque reformulation porte « Reformulé par l'IA — à relire » ; la phrase exacte du rapport est à un clic ;
-« Valider les N constats affichés » suit les filtres.
-**Relecture** : avant de valider, le consultant remet la phrase du rapport pour la reformulation fautive, écarte
-deux phrases de contexte (intérêt du Parlement et des médias, cellule du tableau 6) : 35 constats validés.
-
-⬇
-
-### 9. Un constat écarté à tort se rétablit
-![Constat écarté](img/parcours/09-constat-ecarte.jpg)
-
-Écarté ne veut pas dire supprimé : la raison est affichée, « Rétablir » le remet ; « Défusionner » sépare deux
-constats fusionnés à tort (testé sur la fusion fausse).
-
-⬇
-
-### 10. Les preuves surlignées dans le PDF
-![Preuves surlignées](img/parcours/10-preuves-surlignees.jpg)
-
-Le document s'ouvre dans l'application, sur la preuve, surlignée ; jusqu'à 8 constats à la fois, une couleur
-chacun ; la sélection est rappelée à gauche.
-**Relecture** : le surlignage suit les lignes du PDF : il déborde parfois sur la phrase voisine.
-
-⬇
-
-### 11. La feuille de route, fondée sur les recommandations
-![Feuille de route](img/parcours/11-feuille-de-route.jpg)
-
-Une recommandation = un axe, un sous-point = une initiative, les constats liés comme justification ; vague
-fixée par l'échéance du rapport, sinon par la gravité, avec la raison écrite (« Pourquoi cette vague : … »).
-Calcul sans modèle : ≈ 20 s.
-**Relecture** : structure fidèle au rapport (11 initiatives = 11 sous-points). Deux erreurs de logique de mon
-code, corrigées : un sous-point sans constat passait devant un sous-point appuyé par des constats ; un titre
-n'était pas une action. **Erreur de priorité restante** : toute la recommandation n° 1 (« compléter le cadre »,
-la base des autres) part en vague 3, parce que le modèle a jugé « faibles » les constats qui la justifient ; un
-consultant la mettrait en vague 1. La gravité est la première chose à entraîner.
-
-⬇
-
-### 12. Les TdR d'une initiative, rédigés section par section
-![TdR rédaction](img/parcours/12-tdr-redaction.jpg)
-
-Depuis la feuille de route, « Rédiger les TdR » sur une initiative ; chaque section est rédigée à partir des
-sources (40 s à 2 min), chaque phrase vérifiée.
-**Relecture (Contexte)** : « Preuves : 100 % », mais une phrase est **abîmée** (une note de bas de page du PDF
-collée au texte) et **acceptée** parce que copiée mot pour mot ; le contenu est **hors sujet** (orientations
-sur les évaluations au lieu de la concentration des prestataires) ; le style recopie la voix des auditeurs
-(« Nous avons constaté… ») au lieu de présenter le contexte d'une mission.
-
-⬇
-
-### 13. Les décisions humaines
-![Décisions](img/parcours/13-decisions.jpg)
-
-Profil du prestataire, calendrier, critères d'évaluation : saisis et confirmés par le consultant ; les sections
-correspondantes des TdR les reprennent **telles quelles, instantanément, sans modèle**.
-
-⬇
-
-### 14. Ce que le modèle refuse d'écrire
-![Refus](img/parcours/14-tdr-refus.jpg)
-
-Objectifs, méthodologie, livrables : « Preuves insuffisantes ». « Proposer quand même » demande une proposition au
-modèle de base, à relire.
-**Relecture** : le refus de la **méthodologie** est juste (le rapport ne la décrit pas). Ceux des **objectifs**
-et des **livrables** ne le sont pas : la recommandation 2 a) était transmise en première source et contient
-l'objectif ; le modèle entraîné ne sait pas transformer une recommandation en objectif de mission. La proposition
-du modèle de base : 8 objectifs dont 3 répétitions et 2 hors périmètre (un consultant en écrirait 2 ou 3).
-
-⬇
-
-### 15. Le cahier des charges : exigences proposées, vérifiées une à une
-![CdC exigences](img/parcours/15-cdc-exigences.jpg)
-
-Pour l'initiative « Rendre compte régulièrement… » (recommandation 4). Le modèle entraîné refuse ; le modèle de
-base propose 11 exigences ; le vérificateur en marque 9 en rouge « non étayée ».
-**Relecture** : 5 exigences justes et ancrées dans le rapport, 1 doublon, 1 qui n'est pas une exigence, 1
-incohérente, et **2 qui citent à tort une décision du consultant** (« D ») comme source. Un consultant écrirait
-des exigences numérotées et testables (EF-01 registre central des contrats de conseil, EF-02 contrôle de la
-catégorie à la saisie, EF-03 rapport annuel par DG et type de service).
+**Ce qu'on voit** : « Où en est le dossier ? » : réponse immédiate, tirée de l'application. « Que dit le rapport sur
+la concentration des prestataires ? » : réponse du modèle avec sa source (p. 43), en un peu plus d'une minute.
+**Relecture** : la réponse est juste et la source est la bonne page.
 
 ---
 
-## Bilan honnête
+## En résumé
 
-| Étape | Fiabilité observée | Qui fait le travail |
-|---|---|---|
-| Recommandations (relevé complet) | **exacte** | règles |
-| Extraction des constats | bonne couverture, phrases exactes ; gravité peu fiable | modèle entraîné (V4) + vérificateur |
-| Nettoyage / reformulation | ≈ 1 erreur de sens sur 20 avec garde-fous ; à relire | modèle de base + garde-fous |
-| Feuille de route | structure exacte ; priorités faussées par la gravité | règles (sans modèle) |
-| TdR et cahier des charges | sections de décision exactes ; sections rédigées souvent refusées ou à reprendre | modèle entraîné, proposition par le modèle de base |
+| Étape | Fiabilité observée |
+|---|---|
+| Recommandations | **exactes** (règles) |
+| Constats | complets, phrases exactes ; beaucoup de bruit écarté ; gravité peu fiable |
+| Reformulation | ≈ 1 erreur de sens sur 20, toujours à relire |
+| Feuille de route | structure exacte ; priorités faussées par la gravité |
+| TdR et cahier des charges | décisions exactes ; le reste refusé ou à reprendre |
+| Assistant | réponses justes, avec leur source |
 
-L'application **ne remplace pas** le consultant : elle prépare, cite et signale ce qui est à relire. Les
-erreurs relevées ici fixent le prochain entraînement : gravité des constats ; objectifs, livrables et exigences
-tirés d'une recommandation ; contexte rédigé dans le style d'un TdR (doc 23 §4).
+L'application **ne remplace pas le consultant** : elle prépare, montre ses preuves et signale ce qui est à relire.
+Ce que le prochain entraînement doit apprendre (gravité ; objectifs, livrables et exigences tirés d'une
+recommandation ; reformulation fidèle) est détaillé dans la [doc 23](23-versions-de-l-application.md).
