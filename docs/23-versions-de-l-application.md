@@ -88,6 +88,34 @@ reprennent en termes simples les constats du corps du texte ; ces couples (phras
 sont des exemples sans rédaction humaine, comme les autres tâches (doc 20 §8). Plus une tâche « nature »
 (problème, positif, contexte) étiquetée par les marques du texte et vérifiée à la main sur un échantillon.
 
-### 4.3 Extraction, feuille de route, TdR et cahier des charges
+### 4.3 Test complet sur un nouveau dossier (V4.1 puis V4.2)
 
-> Complété à la fin du test sur le nouveau dossier « Test V4.1 ».
+Parcours en images et relecture capture par capture : [`24-parcours-en-images.md`](24-parcours-en-images.md).
+
+| Étape | Erreurs trouvées | Cause | Correction |
+|---|---|---|---|
+| Extraction (103 passages, 36 min) | 1 constat clé oublié (§ 90, diffusion fragmentée) ; **gravité incohérente** (même manque « élevé » en synthèse, « faible » dans le corps) ; titres de figure gardés | modèle | **entraînement** (gravité) ; règle « La figure N – » à ajouter |
+| Nettoyage V4.2 (53 constats) | 1 glissement de sens, 1 **sens inversé**, 1 fusion fausse, 1 vrai constat écarté, « cela » non résolu | modèle + seuils | fusion : mots en commun exigés en plus du sens ; « échapper à » = manque ; le reste : **entraînement** (reformulation) |
+| Règle de reformulation | « Il a été constaté que nous avons observé… », « que au », notes collées (« locaux14 ») | code | corrigé (V4.2) |
+| Paragraphes | « § 82 » au lieu de 84 (numéro après une fin de phrase) ; « § 2 » (numéro de page) | code | corrigé (V4.2) |
+| Feuille de route | sous-point sans constat placé avant un sous-point appuyé ; titre « La Commission devrait… » ; **R1 (le cadre, prérequis) en vague 3** | code ; gravité du modèle | code corrigé ; priorité : **entraînement** (gravité) + dépendances entre recommandations à prévoir |
+| Feuille de route (usage) | impossible de régénérer ; impossible de choisir l'initiative d'un TdR | interface | « Régénérer » et « Rédiger les TdR / le cahier des charges » par initiative |
+| TdR — Contexte | phrase abîmée (note de bas de page collée) **acceptée comme vérifiée** ; hors sujet ; voix des auditeurs | vérificateur ; recherche ; modèle | nettoyage des notes avant vérification (à faire) ; **entraînement** (contexte de mission) |
+| TdR — Objectifs, Livrables | refus alors que la recommandation (transmise en P1) les contient | modèle | **entraînement** (recommandation → objectifs / livrables) |
+| TdR — Méthodologie | refus **juste** (le rapport ne la décrit pas) | — | le consultant rédige, ou « Proposer quand même » |
+| Proposition (modèle de base) | 8 objectifs : 3 répétitions, 2 hors périmètre | modèle de base | limiter le nombre ; **entraînement** |
+| Cahier des charges — Exigences | refus du modèle entraîné ; proposition : 5 justes / 11, 1 doublon, **2 citent à tort une décision** | modèles | **entraînement** (exigences testables depuis une recommandation) ; contrôle : une décision ne peut être citée que pour sa catégorie |
+| Interface | marques « [1] » et « D » dans l'éditeur ; la page TdR ne dit pas pour quelle initiative | interface | à faire |
+
+### 4.4 Ce que le prochain entraînement (V6) doit apprendre, par ordre de priorité
+
+1. **Gravité des constats** : même jugement pour un même manque, où qu'il soit dans le rapport. Bonnes réponses
+   tirées du rapport : la conclusion (§ 85-91) reprend les manques que la Cour juge les plus importants.
+2. **De la recommandation au livrable** : objectifs, livrables et exigences testables à partir du texte d'une
+   recommandation et de ses sous-points (la recommandation est la source, sa reformulation la cible).
+3. **Reformuler un constat** sans changer le sens ni le sujet (couples phrase du corps → phrase de la synthèse,
+   comme au §4.2).
+4. **Contexte de mission** : présenter le contexte d'une mission (chiffres et constats clés, cités) au lieu de
+   recopier la voix des auditeurs.
+
+Le reste se corrige par le code (V4.x) : règles, garde-fous, interface.
