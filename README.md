@@ -14,7 +14,7 @@ Projet de fin d'études, 2026. Testé sur un vrai rapport public : rapport spéc
 européenne (53 pages, CC BY 4.0).
 
 > [!IMPORTANT]
-> ## 👉 [Voir le parcours complet en images, relu par un expert](docs/24-parcours-en-images.md)
+> ## 👉 [Voir le parcours complet en images, piloté et corrigé par un consultant](docs/24-parcours-en-images.md)
 > Du rapport d'audit au cahier des charges, étape par étape : ce que fait l'IA, ce qui est juste, ce qui est faux.
 
 ## Le parcours en 11 étapes
