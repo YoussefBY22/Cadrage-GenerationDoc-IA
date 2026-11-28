@@ -13,14 +13,69 @@ par un vérificateur. Tout tourne sur un serveur local.**
 Projet de fin d'études, 2026. Testé sur un vrai rapport public : rapport spécial 17/2022 de la Cour des comptes
 européenne (53 pages, CC BY 4.0).
 
-**Le parcours en images**, du rapport au cahier des charges, avec la relecture d'un expert sous chaque étape (ce
-qui est juste, ce qui est faux) : [`docs/24-parcours-en-images.md`](docs/24-parcours-en-images.md).
+> [!IMPORTANT]
+> ## 👉 [Voir le parcours complet en images, relu par un expert](docs/24-parcours-en-images.md)
+> Du rapport d'audit au cahier des charges, étape par étape : ce que fait l'IA, ce qui est juste, ce qui est faux.
 
-| Recommandations relevées en entier (sous-points, échéance) | L'IA lit le rapport, suivie en direct |
-|---|---|
-| ![Recommandations](docs/img/parcours/03-recommandations.jpg) | ![Extraction](docs/img/parcours/05-extraction-en-direct.jpg) |
-| **Preuves surlignées dans le PDF** | **Feuille de route : une recommandation = un axe, raison de chaque vague** |
-| ![Preuves](docs/img/parcours/10-preuves-surlignees.jpg) | ![Feuille de route](docs/img/parcours/11-feuille-de-route.jpg) |
+## Le parcours en 11 étapes
+
+Test réel du 27-28/11/2026 sur un document public : le **rapport spécial 17/2022 de la Cour des comptes européenne**,
+« Le recours de la Commission européenne à des consultants externes » (53 pages, licence CC BY 4.0).
+
+### Étape 1 — Le tableau de bord
+![Tableau de bord](docs/img/parcours/01-tableau-de-bord.jpg)
+On commence ici : un dossier par client et par mission. On en crée un, « Test V4.1 », pour tester la dernière
+version de l'application.
+
+### Étape 2 — Le dossier et son rapport
+![Dossier](docs/img/parcours/02-dossier.jpg)
+On dépose le rapport d'audit du client. Les étapes en haut montrent où en est le travail : documents, constats,
+feuille de route, TdR.
+
+### Étape 3 — L'IA lit le rapport, en direct
+![Extraction en direct](docs/img/parcours/03-extraction-en-direct.jpg)
+Le modèle lit les 103 passages du rapport : environ **36 minutes** sur un petit GPU de 4 Go. On voit ce qu'il fait,
+le temps restant, et on peut l'arrêter.
+
+### Étape 4 — Les constats : 35 gardés sur 64
+![Constats](docs/img/parcours/04-constats.jpg)
+L'IA a relevé **64 phrases** du rapport. **29 n'étaient pas des constats** (méthode de l'audit, figures, contexte) :
+27 écartées automatiquement, 2 par le consultant. Restent **35 constats validés**, après **6 corrections** du consultant.
+
+### Étape 5 — Les recommandations du rapport
+![Recommandations](docs/img/parcours/05-recommandations.jpg)
+Les recommandations officielles sont reprises **en entier** : sous-points, échéance, paragraphes qui les justifient.
+Comparé au rapport : **4 sur 4, aucune erreur**.
+
+### Étape 6 — Chaque preuve, surlignée dans le document
+![Preuve surlignée](docs/img/parcours/06-preuve-surlignee.jpg)
+Chaque constat et chaque recommandation s'ouvre dans le PDF, à la bonne page, surligné. Au survol, une bulle dit à
+quoi correspond le passage.
+
+### Étape 7 — La feuille de route
+![Feuille de route](docs/img/parcours/07-feuille-de-route.jpg)
+Chaque recommandation devient un **axe**, chaque sous-point une **initiative**, rangée en **vague** : 0-6 mois,
+6-12 mois ou 12-24 mois. Calculée en 20 secondes, sans IA.
+
+### Étape 8 — Pourquoi cette vague
+![Pourquoi cette vague](docs/img/parcours/08-pourquoi-cette-vague.jpg)
+Chaque placement est expliqué (échéance du rapport, gravité des constats) et renvoie au rapport. Limite : la
+recommandation n° 1 part en vague 3, car l'IA a mal jugé la gravité de ses constats.
+
+### Étape 9 — Les termes de référence (TdR)
+![TdR](docs/img/parcours/09-tdr.jpg)
+Les décisions du consultant (calendrier, profil, critères) sont reprises telles quelles. Sans preuve, l'IA
+**refuse au lieu d'inventer** — parfois à tort : ici, les objectifs étaient dans la recommandation.
+
+### Étape 10 — Le cahier des charges
+![Cahier des charges](docs/img/parcours/10-cahier-des-charges.jpg)
+Chaque exigence est colorée selon sa preuve : vert vérifiée, rouge non étayée. Ici **2 sur 11 vérifiées** : le
+premier jet de l'IA est à reprendre par le consultant.
+
+### Étape 11 — L'assistant, sur toutes les pages
+![Assistant](docs/img/parcours/11-assistant.jpg)
+Il répond tout de suite sur l'état du dossier, et sur le contenu du rapport avec sa source (ici p. 43). Il ne
+modifie rien dans le dossier.
 
 ## Ce que fait l'outil
 
@@ -233,7 +288,7 @@ llama.cpp (GGUF Q4_K_M) · Next.js 15 · TipTap · Playwright · python-docx / p
 | [`docs/19-entrainement-et-tests-reels.md`](docs/19-entrainement-et-tests-reels.md) | mesures détaillées, vrai rapport, fenêtre de contexte |
 | [`docs/21-vision-et-prochaines-etapes.md`](docs/21-vision-et-prochaines-etapes.md) | vision cible, apprentissage par les corrections, plan |
 | [`docs/23-versions-de-l-application.md`](docs/23-versions-de-l-application.md) | ce que fait chaque version (V4.0, V4.1, V4.2), revue experte, prochain entraînement |
-| [`docs/24-parcours-en-images.md`](docs/24-parcours-en-images.md) | le parcours complet en captures, relu par un expert |
+| [`docs/24-parcours-en-images.md`](docs/24-parcours-en-images.md) | le parcours complet en captures, relu par un expert (erreurs comprises) |
 | [`docs/22-business-intelligence.md`](docs/22-business-intelligence.md) · [`docs/07-entrepot-bi.md`](docs/07-entrepot-bi.md) | business intelligence : entrepôt, modèle Power BI, pages, règles |
 | [`docs/01-cahier-des-charges.md`](docs/01-cahier-des-charges.md) · [`docs/06-architecture.md`](docs/06-architecture.md) | besoin, exigences, architecture |
 | [`docs/lots/AXES.md`](docs/lots/AXES.md) · [`docs/lots/`](docs/lots/) | comptes rendus techniques |

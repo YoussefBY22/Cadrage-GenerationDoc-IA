@@ -114,7 +114,7 @@ export default function Assistant({ dossierId }: { dossierId?: string }) {
           </div>
         )}
         {msgs.map((m, i) => (
-          <div key={i} className={`assistant-msg ${m.role}`}>
+          <div key={i} className={`assistant-msg role-${m.role}`}>
             <p>{m.text}</p>
             {m.role === "assistant" && m.model === false && <small className="muted">{t.assistant.instant}</small>}
             {(m.sources?.length ?? 0) > 0 && (
@@ -136,7 +136,7 @@ export default function Assistant({ dossierId }: { dossierId?: string }) {
           </div>
         ))}
         {waiting && (
-          <div className="assistant-msg assistant">
+          <div className="assistant-msg role-assistant">
             <WaitNote label={t.wait.chat} typical={t.wait.chatTypical} />
           </div>
         )}

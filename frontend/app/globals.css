@@ -435,9 +435,9 @@ mark { background: #fff0a0; padding: 0 1px; border-radius: 2px; }
 .assistant-msgs { flex: 1; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
 .assistant-msg { max-width: 88%; font-size: 13.5px; }
 .assistant-msg p { margin: 0; padding: 8px 10px; border-radius: 10px; white-space: pre-wrap; }
-.assistant-msg.user { align-self: flex-end; }
-.assistant-msg.user p { background: #ffe600; }
-.assistant-msg.assistant p { background: #f1f1f5; }
+.assistant-msg.role-user { align-self: flex-end; }
+.assistant-msg.role-user p { background: #ffe600; }
+.assistant-msg.role-assistant p { background: #f1f1f5; }
 .assistant-sources, .assistant-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .chip { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 3px 10px; font-size: 12px; cursor: pointer; }
 .chip:hover { background: #fafaf3; }
@@ -445,3 +445,10 @@ mark { background: #fff0a0; padding: 0 1px; border-radius: 2px; }
 .assistant-form { display: flex; gap: 6px; padding: 10px; border-top: 1px solid var(--line); }
 .assistant-form input { flex: 1; }
 .tag-warn { background: #fff1e6; border-color: #f3b98a; color: #9a4a0c; }
+/* la liste des messages défile ; le titre et le champ de saisie restent toujours visibles */
+.assistant > header, .assistant > .assistant-form { flex: none; }
+.assistant-msgs { min-height: 0; }
+/* tableau des initiatives : colonnes étroites pour rang et vague, l'initiative passe à la ligne */
+.roadmap-table td:first-child { min-width: 0; width: 56px; }
+.roadmap-table td:nth-child(2) { width: 64px; }
+.roadmap-table td:nth-child(3) { white-space: normal; }

@@ -170,6 +170,7 @@ export default function DossierPage() {
   const [importRole, setImportRole] = useState<DocumentRole>("other");
   const [recoAlerts, setRecoAlerts] = useState(0);
   const [deliverables, setDeliverables] = useState<DeliverableSummary[]>([]);
+  const [delivLoaded, setDelivLoaded] = useState(false); // tant que la liste n'est pas là, ne rien créer
 
   const reload = useCallback(() => {
     api
@@ -188,6 +189,7 @@ export default function DossierPage() {
       .listDeliverables(id)
       .then((list) => {
         setDeliverables(list);
+        setDelivLoaded(true);
         const latest = (type: string) => list.find((d) => d.type === type)?.id;
         setRefsState((cur) => ({ ...cur, roadmap: latest("roadmap"), tor: latest("tor"), cdc: latest("cdc") }));
       })
@@ -299,8 +301,8 @@ export default function DossierPage() {
   const steps = [
     { key: "documents", label: t.dossier.steps.documents, sub: `${docs?.length ?? 0}`, done: hasDocs, run: () => document.getElementById("documents")?.scrollIntoView({ behavior: "smooth" }), off: false },
     { key: "findings", label: t.dossier.steps.findings, sub: `${validated}/${findings.length}`, done: validated > 0, run: () => router.push(`/dossiers/${id}/findings`), off: !hasDocs },
-    { key: "roadmap", label: t.dossier.steps.roadmap, sub: refs.roadmap ? t.common.open : "", done: !!refs.roadmap, run: roadmap, off: validated === 0 && !refs.roadmap },
-    { key: "tor", label: t.dossier.steps.tor, sub: refs.tor ? t.common.open : "", done: !!refs.tor, run: tor, off: validated === 0 && !refs.tor },
+    { key: "roadmap", label: t.dossier.steps.roadmap, sub: refs.roadmap ? t.common.open : "", done: !!refs.roadmap, run: roadmap, off: !delivLoaded || (validated === 0 && !refs.roadmap) },
+    { key: "tor", label: t.dossier.steps.tor, sub: refs.tor ? t.common.open : "", done: !!refs.tor, run: tor, off: !delivLoaded || (validated === 0 && !refs.tor) },
   ];
   const current = steps.findIndex((s) => !s.done);
 
